@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,8 +33,8 @@ const Communications = () => {
         .from('communications')
         .select(`
           *,
-          sender:profiles!communications_sender_id_fkey(full_name),
-          recipient:profiles!communications_recipient_id_fkey(full_name),
+          sender:profiles!communications_sender_id_fkey(first_name, last_name),
+          recipient:profiles!communications_recipient_id_fkey(first_name, last_name),
           transactions(property_address, status)
         `)
         .order('created_at', { ascending: false });
@@ -132,6 +133,13 @@ const Communications = () => {
       case 'meeting': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getPersonName = (person: { first_name?: string; last_name?: string } | null) => {
+    if (!person) return 'Unknown';
+    const firstName = person.first_name || '';
+    const lastName = person.last_name || '';
+    return `${firstName} ${lastName}`.trim() || 'Unknown';
   };
 
   if (isLoading) {
@@ -342,10 +350,10 @@ const Communications = () => {
                       
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                         <span>
-                          From: {comm.sender?.full_name || 'Unknown'}
+                          From: {getPersonName(comm.sender)}
                         </span>
                         <span>
-                          To: {comm.recipient?.full_name || 'Unknown'}
+                          To: {getPersonName(comm.recipient)}
                         </span>
                         {comm.transactions && (
                           <span>
