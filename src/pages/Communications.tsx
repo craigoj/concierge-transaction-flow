@@ -22,7 +22,7 @@ const Communications = () => {
   const [composeOpen, setComposeOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch communications
+  // Fetch communications with explicit column aliases to avoid ambiguity
   const { data: communications, isLoading } = useQuery({
     queryKey: ['communications', selectedFilter, searchTerm],
     queryFn: async () => {

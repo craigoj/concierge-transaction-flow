@@ -14,8 +14,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Eye, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface Template {
+  id: string;
+  name: string;
+  subject: string;
+  body_html: string;
+  category?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  created_by_profile?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
 const Templates = () => {
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -33,7 +48,7 @@ const Templates = () => {
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as Template[];
     }
   });
 
@@ -69,7 +84,7 @@ const Templates = () => {
     }
     acc[category].push(template);
     return acc;
-  }, {} as Record<string, any[]>) || {};
+  }, {} as Record<string, Template[]>) || {};
 
   if (isLoading) {
     return (
@@ -234,7 +249,14 @@ const Templates = () => {
   );
 };
 
-const TemplateCard = ({ template, onEdit, onDelete, onPreview }) => {
+interface TemplateCardProps {
+  template: Template;
+  onEdit: () => void;
+  onDelete: () => void;
+  onPreview: () => void;
+}
+
+const TemplateCard: React.FC<TemplateCardProps> = ({ template, onEdit, onDelete, onPreview }) => {
   return (
     <Card>
       <CardHeader>
@@ -268,7 +290,12 @@ const TemplateCard = ({ template, onEdit, onDelete, onPreview }) => {
   );
 };
 
-const TemplateForm = ({ template, onSuccess }: { template?: any; onSuccess: () => void }) => {
+interface TemplateFormProps {
+  template?: Template;
+  onSuccess: () => void;
+}
+
+const TemplateForm: React.FC<TemplateFormProps> = ({ template, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: template?.name || '',
     subject: template?.subject || '',
@@ -279,7 +306,7 @@ const TemplateForm = ({ template, onSuccess }: { template?: any; onSuccess: () =
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: typeof formData) => {
       const user = await supabase.auth.getUser();
       
       if (template) {

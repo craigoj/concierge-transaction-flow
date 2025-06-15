@@ -13,10 +13,45 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Play, Pause, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface AutomationRule {
+  id: string;
+  name: string;
+  trigger_event: string;
+  trigger_condition?: any;
+  template_id: string;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  template?: {
+    name: string;
+    subject: string;
+  };
+  created_by_profile?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+interface WorkflowExecution {
+  id: string;
+  rule_id: string;
+  transaction_id: string;
+  executed_at: string;
+  status: string;
+  error_message?: string;
+  rule?: {
+    name: string;
+  };
+  transaction?: {
+    property_address: string;
+  };
+}
+
 const Workflows = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedRule, setSelectedRule] = useState(null);
+  const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch automation rules
@@ -32,7 +67,7 @@ const Workflows = () => {
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as AutomationRule[];
     }
   });
 
@@ -50,7 +85,7 @@ const Workflows = () => {
         .order('executed_at', { ascending: false })
         .limit(10);
       if (error) throw error;
-      return data;
+      return data as WorkflowExecution[];
     }
   });
 
@@ -254,7 +289,12 @@ const Workflows = () => {
   );
 };
 
-const WorkflowForm = ({ rule, onSuccess }: { rule?: any; onSuccess: () => void }) => {
+interface WorkflowFormProps {
+  rule?: AutomationRule;
+  onSuccess: () => void;
+}
+
+const WorkflowForm: React.FC<WorkflowFormProps> = ({ rule, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: rule?.name || '',
     trigger_event: rule?.trigger_event || 'task_completed',
@@ -279,7 +319,7 @@ const WorkflowForm = ({ rule, onSuccess }: { rule?: any; onSuccess: () => void }
   });
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: typeof formData) => {
       const user = await supabase.auth.getUser();
       
       if (rule) {
