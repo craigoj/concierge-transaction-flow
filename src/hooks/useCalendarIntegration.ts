@@ -54,22 +54,30 @@ export const useCalendarIntegration = () => {
   const checkCalendarConnection = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      if (!user) {
+        console.log('No authenticated user found');
+        return false;
+      }
 
-      const { data, error } = await supabase
+      console.log('Checking calendar integration for user:', user.id);
+
+      // Try a simple query first to test access
+      const { data, error, count } = await supabase
         .from('calendar_integrations')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', user.id)
         .eq('is_active', true);
 
+      console.log('Calendar integration query result:', { data, error, count });
+
       if (error) {
-        console.log('Error checking calendar integration:', error);
+        console.error('Error checking calendar integration:', error);
         return false;
       }
 
       return data && data.length > 0;
     } catch (error) {
-      console.error('Error checking calendar connection:', error);
+      console.error('Error in checkCalendarConnection:', error);
       return false;
     }
   };

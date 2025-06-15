@@ -2,20 +2,32 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
 
 const CalendarIntegration = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const { connectGoogleCalendar, checkCalendarConnection, disconnectCalendar, isConnecting } = useCalendarIntegration();
 
   useEffect(() => {
     const checkConnection = async () => {
-      setIsLoading(true);
-      const connected = await checkCalendarConnection();
-      setIsConnected(connected);
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+        setHasError(false);
+        console.log('Starting calendar connection check...');
+        
+        const connected = await checkCalendarConnection();
+        console.log('Calendar connection status:', connected);
+        
+        setIsConnected(connected);
+      } catch (error) {
+        console.error('Error checking calendar connection:', error);
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     checkConnection();
@@ -25,8 +37,13 @@ const CalendarIntegration = () => {
     await connectGoogleCalendar();
     // Recheck connection status after a delay to account for OAuth flow
     setTimeout(async () => {
-      const connected = await checkCalendarConnection();
-      setIsConnected(connected);
+      try {
+        const connected = await checkCalendarConnection();
+        setIsConnected(connected);
+      } catch (error) {
+        console.error('Error rechecking connection:', error);
+        setHasError(true);
+      }
     }, 2000);
   };
 
@@ -47,6 +64,40 @@ const CalendarIntegration = () => {
             Loading calendar connection status...
           </CardDescription>
         </CardHeader>
+      </Card>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Calendar Integration
+          </CardTitle>
+          <CardDescription>
+            There was an error loading calendar integration status
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg border-red-200 bg-red-50">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-5 w-5 text-red-600" />
+              <div>
+                <span className="font-medium text-red-800">Connection Error</span>
+                <p className="text-sm text-red-600">Unable to check calendar status</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </div>
+        </CardContent>
       </Card>
     );
   }
