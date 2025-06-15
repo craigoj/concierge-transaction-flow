@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock, Users, Target, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -117,11 +118,12 @@ const Home = () => {
                         <button
                           key={index}
                           onClick={() => setActiveFeature(index)}
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            index === activeFeature 
-                              ? 'w-8 bg-brand-taupe-dark' 
+                          className={cn(
+                            'h-2 rounded-full transition-all duration-300',
+                            index === activeFeature
+                              ? 'w-8 bg-brand-taupe-dark'
                               : 'w-2 bg-brand-taupe/50 hover:bg-brand-taupe'
-                          }`}
+                          )}
                         />
                       ))}
                     </div>
