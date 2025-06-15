@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus } from 'lucide-react';
 import TransactionList from '@/components/transactions/TransactionList';
 import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -68,6 +69,11 @@ const Transactions = () => {
       <AppHeader />
       
       <main className="max-w-7xl mx-auto px-8 py-10">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <Breadcrumb />
+        </div>
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-semibold text-foreground tracking-tight">

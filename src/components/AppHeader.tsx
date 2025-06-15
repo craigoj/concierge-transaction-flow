@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, User, LogOut, Home, FileText } from "lucide-react";
+import { Settings, User, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import MainNavigation from "@/components/navigation/MainNavigation";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const AppHeader = () => {
   const navigate = useNavigate();
@@ -38,15 +40,13 @@ const AppHeader = () => {
     }
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-8 py-6">
+    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-8 py-6 sticky top-0 z-50">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-4">
             <div 
-              className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm cursor-pointer"
+              className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform"
               onClick={() => navigate('/')}
             >
               <span className="text-primary-foreground font-bold text-xl">AC</span>
@@ -57,34 +57,23 @@ const AppHeader = () => {
             </div>
           </div>
           
-          {/* Main Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            <Button 
-              variant={isActive('/') ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => navigate('/')}
-              className="gap-2"
-            >
-              <Home className="h-4 w-4" />
-              Dashboard
-            </Button>
-            <Button 
-              variant={isActive('/transactions') ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => navigate('/transactions')}
-              className="gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Transactions
-            </Button>
-          </nav>
+          {/* Enhanced Main Navigation */}
+          <MainNavigation />
         </div>
         
         <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" className="relative hover:bg-muted/50 rounded-xl">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full"></span>
+          {/* Search Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hover:bg-muted/50 rounded-xl"
+            onClick={() => navigate('/search')}
+          >
+            <Search className="h-5 w-5 text-muted-foreground" />
           </Button>
+
+          {/* Enhanced Notification Center */}
+          <NotificationCenter />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

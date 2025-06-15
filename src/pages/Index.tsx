@@ -1,9 +1,11 @@
 
 import AppHeader from "@/components/AppHeader";
-import DashboardStats from "@/components/DashboardStats";
+import EnhancedDashboardStats from "@/components/dashboard/EnhancedDashboardStats";
 import ServiceTierCard from "@/components/ServiceTierCard";
 import TransactionCard from "@/components/TransactionCard";
-import QuickActions from "@/components/QuickActions";
+import EnhancedQuickActions from "@/components/dashboard/EnhancedQuickActions";
+import UpcomingDeadlines from "@/components/dashboard/UpcomingDeadlines";
+import Breadcrumb from "@/components/navigation/Breadcrumb";
 
 const Index = () => {
   const serviceTiers = [
@@ -90,6 +92,11 @@ const Index = () => {
       <AppHeader />
       
       <main className="max-w-7xl mx-auto px-8 py-10">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <Breadcrumb />
+        </div>
+
         {/* Welcome Section */}
         <div className="mb-12">
           <h2 className="text-4xl font-semibold text-foreground mb-3 tracking-tight">
@@ -100,9 +107,9 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Dashboard Stats */}
+        {/* Enhanced Dashboard Stats */}
         <div className="mb-12">
-          <DashboardStats />
+          <EnhancedDashboardStats />
         </div>
 
         {/* Main Content Grid */}
@@ -127,7 +134,10 @@ const Index = () => {
                 <h3 className="text-2xl font-semibold text-foreground tracking-tight">
                   Recent Transactions
                 </h3>
-                <button className="text-primary hover:text-primary/80 font-semibold text-sm transition-colors">
+                <button 
+                  className="text-primary hover:text-primary/80 font-semibold text-sm transition-colors"
+                  onClick={() => window.location.href = '/transactions'}
+                >
                   View All Transactions
                 </button>
               </div>
@@ -139,9 +149,10 @@ const Index = () => {
             </section>
           </div>
 
-          {/* Right Column - Quick Actions */}
-          <div className="xl:col-span-1">
-            <QuickActions />
+          {/* Right Column - Quick Actions and Deadlines */}
+          <div className="xl:col-span-1 space-y-8">
+            <EnhancedQuickActions />
+            <UpcomingDeadlines />
           </div>
         </div>
       </main>

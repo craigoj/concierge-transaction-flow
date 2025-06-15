@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const TransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,11 +75,22 @@ const TransactionDetail = () => {
     );
   }
 
+  const customBreadcrumbs = [
+    { label: 'Dashboard', href: '/' },
+    { label: 'Transactions', href: '/transactions' },
+    { label: transaction.property_address, isCurrentPage: true }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
       
       <main className="max-w-7xl mx-auto px-8 py-10">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <Breadcrumb items={customBreadcrumbs} />
+        </div>
+
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="sm" onClick={() => navigate('/transactions')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
