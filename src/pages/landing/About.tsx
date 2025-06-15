@@ -1,4 +1,3 @@
-
 import React from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import { Button } from '@/components/ui/button';
@@ -35,13 +34,12 @@ const About = () => {
               </Button>
             </div>
             <div className="relative">
-              <div className="w-full h-96 bg-gradient-to-br from-brand-taupe/30 to-brand-taupe-dark/30 rounded-2xl flex items-center justify-center shadow-brand-elevation">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-brand-taupe to-brand-taupe-dark rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-brand-charcoal font-brand-heading font-bold text-3xl tracking-brand-wide">EB</span>
-                  </div>
-                  <p className="font-brand-body text-brand-charcoal/60 italic">Professional Headshot</p>
-                </div>
+              <div className="w-full h-96 rounded-2xl overflow-hidden shadow-brand-elevation">
+                <img 
+                  src="/lovable-uploads/43940beb-92f9-46e5-8f95-e38307963d0a.png"
+                  alt="Eileen - Founder of The Agent Concierge Co."
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>
