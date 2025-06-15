@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 // Landing Pages
 import Home from "./pages/landing/Home";
@@ -95,138 +96,144 @@ const App = () => {
             {/* Authentication */}
             <Route path="/auth" element={<Auth />} />
             
-            {/* Protected App Routes */}
+            {/* Protected App Routes - Wrapped with SidebarProvider */}
             {user && (
-              <>
-                <Route 
-                  path="/" 
-                  element={
-                    <AuthGuard>
-                      <Index />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/transactions" 
-                  element={
-                    <AuthGuard>
-                      <Transactions />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/transactions/:id" 
-                  element={
-                    <AuthGuard>
-                      <TransactionDetail />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/clients" 
-                  element={
-                    <AuthGuard>
-                      <Clients />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/clients/new" 
-                  element={
-                    <AuthGuard>
-                      <CreateClient />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/clients/:id" 
-                  element={
-                    <AuthGuard>
-                      <ClientDetail />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/agents" 
-                  element={
-                    <AuthGuard>
-                      <Agents />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/agents/:id" 
-                  element={
-                    <AuthGuard>
-                      <AgentDetail />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/communications" 
-                  element={
-                    <AuthGuard>
-                      <Communications />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/templates" 
-                  element={
-                    <AuthGuard>
-                      <Templates />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/workflows" 
-                  element={
-                    <AuthGuard>
-                      <Workflows />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/documents" 
-                  element={
-                    <AuthGuard>
-                      <Documents />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/analytics" 
-                  element={
-                    <AuthGuard>
-                      <Analytics />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/search" 
-                  element={
-                    <AuthGuard>
-                      <Search />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <AuthGuard>
-                      <Profile />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/settings" 
-                  element={
-                    <AuthGuard>
-                      <Settings />
-                    </AuthGuard>
-                  } 
-                />
-              </>
+              <Route path="/*" element={
+                <SidebarProvider>
+                  <div className="min-h-screen flex w-full">
+                    <Routes>
+                      <Route 
+                        path="/" 
+                        element={
+                          <AuthGuard>
+                            <Index />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/transactions" 
+                        element={
+                          <AuthGuard>
+                            <Transactions />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/transactions/:id" 
+                        element={
+                          <AuthGuard>
+                            <TransactionDetail />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/clients" 
+                        element={
+                          <AuthGuard>
+                            <Clients />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/clients/new" 
+                        element={
+                          <AuthGuard>
+                            <CreateClient />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/clients/:id" 
+                        element={
+                          <AuthGuard>
+                            <ClientDetail />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/agents" 
+                        element={
+                          <AuthGuard>
+                            <Agents />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/agents/:id" 
+                        element={
+                          <AuthGuard>
+                            <AgentDetail />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/communications" 
+                        element={
+                          <AuthGuard>
+                            <Communications />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/templates" 
+                        element={
+                          <AuthGuard>
+                            <Templates />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/workflows" 
+                        element={
+                          <AuthGuard>
+                            <Workflows />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/documents" 
+                        element={
+                          <AuthGuard>
+                            <Documents />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/analytics" 
+                        element={
+                          <AuthGuard>
+                            <Analytics />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/search" 
+                        element={
+                          <AuthGuard>
+                            <Search />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/profile" 
+                        element={
+                          <AuthGuard>
+                            <Profile />
+                          </AuthGuard>
+                        } 
+                      />
+                      <Route 
+                        path="/settings" 
+                        element={
+                          <AuthGuard>
+                            <Settings />
+                          </AuthGuard>
+                        } 
+                      />
+                    </Routes>
+                  </div>
+                </SidebarProvider>
+              } />
             )}
             
             {/* Catch-all route */}
