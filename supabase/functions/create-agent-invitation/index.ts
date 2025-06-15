@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Creating user with email:", email);
     
-    // Create user without role in metadata initially
+    // Create user with role in metadata to prevent trigger function errors
     const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -81,7 +81,8 @@ const handler = async (req: Request): Promise<Response> => {
         first_name: firstName,
         last_name: lastName,
         phone: phoneNumber,
-        brokerage
+        brokerage,
+        role: 'agent' // Add role to prevent trigger function casting error
       }
     });
 
@@ -91,11 +92,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create user: ${createUserError?.message}`);
     }
 
-    // Now update the profile with the correct role and invitation details
+    // Update the profile with invitation details (role should already be set by trigger)
     const { error: updateProfileError } = await supabase
       .from("profiles")
       .update({
-        role: 'agent',
         invitation_status: "sent",
         invitation_token: invitationToken,
         invited_at: new Date().toISOString(),
@@ -106,28 +106,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Profile update error:", updateProfileError);
 
     if (updateProfileError) {
-      console.log("Failed to update profile, retrying with upsert...", updateProfileError.message);
-      
-      // Try to upsert the profile if update failed
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: newUser.user.id,
-          email: email,
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: phoneNumber,
-          brokerage: brokerage,
-          role: 'agent',
-          invitation_status: "sent",
-          invitation_token: invitationToken,
-          invited_at: new Date().toISOString(),
-          invited_by: user.id
-        });
-        
-      if (upsertError) {
-        console.error("Profile upsert also failed:", upsertError.message);
-      }
+      console.log("Failed to update profile:", updateProfileError.message);
+      // Don't throw here as the user was created successfully
     }
 
     // Create invitation record
@@ -144,7 +124,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Invitation record error:", invitationError);
 
     if (invitationError) {
-      console.log("Failed to create invitation record, but continuing...", invitationError.message);
+      console.log("Failed to create invitation record:", invitationError.message);
+      // Don't throw here as the user was created successfully
     }
 
     console.log("Agent invitation created successfully:", {
