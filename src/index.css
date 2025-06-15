@@ -7,83 +7,91 @@
 
 @layer base {
   :root {
-    --background: 41 31% 94%;
-    --foreground: 25 20% 25%;
+    /* Updated sophisticated beige/tan and brown color palette */
+    --background: 45 25% 96%; /* Very light warm beige */
+    --foreground: 25 25% 20%; /* Rich dark brown */
 
-    --card: 0 0% 100%;
-    --card-foreground: 25 20% 25%;
+    --card: 0 0% 100%; /* Pure white for cards */
+    --card-foreground: 25 25% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 20% 25%;
+    --popover-foreground: 25 25% 20%;
 
-    --primary: 25 35% 55%;
+    /* Primary: Warm brown/tan accent */
+    --primary: 30 40% 45%; /* Rich warm brown */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 35 25% 85%;
-    --secondary-foreground: 25 20% 25%;
+    /* Secondary: Light tan/beige */
+    --secondary: 40 30% 88%; /* Soft warm beige */
+    --secondary-foreground: 25 25% 20%;
 
-    --muted: 35 25% 92%;
-    --muted-foreground: 25 10% 45%;
+    /* Muted: Very light warm gray-beige */
+    --muted: 35 20% 94%; /* Subtle warm background */
+    --muted-foreground: 25 15% 50%; /* Medium brown-gray */
 
-    --accent: 30 30% 80%;
-    --accent-foreground: 25 20% 25%;
+    /* Accent: Medium tan */
+    --accent: 35 35% 82%; /* Warm tan accent */
+    --accent-foreground: 25 25% 20%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 25 35% 55%;
+    /* Borders: Subtle warm beige */
+    --border: 40 25% 90%; /* Very light tan border */
+    --input: 40 25% 90%;
+    --ring: 30 40% 45%; /* Focus ring matches primary */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Slightly more rounded for sophistication */
 
-    --sidebar-background: 25 25% 20%;
-    --sidebar-foreground: 35 25% 85%;
-    --sidebar-primary: 25 35% 55%;
+    /* Sidebar colors for future use */
+    --sidebar-background: 25 30% 15%;
+    --sidebar-foreground: 40 30% 88%;
+    --sidebar-primary: 30 40% 55%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 25 20% 25%;
-    --sidebar-accent-foreground: 35 25% 85%;
+    --sidebar-accent-foreground: 40 30% 88%;
     --sidebar-border: 25 15% 30%;
-    --sidebar-ring: 25 35% 55%;
+    --sidebar-ring: 30 40% 55%;
   }
 
   .dark {
-    --background: 25 25% 15%;
-    --foreground: 35 25% 85%;
+    /* Dark theme with warm tones */
+    --background: 25 30% 8%; /* Very dark warm brown */
+    --foreground: 40 30% 90%; /* Light warm beige */
 
-    --card: 25 20% 18%;
-    --card-foreground: 35 25% 85%;
+    --card: 25 25% 12%; /* Dark warm card background */
+    --card-foreground: 40 30% 90%;
 
-    --popover: 25 20% 18%;
-    --popover-foreground: 35 25% 85%;
+    --popover: 25 25% 12%;
+    --popover-foreground: 40 30% 90%;
 
-    --primary: 25 35% 65%;
-    --primary-foreground: 25 25% 15%;
+    --primary: 30 45% 65%; /* Lighter warm brown for dark mode */
+    --primary-foreground: 25 30% 8%;
 
-    --secondary: 25 15% 25%;
-    --secondary-foreground: 35 25% 85%;
+    --secondary: 25 20% 18%; /* Dark warm secondary */
+    --secondary-foreground: 40 30% 90%;
 
-    --muted: 25 15% 25%;
-    --muted-foreground: 35 15% 65%;
+    --muted: 25 20% 15%; /* Dark muted background */
+    --muted-foreground: 40 20% 70%; /* Light muted text */
 
-    --accent: 25 15% 25%;
-    --accent-foreground: 35 25% 85%;
+    --accent: 25 20% 18%;
+    --accent-foreground: 40 30% 90%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 25 15% 25%;
-    --input: 25 15% 25%;
-    --ring: 25 35% 65%;
+    --border: 25 20% 18%;
+    --input: 25 20% 18%;
+    --ring: 30 45% 65%;
     
-    --sidebar-background: 25 25% 12%;
-    --sidebar-foreground: 35 25% 85%;
-    --sidebar-primary: 25 35% 65%;
-    --sidebar-primary-foreground: 25 25% 15%;
-    --sidebar-accent: 25 15% 20%;
-    --sidebar-accent-foreground: 35 25% 85%;
-    --sidebar-border: 25 15% 20%;
-    --sidebar-ring: 25 35% 65%;
+    --sidebar-background: 25 35% 5%;
+    --sidebar-foreground: 40 30% 90%;
+    --sidebar-primary: 30 45% 65%;
+    --sidebar-primary-foreground: 25 30% 8%;
+    --sidebar-accent: 25 15% 15%;
+    --sidebar-accent-foreground: 40 30% 90%;
+    --sidebar-border: 25 15% 15%;
+    --sidebar-ring: 30 45% 65%;
   }
 }
 
@@ -95,22 +103,58 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  /* Enhanced typography for sophistication */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  /* Subtle shadows for depth */
+  .card-shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .card-shadow-hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   }
 }
 
-/* Custom scrollbar */
+/* Premium scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted;
+  @apply bg-muted/30;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/30 rounded-full;
+  @apply bg-primary/20 rounded-full;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/50;
+  @apply bg-primary/40;
+}
+
+/* Smooth transitions for premium feel */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Focus styles for accessibility and premium feel */
+button:focus-visible, 
+input:focus-visible, 
+textarea:focus-visible, 
+select:focus-visible {
+  @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  outline: none;
 }

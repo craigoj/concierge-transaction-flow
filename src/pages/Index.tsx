@@ -89,32 +89,32 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
       
-      <main className="container mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-8 py-10">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
+        <div className="mb-12">
+          <h2 className="text-4xl font-semibold text-foreground mb-3 tracking-tight">
             Welcome back, Eileen
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-lg text-muted-foreground font-medium">
             Here's what's happening with your transactions today.
           </p>
         </div>
 
         {/* Dashboard Stats */}
-        <div className="mb-8">
+        <div className="mb-12">
           <DashboardStats />
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
           {/* Left Column - Transactions and Service Tiers */}
-          <div className="xl:col-span-3 space-y-8">
+          <div className="xl:col-span-3 space-y-12">
             {/* Service Tiers */}
             <section>
-              <h3 className="text-xl font-semibold text-foreground mb-6">
+              <h3 className="text-2xl font-semibold text-foreground mb-8 tracking-tight">
                 Service Tiers Overview
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {serviceTiers.map((tier, index) => (
                   <ServiceTierCard key={index} {...tier} />
                 ))}
@@ -123,15 +123,15 @@ const Index = () => {
 
             {/* Recent Transactions */}
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-foreground">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-semibold text-foreground tracking-tight">
                   Recent Transactions
                 </h3>
-                <button className="text-primary hover:text-primary/80 font-medium">
-                  View All
+                <button className="text-primary hover:text-primary/80 font-semibold text-sm transition-colors">
+                  View All Transactions
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {recentTransactions.map((transaction) => (
                   <TransactionCard key={transaction.id} {...transaction} />
                 ))}
