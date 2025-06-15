@@ -1,3 +1,4 @@
+
 import React from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ const About = () => {
             <div className="relative">
               <div className="w-full h-96 rounded-2xl overflow-hidden shadow-brand-elevation">
                 <img 
-                  src="/lovable-uploads/43940beb-92f9-46e5-8f95-e38307963d0a.png"
+                  src="/lovable-uploads/c1b9f5b7-fb45-4434-9475-bc103e34c663.png"
                   alt="Eileen - Founder of The Agent Concierge Co."
                   className="w-full h-full object-cover"
                 />
