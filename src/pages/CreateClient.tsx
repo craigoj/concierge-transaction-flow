@@ -50,6 +50,16 @@ const CreateClient = () => {
     auto_prospect: false
   });
 
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    }
+  });
+
   // Fetch transactions for linking
   const { data: transactions } = useQuery({
     queryKey: ['transactions'],
@@ -66,6 +76,10 @@ const CreateClient = () => {
   // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: async (clientData: any) => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+
       // First create in contacts table (for CRM functionality)
       const contactData = {
         full_name: `${clientData.first_name} ${clientData.last_name}`.trim(),
@@ -74,7 +88,8 @@ const CreateClient = () => {
         company: clientData.company,
         category: clientData.category,
         rating: clientData.rating,
-        auto_prospect: clientData.auto_prospect
+        auto_prospect: clientData.auto_prospect,
+        user_id: currentUser.id // Add the required user_id field
       };
 
       const { data: contact, error: contactError } = await supabase

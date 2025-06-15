@@ -89,9 +89,9 @@ const Index = () => {
                   >
                     <option value="all">All Status</option>
                     <option value="intake">Intake</option>
-                    <option value="under_contract">Under Contract</option>
-                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
                     <option value="closed">Closed</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>
@@ -111,8 +111,8 @@ const Index = () => {
                             <span>Client: {transaction.clients?.[0]?.full_name || 'N/A'}</span>
                             <span>Agent: {transaction.profiles ? `${transaction.profiles.first_name} ${transaction.profiles.last_name}` : 'N/A'}</span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              transaction.status === 'under_contract' ? 'bg-blue-100 text-blue-800' :
-                              transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              transaction.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                              transaction.status === 'intake' ? 'bg-yellow-100 text-yellow-800' :
                               transaction.status === 'closed' ? 'bg-green-100 text-green-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
