@@ -121,16 +121,26 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         return issues;
       }
 
-      // Validate each template
+      // Enhanced validation with more comprehensive checks
       taskTemplates.forEach((template, index) => {
         const folderName = template.getAttribute('folderName');
         const name = template.querySelector('name')?.textContent;
+        const templateType = template.querySelector('taskTemplateType')?.textContent;
         
         if (!name || name.trim() === '') {
           issues.push({
             type: 'error',
             message: 'Template missing required name',
             location: `Template ${index + 1}${folderName ? ` (${folderName})` : ''}`
+          });
+        }
+
+        // Validate template type
+        if (templateType && !['XACTION', 'BUYER', 'SELLER', 'LISTING', 'GENERAL'].includes(templateType)) {
+          issues.push({
+            type: 'warning',
+            message: `Unknown template type: ${templateType}`,
+            location: `Template: ${name}`
           });
         }
 
@@ -145,7 +155,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
           });
         }
 
-        // Validate task entries
+        // Validate task entries with enhanced checks
         const taskEntries = template.querySelectorAll('taskTemplateEntry');
         if (taskEntries.length === 0) {
           issues.push({
@@ -157,12 +167,65 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
 
         taskEntries.forEach((entry, taskIndex) => {
           const subject = entry.querySelector('subject')?.textContent;
+          const taskType = entry.querySelector('taskType')?.textContent;
+          const dueDateAdjustType = entry.querySelector('dueDateAdjustType')?.textContent;
+          const letterTemplate = entry.querySelector('letterTemplate');
+          
           if (!subject || subject.trim() === '') {
             issues.push({
               type: 'error',
               message: 'Task missing required subject',
               location: `Template: ${name}, Task ${taskIndex + 1}`
             });
+          }
+
+          // Validate task type
+          if (taskType && !['TODO', 'CALL', 'EMAIL', 'APPOINTMENT', 'DOCUMENT', 'REMINDER', 'MILESTONE'].includes(taskType)) {
+            issues.push({
+              type: 'warning',
+              message: `Unknown task type: ${taskType}`,
+              location: `Template: ${name}, Task: ${subject}`
+            });
+          }
+
+          // Validate due date adjust type
+          if (dueDateAdjustType && !['TEMPLATE_START_DATE', 'CLOSING_DATE', 'CONTRACT_DATE', 'RATIFIED_DATE', 'INSPECTION_DATE', 'APPRAISAL_DATE', 'FINANCING_DATE'].includes(dueDateAdjustType)) {
+            issues.push({
+              type: 'warning',
+              message: `Unknown due date type: ${dueDateAdjustType}`,
+              location: `Template: ${name}, Task: ${subject}`
+            });
+          }
+
+          // Validate email template if present
+          if (letterTemplate) {
+            const emailName = letterTemplate.querySelector('name')?.textContent;
+            const emailSubject = letterTemplate.querySelector('emailSubject')?.textContent;
+            const htmlText = letterTemplate.querySelector('htmlText')?.textContent;
+            
+            if (!emailName || emailName.trim() === '') {
+              issues.push({
+                type: 'warning',
+                message: 'Email template missing name',
+                location: `Template: ${name}, Task: ${subject}`
+              });
+            }
+            
+            if (!emailSubject || emailSubject.trim() === '') {
+              issues.push({
+                type: 'warning',
+                message: 'Email template missing subject',
+                location: `Template: ${name}, Task: ${subject}`
+              });
+            }
+            
+            if (!htmlText || htmlText.trim() === '') {
+              issues.push({
+                type: 'warning',
+                message: 'Email template missing content',
+                location: `Template: ${name}, Task: ${subject}`
+              });
+            }
           }
         });
       });
@@ -189,15 +252,22 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
       const description = templateElement.querySelector('description')?.textContent || '';
       const templateType = templateElement.querySelector('taskTemplateType')?.textContent || 'XACTION';
 
-      // Map template type
+      // Enhanced template type mapping
       let mappedType = 'General';
-      if (name.toLowerCase().includes('listing') || name.toLowerCase().includes('seller')) {
+      const nameLower = name.toLowerCase();
+      const folderLower = folderName.toLowerCase();
+      
+      if (nameLower.includes('listing') || nameLower.includes('seller') || 
+          folderLower.includes('listing') || folderLower.includes('seller') ||
+          templateType === 'SELLER' || templateType === 'LISTING') {
         mappedType = 'Listing';
-      } else if (name.toLowerCase().includes('buyer') || name.toLowerCase().includes('purchase')) {
+      } else if (nameLower.includes('buyer') || nameLower.includes('purchase') || 
+                 folderLower.includes('buyer') || folderLower.includes('purchase') ||
+                 templateType === 'BUYER') {
         mappedType = 'Buyer';
       }
 
-      // Parse tasks
+      // Parse tasks with enhanced property mapping
       const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
       const tasks: ParsedTask[] = Array.from(templateEntries).map((entry, index) => {
         const subject = entry.querySelector('subject')?.textContent || '';
@@ -210,9 +280,33 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         const dueDateAdjustDelta = parseInt(entry.querySelector('dueDateAdjustDelta')?.textContent || '0');
         const dueDateAdjustType = entry.querySelector('dueDateAdjustType')?.textContent || 'TEMPLATE_START_DATE';
 
+        // Enhanced due date rule mapping
         let dueDateRule: { type: string; event?: string; days?: number } = { type: 'no_due_date' };
         if (dueDateAdjustActive) {
-          const event = dueDateAdjustType === 'CLOSING_DATE' ? 'closing_date' : 'ratified_date';
+          let event = 'ratified_date'; // Default
+          
+          switch (dueDateAdjustType) {
+            case 'CLOSING_DATE':
+            case 'SETTLEMENT_DATE':
+              event = 'closing_date';
+              break;
+            case 'INSPECTION_DATE':
+              event = 'inspection_date';
+              break;
+            case 'APPRAISAL_DATE':
+              event = 'appraisal_date';
+              break;
+            case 'FINANCING_DATE':
+              event = 'financing_date';
+              break;
+            case 'TEMPLATE_START_DATE':
+            case 'CONTRACT_DATE':
+            case 'RATIFIED_DATE':
+            default:
+              event = 'ratified_date';
+              break;
+          }
+          
           dueDateRule = {
             type: 'days_from_event',
             event,
@@ -230,7 +324,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         };
       });
 
-      // Parse email templates
+      // Parse email templates with enhanced processing
       const emails: ParsedEmail[] = Array.from(templateEntries)
         .filter(entry => entry.querySelector('letterTemplate'))
         .map(entry => {

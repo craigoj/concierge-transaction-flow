@@ -137,12 +137,21 @@ const handler = async (req: Request): Promise<Response> => {
             continue;
           }
 
-          // Map template type to our enum
+          // Enhanced template type mapping with better logic
           let mappedType = 'General';
-          if (name.toLowerCase().includes('listing') || name.toLowerCase().includes('seller')) {
+          const nameLower = name.toLowerCase();
+          const folderLower = folderName.toLowerCase();
+          
+          if (nameLower.includes('listing') || nameLower.includes('seller') || 
+              folderLower.includes('listing') || folderLower.includes('seller')) {
             mappedType = 'Listing';
-          } else if (name.toLowerCase().includes('buyer') || name.toLowerCase().includes('purchase')) {
+          } else if (nameLower.includes('buyer') || nameLower.includes('purchase') || 
+                     folderLower.includes('buyer') || folderLower.includes('purchase')) {
             mappedType = 'Buyer';
+          } else if (templateType === 'BUYER') {
+            mappedType = 'Buyer';
+          } else if (templateType === 'SELLER' || templateType === 'LISTING') {
+            mappedType = 'Listing';
           }
 
           // Check for duplicate template names
@@ -178,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
           templatesImported++;
           console.log(`Created template: ${name} (ID: ${workflowTemplate.id})`);
 
-          // Process template entries (tasks)
+          // Process template entries (tasks) with enhanced mapping
           const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
           console.log(`Processing ${templateEntries.length} tasks for template: ${name}`);
           
@@ -191,53 +200,69 @@ const handler = async (req: Request): Promise<Response> => {
                 continue;
               }
 
-              // Create due date rule
-              const dueDateRule = createDueDateRule(entry);
+              // Enhanced due date rule creation with better mapping
+              const dueDateRule = createEnhancedDueDateRule(entry);
 
-              // Handle email template if present
+              // Handle email template if present with enhanced processing
               let emailTemplateId = null;
               if (entry.letterTemplate && entry.letterTemplate.name.trim()) {
                 try {
-                  const { data: emailTemplate, error: emailError } = await supabaseClient
+                  // Check for existing email template to avoid duplicates
+                  const { data: existingEmail } = await supabaseClient
                     .from('email_templates')
-                    .insert({
-                      name: entry.letterTemplate.name,
-                      subject: entry.letterTemplate.emailSubject,
-                      body_html: entry.letterTemplate.htmlText,
-                      category: 'Imported Templates',
-                      created_by: user.id
-                    })
-                    .select()
+                    .select('id')
+                    .eq('name', entry.letterTemplate.name)
                     .single();
 
-                  if (!emailError && emailTemplate) {
-                    emailTemplateId = emailTemplate.id;
-                    
-                    // Track imported email template
-                    await supabaseClient
-                      .from('imported_email_templates')
-                      .insert({
-                        email_template_id: emailTemplate.id,
-                        original_xml_id: entry.letterTemplate.letterTemplateId,
-                        folder_name: folderName,
-                        email_to: entry.letterTemplate.emailTo,
-                        email_cc: entry.letterTemplate.emailCc,
-                        email_bcc: entry.letterTemplate.emailBcc,
-                        template_type: templateType,
-                        import_id: importRecord.id
-                      });
-
-                    emailsImported++;
-                    console.log(`Created email template: ${entry.letterTemplate.name}`);
+                  if (existingEmail) {
+                    emailTemplateId = existingEmail.id;
+                    console.log(`Using existing email template: ${entry.letterTemplate.name}`);
                   } else {
-                    console.warn(`Failed to create email template "${entry.letterTemplate.name}":`, emailError);
+                    // Process HTML content to handle XML encoding
+                    const processedHtmlText = processEmailHtmlContent(entry.letterTemplate.htmlText);
+                    
+                    const { data: emailTemplate, error: emailError } = await supabaseClient
+                      .from('email_templates')
+                      .insert({
+                        name: entry.letterTemplate.name,
+                        subject: entry.letterTemplate.emailSubject || entry.subject,
+                        body_html: processedHtmlText,
+                        category: `Imported from ${folderName}`,
+                        created_by: user.id
+                      })
+                      .select()
+                      .single();
+
+                    if (!emailError && emailTemplate) {
+                      emailTemplateId = emailTemplate.id;
+                      
+                      // Track imported email template with enhanced metadata
+                      await supabaseClient
+                        .from('imported_email_templates')
+                        .insert({
+                          email_template_id: emailTemplate.id,
+                          original_xml_id: entry.letterTemplate.letterTemplateId,
+                          folder_name: folderName,
+                          email_to: entry.letterTemplate.emailTo,
+                          email_cc: entry.letterTemplate.emailCc,
+                          email_bcc: entry.letterTemplate.emailBcc,
+                          template_type: templateType,
+                          import_id: importRecord.id,
+                          is_system_template: isSystemTemplate(entry.letterTemplate.name)
+                        });
+
+                      emailsImported++;
+                      console.log(`Created email template: ${entry.letterTemplate.name}`);
+                    } else {
+                      console.warn(`Failed to create email template "${entry.letterTemplate.name}":`, emailError);
+                    }
                   }
                 } catch (emailErr) {
                   console.warn(`Error creating email template for task "${entry.subject}":`, emailErr);
                 }
               }
 
-              // Create template task with all enhanced properties
+              // Create template task with enhanced property mapping
               const { error: taskError } = await supabaseClient
                 .from('template_tasks')
                 .insert({
@@ -248,7 +273,7 @@ const handler = async (req: Request): Promise<Response> => {
                   sort_order: entry.sort,
                   email_template_id: emailTemplateId,
                   is_agent_visible: entry.agentVisible,
-                  task_type: entry.taskType,
+                  task_type: mapTaskType(entry.taskType),
                   auto_fill_with_role: entry.autoFillWithRole,
                   is_on_calendar: entry.isOnCalendar,
                   is_milestone: entry.milestone,
@@ -267,6 +292,7 @@ const handler = async (req: Request): Promise<Response> => {
               }
 
               tasksImported++;
+              console.log(`Created task: ${entry.subject}`);
             } catch (taskErr) {
               console.error(`Error processing task ${index + 1} in template "${name}":`, taskErr);
               // Continue with other tasks instead of failing the entire import
@@ -364,7 +390,7 @@ function parseTemplateEntry(entryElement: Element): TaskTemplateEntry {
     milestone: getBool('milestone'),
     reminderSet: getBool('reminderSet'),
     reminderDelta: getNum('reminderDelta'),
-    reminderTimeMinutes: getNum('reminderTimeMinutes') || 540,
+    reminderTimeMinutes: getNum('reminderTimeMinutes') || 540, // Default to 9:00 AM
     xactionSideBuyer: getBool('xactionSideBuyer'),
     xactionSideSeller: getBool('xactionSideSeller'),
     xactionSideDual: getBool('xactionSideDual'),
@@ -388,31 +414,116 @@ function parseTemplateEntry(entryElement: Element): TaskTemplateEntry {
   return entry;
 }
 
-function createDueDateRule(entry: TaskTemplateEntry) {
+function createEnhancedDueDateRule(entry: TaskTemplateEntry) {
   if (!entry.dueDateAdjustActive) {
     return { type: 'no_due_date' };
   }
 
+  // Enhanced mapping of XML due date types to our system
   switch (entry.dueDateAdjustType) {
     case 'TEMPLATE_START_DATE':
+    case 'CONTRACT_DATE':
+    case 'RATIFIED_DATE':
       return {
         type: 'days_from_event',
         event: 'ratified_date',
         days: entry.dueDateAdjustDelta
       };
     case 'CLOSING_DATE':
+    case 'SETTLEMENT_DATE':
       return {
         type: 'days_from_event',
         event: 'closing_date',
         days: entry.dueDateAdjustDelta
       };
+    case 'INSPECTION_DATE':
+      return {
+        type: 'days_from_event',
+        event: 'inspection_date',
+        days: entry.dueDateAdjustDelta
+      };
+    case 'APPRAISAL_DATE':
+      return {
+        type: 'days_from_event',
+        event: 'appraisal_date',
+        days: entry.dueDateAdjustDelta
+      };
+    case 'FINANCING_DATE':
+      return {
+        type: 'days_from_event',
+        event: 'financing_date',
+        days: entry.dueDateAdjustDelta
+      };
     default:
+      // Default to ratified date for unknown types
+      console.warn(`Unknown due date adjust type: ${entry.dueDateAdjustType}, defaulting to ratified_date`);
       return {
         type: 'days_from_event',
         event: 'ratified_date',
         days: entry.dueDateAdjustDelta
       };
   }
+}
+
+function mapTaskType(xmlTaskType: string): string {
+  // Map XML task types to our system's task types
+  const taskTypeMap: { [key: string]: string } = {
+    'TODO': 'TODO',
+    'CALL': 'CALL',
+    'EMAIL': 'EMAIL',
+    'APPOINTMENT': 'APPOINTMENT',
+    'DOCUMENT': 'DOCUMENT',
+    'REMINDER': 'REMINDER',
+    'MILESTONE': 'MILESTONE',
+    'FOLLOWUP': 'FOLLOWUP',
+    'INSPECTION': 'INSPECTION',
+    'APPRAISAL': 'APPRAISAL',
+    'FINANCING': 'FINANCING',
+    'CLOSING': 'CLOSING'
+  };
+
+  return taskTypeMap[xmlTaskType] || 'TODO';
+}
+
+function processEmailHtmlContent(htmlText: string): string {
+  if (!htmlText) return '';
+  
+  // Decode HTML entities
+  const textarea = new DOMParser().parseFromString(
+    `<textarea>${htmlText}</textarea>`, 
+    'text/html'
+  ).querySelector('textarea');
+  
+  let processedHtml = textarea?.textContent || htmlText;
+  
+  // Clean up common XML/HTML issues
+  processedHtml = processedHtml
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+  
+  // Ensure basic HTML structure if missing
+  if (!processedHtml.includes('<html') && !processedHtml.includes('<body')) {
+    processedHtml = `<html><body>${processedHtml}</body></html>`;
+  }
+  
+  return processedHtml;
+}
+
+function isSystemTemplate(templateName: string): boolean {
+  const systemTemplatePatterns = [
+    /^system/i,
+    /^default/i,
+    /^standard/i,
+    /^template/i,
+    /^auto/i
+  ];
+  
+  return systemTemplatePatterns.some(pattern => pattern.test(templateName));
 }
 
 serve(handler);
