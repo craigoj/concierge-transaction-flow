@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,23 +42,25 @@ const Profile = () => {
       
       if (error) throw error;
       return data;
-    },
-    onSuccess: (data) => {
-      if (data) {
-        setFormData({
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          email: data.email || '',
-          phone_number: data.phone_number || '',
-          brokerage: data.brokerage || '',
-          license_number: data.license_number || '',
-          years_experience: data.years_experience?.toString() || '',
-          bio: data.bio || '',
-          specialties: data.specialties || []
-        });
-      }
     }
   });
+
+  // Update form data when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        email: profile.email || '',
+        phone_number: profile.phone_number || '',
+        brokerage: profile.brokerage || '',
+        license_number: profile.license_number || '',
+        years_experience: profile.years_experience?.toString() || '',
+        bio: profile.bio || '',
+        specialties: profile.specialties || []
+      });
+    }
+  }, [profile]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
