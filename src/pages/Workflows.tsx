@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +9,12 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Play, Pause, Zap } from 'lucide-react';
+import { Plus, Edit, Trash2, Play, Pause, Zap, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import AppHeader from '@/components/AppHeader';
+import { AppSidebar } from '@/components/navigation/AppSidebar';
+import { SidebarInset } from '@/components/ui/sidebar';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 interface AutomationRule {
   id: string;
@@ -139,153 +142,232 @@ const Workflows = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading workflows...</div>
-      </div>
+      <>
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          <AppHeader />
+          <main className="p-8">
+            <div className="mb-8">
+              <Breadcrumb />
+            </div>
+            <div className="mb-12">
+              <div className="animate-pulse space-y-6">
+                <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
+                <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
+              </div>
+            </div>
+          </main>
+        </SidebarInset>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Automation Workflows</h1>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Rule
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create Automation Rule</DialogTitle>
-            </DialogHeader>
-            <WorkflowForm onSuccess={() => setCreateDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <>
+      <AppSidebar />
+      <SidebarInset className="flex-1">
+        <AppHeader />
+        
+        <main className="p-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-8">
+            <Breadcrumb />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Rules List */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Rules</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {rules?.map((rule) => (
-                  <div key={rule.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="font-medium">{rule.name}</h3>
-                        <Badge variant={rule.is_active ? 'default' : 'secondary'}>
-                          {rule.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        <strong>Trigger:</strong> {rule.trigger_event.replace('_', ' ')}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Template:</strong> {rule.template?.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={rule.is_active}
-                        onCheckedChange={() => handleToggle(rule.id, rule.is_active)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedRule(rule);
-                          setEditDialogOpen(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(rule.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {rules?.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No automation rules created yet</p>
-                  </div>
-                )}
+          {/* Premium Header Section */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
+                  Automation Workflows
+                </h1>
+                <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
+                  Streamline your operations with intelligent automation excellence
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3">
+                    <Plus className="h-5 w-5" />
+                    CREATE RULE
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+                  <DialogHeader>
+                    <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Create Automation Rule</DialogTitle>
+                  </DialogHeader>
+                  <WorkflowForm onSuccess={() => setCreateDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            </div>
+            <div className="w-24 h-px bg-brand-taupe"></div>
+          </div>
 
-        {/* Recent Executions */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Executions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {executions?.map((execution) => (
-                  <div key={execution.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{execution.rule?.name}</span>
-                      <Badge 
-                        variant={
-                          execution.status === 'success' ? 'default' : 
-                          execution.status === 'failed' ? 'destructive' : 'secondary'
-                        }
-                      >
-                        {execution.status}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {execution.transaction?.property_address}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(execution.executed_at).toLocaleString()}
-                    </p>
-                    {execution.error_message && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {execution.error_message}
-                      </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Rules List */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Settings className="h-6 w-6 text-brand-taupe" />
+                    Active Rules
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {rules?.map((rule) => (
+                      <div key={rule.id} className="flex items-center justify-between p-6 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300 group">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <h3 className="font-brand-heading font-medium text-brand-charcoal tracking-wide">{rule.name}</h3>
+                            <Badge 
+                              variant={rule.is_active ? 'default' : 'secondary'}
+                              className={`font-brand-heading tracking-wide ${
+                                rule.is_active 
+                                  ? 'bg-green-100 text-green-800 border-green-200' 
+                                  : 'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              {rule.is_active ? 'ACTIVE' : 'INACTIVE'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-brand-body text-brand-charcoal/70 mb-2">
+                            <strong>Trigger:</strong> {rule.trigger_event.replace('_', ' ').toUpperCase()}
+                          </p>
+                          <p className="text-sm font-brand-body text-brand-charcoal/70">
+                            <strong>Template:</strong> {rule.template?.name}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Switch
+                            checked={rule.is_active}
+                            onCheckedChange={() => handleToggle(rule.id, rule.is_active)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedRule(rule);
+                              setEditDialogOpen(true);
+                            }}
+                            className="hover:bg-brand-taupe/20"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(rule.id)}
+                            className="hover:bg-red-100 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {rules?.length === 0 && (
+                      <div className="text-center py-20">
+                        <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                          <Zap className="h-12 w-12 text-brand-taupe" />
+                        </div>
+                        <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+                          No Automation Rules
+                        </h3>
+                        <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+                          Create your first automation rule to streamline workflows
+                        </p>
+                        <Button 
+                          onClick={() => setCreateDialogOpen(true)}
+                          className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          CREATE FIRST RULE
+                        </Button>
+                        <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
+                      </div>
                     )}
                   </div>
-                ))}
-                {executions?.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    No executions yet
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </CardContent>
+              </Card>
+            </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Automation Rule</DialogTitle>
-          </DialogHeader>
-          {selectedRule && (
-            <WorkflowForm
-              rule={selectedRule}
-              onSuccess={() => setEditDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            {/* Recent Executions */}
+            <div className="lg:col-span-1">
+              <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Play className="h-5 w-5 text-brand-taupe" />
+                    Recent Executions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {executions?.map((execution) => (
+                      <div key={execution.id} className="p-4 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-brand-heading font-medium text-brand-charcoal tracking-wide">
+                            {execution.rule?.name}
+                          </span>
+                          <Badge 
+                            variant={
+                              execution.status === 'success' ? 'default' : 
+                              execution.status === 'failed' ? 'destructive' : 'secondary'
+                            }
+                            className={`text-xs font-brand-heading tracking-wide ${
+                              execution.status === 'success' ? 'bg-green-100 text-green-800' :
+                              execution.status === 'failed' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {execution.status.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs font-brand-body text-brand-charcoal/60 mb-1">
+                          {execution.transaction?.property_address}
+                        </p>
+                        <p className="text-xs font-brand-body text-brand-charcoal/60">
+                          {new Date(execution.executed_at).toLocaleString()}
+                        </p>
+                        {execution.error_message && (
+                          <p className="text-xs text-red-600 mt-2 font-brand-body">
+                            {execution.error_message}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                    {executions?.length === 0 && (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-brand-taupe/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <Play className="h-8 w-8 text-brand-taupe" />
+                        </div>
+                        <p className="text-sm font-brand-body text-brand-charcoal/60">
+                          No executions yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Edit Dialog */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+              <DialogHeader>
+                <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Edit Automation Rule</DialogTitle>
+              </DialogHeader>
+              {selectedRule && (
+                <WorkflowForm
+                  rule={selectedRule}
+                  onSuccess={() => setEditDialogOpen(false)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        </main>
+      </SidebarInset>
+    </>
   );
 };
 
@@ -357,24 +439,25 @@ const WorkflowForm: React.FC<WorkflowFormProps> = ({ rule, onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <Label>Rule Name</Label>
+        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Rule Name</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData({...formData, name: e.target.value})}
           placeholder="e.g., Send inspection scheduled email"
           required
+          className="bg-white/80 border-brand-taupe/30 rounded-xl mt-2"
         />
       </div>
 
       <div>
-        <Label>Trigger Event</Label>
+        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Trigger Event</Label>
         <Select value={formData.trigger_event} onValueChange={(value) => setFormData({...formData, trigger_event: value})}>
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/80 border-brand-taupe/30 rounded-xl mt-2">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
             <SelectItem value="task_completed">Task Completed</SelectItem>
             <SelectItem value="status_changed">Status Changed</SelectItem>
             <SelectItem value="document_signed">Document Signed</SelectItem>
@@ -383,12 +466,12 @@ const WorkflowForm: React.FC<WorkflowFormProps> = ({ rule, onSuccess }) => {
       </div>
 
       <div>
-        <Label>Email Template</Label>
+        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Email Template</Label>
         <Select value={formData.template_id} onValueChange={(value) => setFormData({...formData, template_id: value})}>
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/80 border-brand-taupe/30 rounded-xl mt-2">
             <SelectValue placeholder="Select template" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
             {templates?.map((template) => (
               <SelectItem key={template.id} value={template.id}>
                 {template.name} - {template.subject}
@@ -398,19 +481,28 @@ const WorkflowForm: React.FC<WorkflowFormProps> = ({ rule, onSuccess }) => {
         </Select>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-3 p-4 bg-brand-taupe/10 rounded-xl">
         <Switch
           checked={formData.is_active}
           onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
         />
-        <Label>Rule is active</Label>
+        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Rule is active</Label>
       </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onSuccess}>
+      <div className="flex justify-end space-x-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onSuccess}
+          className="bg-white/80 border-brand-taupe/30 text-brand-charcoal hover:bg-brand-taupe/10 font-brand-heading tracking-wide"
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={mutation.isPending}>
+        <Button 
+          type="submit" 
+          disabled={mutation.isPending}
+          className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide"
+        >
           {mutation.isPending ? 'Saving...' : (rule ? 'Update' : 'Create')} Rule
         </Button>
       </div>
