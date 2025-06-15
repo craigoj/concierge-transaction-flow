@@ -50,6 +50,57 @@ export type Database = {
           },
         ]
       }
+      agent_invitations: {
+        Row: {
+          accepted_at: string | null
+          agent_id: string
+          created_at: string
+          email: string
+          id: string
+          invitation_token: string
+          invited_at: string
+          invited_by: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agent_id: string
+          created_at?: string
+          email: string
+          id?: string
+          invitation_token: string
+          invited_at?: string
+          invited_by: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agent_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          invitation_token?: string
+          invited_at?: string
+          invited_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_invitations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_rules: {
         Row: {
           created_at: string
@@ -539,8 +590,13 @@ export type Database = {
           email: string | null
           first_name: string | null
           id: string
+          invitation_status: string | null
+          invitation_token: string | null
+          invited_at: string | null
+          invited_by: string | null
           last_name: string | null
           license_number: string | null
+          onboarding_completed_at: string | null
           phone_number: string | null
           profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -555,8 +611,13 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id: string
+          invitation_status?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          onboarding_completed_at?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -571,8 +632,13 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          invitation_status?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          onboarding_completed_at?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -580,7 +646,15 @@ export type Database = {
           updated_at?: string
           years_experience?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_templates: {
         Row: {
