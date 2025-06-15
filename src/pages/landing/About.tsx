@@ -35,7 +35,7 @@ const About = () => {
               </Button>
             </div>
             <div className="relative">
-              <div className="w-full h-[500px] rounded-2xl overflow-hidden shadow-brand-elevation bg-white">
+              <div className="w-full h-[500px] rounded-2xl overflow-hidden shadow-brand-elevation">
                 <img 
                   src="/lovable-uploads/878f5626-53d7-4407-ab51-df42b2f48eb8.png"
                   alt="Eileen - Founder of The Agent Concierge Co."
