@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, User, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, User, FileText, CheckCircle, Building } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,15 +22,15 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'intake':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'active':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'closed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -41,9 +41,9 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="h-64">
+          <Card key={i} className="h-80">
             <CardHeader>
               <Skeleton className="h-6 w-3/4" />
               <div className="flex gap-2">
@@ -52,7 +52,7 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-2/3" />
                 <Skeleton className="h-4 w-1/2" />
@@ -66,82 +66,91 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
 
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">No transactions found</h3>
-        <p className="text-muted-foreground">Create your first transaction to get started.</p>
+      <div className="text-center py-20">
+        <div className="max-w-md mx-auto">
+          <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+            <Building className="h-12 w-12 text-brand-taupe" />
+          </div>
+          <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+            No Transactions Found
+          </h3>
+          <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+            Create your first transaction to begin coordinating with excellence
+          </p>
+          <div className="w-16 h-px bg-brand-taupe mx-auto"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {transactions.map((transaction) => {
         const completedTasks = transaction.tasks?.filter(task => task.is_completed).length || 0;
         const totalTasks = transaction.tasks?.length || 0;
         const primaryClient = transaction.clients?.[0];
 
         return (
-          <Card key={transaction.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg font-semibold text-foreground line-clamp-2">
+          <Card key={transaction.id} className="hover:shadow-brand-elevation transition-all duration-300 cursor-pointer group">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between mb-4">
+                <CardTitle className="text-lg font-brand-heading tracking-wide text-brand-charcoal line-clamp-2 uppercase">
                   {transaction.property_address}
                 </CardTitle>
               </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <Badge className={getStatusColor(transaction.status)}>
+              <div className="flex flex-wrap gap-3">
+                <Badge className={`${getStatusColor(transaction.status)} font-brand-heading tracking-wide text-xs px-3 py-1 border`}>
                   {transaction.status.toUpperCase()}
                 </Badge>
                 {transaction.transaction_type && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="font-brand-heading tracking-wide text-xs px-3 py-1">
                     {transaction.transaction_type.toUpperCase()}
                   </Badge>
                 )}
                 {transaction.service_tier && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="font-brand-heading tracking-wide text-xs px-3 py-1">
                     {getServiceTierDisplay(transaction.service_tier)}
                   </Badge>
                 )}
               </div>
             </CardHeader>
             
-            <CardContent className="pt-0 space-y-3">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+            <CardContent className="pt-0 space-y-4">
+              <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
+                <MapPin className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
                 <span className="truncate">
                   {transaction.city}, {transaction.state} {transaction.zip_code}
                 </span>
               </div>
 
               {primaryClient && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <User className="w-4 h-4 mr-2 flex-shrink-0" />
+                <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
+                  <User className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
                   <span className="truncate">{primaryClient.full_name}</span>
                 </div>
               )}
 
               {transaction.closing_date && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
+                  <Calendar className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
                   <span>Closes {new Date(transaction.closing_date).toLocaleDateString()}</span>
                 </div>
               )}
 
               {totalTasks > 0 && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
+                  <CheckCircle className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
                   <span>Tasks: {completedTasks}/{totalTasks} completed</span>
                 </div>
               )}
 
-              <div className="flex gap-2 mt-4">
+              <div className="pt-4">
                 <Button 
                   size="sm" 
-                  className="flex-1"
+                  className="w-full font-brand-heading tracking-wide"
                   onClick={() => onTransactionClick(transaction.id)}
                 >
-                  View Details
+                  VIEW DETAILS
                 </Button>
               </div>
             </CardContent>
