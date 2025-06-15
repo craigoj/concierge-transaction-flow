@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,25 +49,22 @@ export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) =>
   const onSubmit = async (data: CreateAgentForm) => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
+      console.log("Starting agent creation with data:", data);
 
-      console.log("Making request to create-agent-invitation with data:", data);
-
-      const response = await supabase.functions.invoke('create-agent-invitation', {
+      const { data: response, error } = await supabase.functions.invoke('create-agent-invitation', {
         body: data,
       });
 
-      console.log("Function response:", response);
+      console.log("Function response:", response, "Error:", error);
 
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to create agent invitation");
+      if (error) {
+        console.error("Function invocation error:", error);
+        throw new Error(error.message || "Failed to create agent invitation");
       }
 
-      if (!response.data) {
-        throw new Error("No response data received");
+      if (!response || !response.success) {
+        console.error("No success response:", response);
+        throw new Error(response?.error || "Failed to create agent invitation");
       }
 
       toast({

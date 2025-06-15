@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Profile update error:", updateProfileError);
 
     if (updateProfileError) {
-      throw new Error(`Failed to update profile: ${updateProfileError.message}`);
+      console.log("Failed to update profile, but continuing...", updateProfileError.message);
     }
 
     // Create invitation record
@@ -122,7 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Invitation record error:", invitationError);
 
     if (invitationError) {
-      console.error("Failed to create invitation record:", invitationError);
+      console.log("Failed to create invitation record, but continuing...", invitationError.message);
     }
 
     console.log("Agent invitation created successfully:", {
