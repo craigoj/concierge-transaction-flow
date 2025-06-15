@@ -71,8 +71,12 @@ const AppHeader = () => {
           {/* Global Create Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-4 py-2 font-brand-heading font-medium tracking-wide shadow-brand-subtle">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button
+                variant="default"
+                size="sm"
+                className="rounded-xl shadow-brand-subtle"
+              >
+                <Plus className="h-4 w-4" />
                 CREATE
               </Button>
             </DropdownMenuTrigger>
