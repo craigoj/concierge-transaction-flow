@@ -9,30 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
+          address: string | null
+          created_at: string | null
           email: string | null
           full_name: string
           id: string
+          notes: string | null
           phone: string | null
+          preferred_contact_method: string | null
+          referral_source: string | null
           transaction_id: string
           type: Database["public"]["Enums"]["client_type"]
+          updated_at: string | null
         }
         Insert: {
+          address?: string | null
+          created_at?: string | null
           email?: string | null
           full_name: string
           id?: string
+          notes?: string | null
           phone?: string | null
+          preferred_contact_method?: string | null
+          referral_source?: string | null
           transaction_id: string
           type: Database["public"]["Enums"]["client_type"]
+          updated_at?: string | null
         }
         Update: {
+          address?: string | null
+          created_at?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          notes?: string | null
           phone?: string | null
+          preferred_contact_method?: string | null
+          referral_source?: string | null
           transaction_id?: string
           type?: Database["public"]["Enums"]["client_type"]
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -43,6 +102,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      communication_logs: {
+        Row: {
+          communication_type: string
+          contact_id: string
+          contact_type: string
+          content: string
+          created_at: string
+          direction: string
+          id: string
+          subject: string | null
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          communication_type: string
+          contact_id: string
+          contact_type: string
+          content: string
+          created_at?: string
+          direction: string
+          id?: string
+          subject?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          communication_type?: string
+          contact_id?: string
+          contact_type?: string
+          content?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          subject?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_preferences: {
+        Row: {
+          contact_id: string
+          contact_type: string
+          created_at: string
+          frequency: string | null
+          id: string
+          notes: string | null
+          preferred_method: string
+          preferred_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          contact_type: string
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          notes?: string | null
+          preferred_method: string
+          preferred_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          contact_type?: string
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          notes?: string | null
+          preferred_method?: string
+          preferred_time?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -180,37 +332,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           brokerage: string | null
           created_at: string
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
+          license_number: string | null
           phone_number: string | null
+          profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          specialties: string[] | null
           updated_at: string
+          years_experience: number | null
         }
         Insert: {
+          bio?: string | null
           brokerage?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
+          license_number?: string | null
           phone_number?: string | null
+          profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          specialties?: string[] | null
           updated_at?: string
+          years_experience?: number | null
         }
         Update: {
+          bio?: string | null
           brokerage?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          license_number?: string | null
           phone_number?: string | null
+          profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          specialties?: string[] | null
           updated_at?: string
+          years_experience?: number | null
         }
         Relationships: []
       }

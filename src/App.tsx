@@ -10,6 +10,10 @@ import AuthGuard from "./components/AuthGuard";
 import NotFound from "./pages/NotFound";
 import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
+import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
+import Agents from "./pages/Agents";
+import AgentDetail from "./pages/AgentDetail";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,38 @@ const App = () => (
             element={
               <AuthGuard>
                 <TransactionDetail />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/clients" 
+            element={
+              <AuthGuard>
+                <Clients />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/clients/:id" 
+            element={
+              <AuthGuard>
+                <ClientDetail />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/agents" 
+            element={
+              <AuthGuard>
+                <Agents />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/agents/:id" 
+            element={
+              <AuthGuard>
+                <AgentDetail />
               </AuthGuard>
             } 
           />
