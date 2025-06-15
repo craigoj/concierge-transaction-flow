@@ -45,6 +45,9 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Get the current feature's icon component
+  const CurrentIcon = features[activeFeature].icon;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-background">
       <LandingHeader />
@@ -100,7 +103,7 @@ const Home = () => {
                   <CardContent className="p-0">
                     <div className="flex items-center space-x-4 mb-6">
                       <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${features[activeFeature].color} flex items-center justify-center`}>
-                        <features[activeFeature].icon className="h-8 w-8 text-brand-charcoal" />
+                        <CurrentIcon className="h-8 w-8 text-brand-charcoal" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
