@@ -42,7 +42,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
                 if (profile.role === 'agent' && !location.pathname.startsWith('/agent/')) {
                   navigate('/agent/dashboard');
                 } else if (profile.role === 'coordinator' && location.pathname.startsWith('/agent/')) {
-                  navigate('/');
+                  navigate('/dashboard');
                 }
               }
             } catch (error) {
@@ -77,7 +77,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
               if (profile.role === 'agent' && !location.pathname.startsWith('/agent/')) {
                 navigate('/agent/dashboard');
               } else if (profile.role === 'coordinator' && location.pathname.startsWith('/agent/')) {
-                navigate('/');
+                navigate('/dashboard');
               }
             }
             setLoading(false);

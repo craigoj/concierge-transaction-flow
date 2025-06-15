@@ -22,11 +22,14 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className }) => {
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const breadcrumbs: BreadcrumbItem[] = [
-      { label: 'Dashboard', href: '/' }
+      { label: 'Dashboard', href: '/dashboard' }
     ];
 
     let currentPath = '';
     pathSegments.forEach((segment, index) => {
+      // Skip the dashboard segment since it's already added as the home
+      if (segment === 'dashboard') return;
+      
       currentPath += `/${segment}`;
       const isLast = index === pathSegments.length - 1;
       

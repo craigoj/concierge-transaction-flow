@@ -31,6 +31,10 @@ import NotFound from "./pages/NotFound";
 import AgentSetup from "./pages/agent/AgentSetup";
 import AgentDashboard from "./pages/agent/AgentDashboard";
 import AgentTransactionDetail from "./pages/agent/TransactionDetail";
+import Home from "./pages/landing/Home";
+import About from "./pages/landing/About";
+import Services from "./pages/landing/Services";
+import Contact from "./pages/landing/Contact";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +46,13 @@ const App: React.FC = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
+            {/* Public landing pages */}
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/contact" element={<Contact />} />
+            
+            {/* Public auth routes */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/agent/setup/:token" element={<AgentSetup />} />
             
@@ -58,7 +68,7 @@ const App: React.FC = () => {
                         <AppHeader />
                         <main className="flex-1">
                           <Routes>
-                            <Route path="/" element={<Index />} />
+                            <Route path="/dashboard" element={<Index />} />
                             <Route path="/agent/dashboard" element={<AgentDashboard />} />
                             <Route path="/agent/transaction/:id" element={<AgentTransactionDetail />} />
                             <Route path="/transactions" element={<Transactions />} />
