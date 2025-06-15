@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,27 +175,29 @@ const EnhancedApplyWorkflowDialog = ({
   const selectedWorkflowTemplate = workflowTemplates?.find(t => t.id === selectedTemplateId);
   const selectedTaskTemplate = taskTemplates?.find(t => t.id === selectedTemplateId);
 
-  // Combine and filter templates
+  // Combine and filter templates with proper type handling
   const allTemplates = React.useMemo(() => {
     const combined = [
       ...(workflowTemplates || []).map(t => ({ 
         ...t, 
         source: 'workflow' as const,
         taskCount: t.template_tasks?.length || 0,
-        isImported: t.description?.includes('Imported from') || false
+        isImported: t.description?.includes('Imported from') || false,
+        templateType: t.type // Use templateType to avoid conflict
       })),
       ...(taskTemplates || []).map(t => ({ 
         ...t, 
         source: 'task' as const,
         taskCount: Array.isArray(t.tasks) ? t.tasks.length : 0,
-        isImported: false
+        isImported: false,
+        templateType: t.category // Use templateType to avoid conflict
       }))
     ];
 
     if (filterType === 'all') return combined;
     if (filterType === 'imported') return combined.filter(t => t.isImported);
     if (filterType === 'manual') return combined.filter(t => !t.isImported);
-    return combined.filter(t => t.type === filterType || t.category === filterType);
+    return combined.filter(t => t.templateType === filterType);
   }, [workflowTemplates, taskTemplates, filterType]);
 
   const getTaskCount = () => {
@@ -319,7 +320,7 @@ const EnhancedApplyWorkflowDialog = ({
                           <CardTitle className="text-base">{template.name}</CardTitle>
                           <div className="flex gap-1">
                             <Badge variant="outline" className="text-xs">
-                              {template.type || template.category}
+                              {template.templateType}
                             </Badge>
                             {template.isImported && (
                               <Badge variant="secondary" className="text-xs">
