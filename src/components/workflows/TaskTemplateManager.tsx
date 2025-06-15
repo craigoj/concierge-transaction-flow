@@ -51,7 +51,7 @@ const TaskTemplateManager = () => {
       // Convert the Json type to TaskItem[] for proper typing
       return data.map(template => ({
         ...template,
-        tasks: template.tasks as TaskItem[]
+        tasks: template.tasks as unknown as TaskItem[]
       })) as TaskTemplate[];
     }
   });
