@@ -72,6 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Creating user with email:", email);
     
+    // Create user without role in metadata initially
     const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -80,8 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
         first_name: firstName,
         last_name: lastName,
         phone: phoneNumber,
-        brokerage,
-        role: "agent"
+        brokerage
       }
     });
 
@@ -91,10 +91,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create user: ${createUserError?.message}`);
     }
 
-    // Update the profile with invitation details
+    // Now update the profile with the correct role and invitation details
     const { error: updateProfileError } = await supabase
       .from("profiles")
       .update({
+        role: 'agent',
         invitation_status: "sent",
         invitation_token: invitationToken,
         invited_at: new Date().toISOString(),
@@ -105,7 +106,28 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Profile update error:", updateProfileError);
 
     if (updateProfileError) {
-      console.log("Failed to update profile, but continuing...", updateProfileError.message);
+      console.log("Failed to update profile, retrying with upsert...", updateProfileError.message);
+      
+      // Try to upsert the profile if update failed
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: newUser.user.id,
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: phoneNumber,
+          brokerage: brokerage,
+          role: 'agent',
+          invitation_status: "sent",
+          invitation_token: invitationToken,
+          invited_at: new Date().toISOString(),
+          invited_by: user.id
+        });
+        
+      if (upsertError) {
+        console.error("Profile upsert also failed:", upsertError.message);
+      }
     }
 
     // Create invitation record
