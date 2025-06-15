@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,8 +32,8 @@ const Communications = () => {
         .from('communications')
         .select(`
           *,
-          sender:sender_id(full_name),
-          recipient:recipient_id(full_name),
+          sender:profiles!communications_sender_id_fkey(full_name),
+          recipient:profiles!communications_recipient_id_fkey(full_name),
           transactions(property_address, status)
         `)
         .order('created_at', { ascending: false });
