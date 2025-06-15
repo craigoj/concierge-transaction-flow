@@ -1,19 +1,17 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Workflow, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Workflow, Settings, Upload, History } from 'lucide-react';
 import { toast } from 'sonner';
 import CreateWorkflowTemplateDialog from './CreateWorkflowTemplateDialog';
 import TemplateTaskEditor from './TemplateTaskEditor';
+import XMLTemplateImportDialog from './XMLTemplateImportDialog';
+import ImportHistoryDialog from './ImportHistoryDialog';
 
 interface WorkflowTemplate {
   id: string;
@@ -29,6 +27,8 @@ const WorkflowTemplateManager = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch workflow templates
@@ -116,10 +116,20 @@ const WorkflowTemplateManager = () => {
             Manage your task templates for automated workflow creation
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsHistoryDialogOpen(true)}>
+            <History className="h-4 w-4 mr-2" />
+            Import History
+          </Button>
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import XML
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="all" className="space-y-4">
@@ -201,15 +211,18 @@ const WorkflowTemplateManager = () => {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <Workflow className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground mb-4">
                       No {tab === 'all' ? '' : tab.toLowerCase()} templates found.
                     </p>
-                    <Button 
-                      className="mt-4" 
-                      onClick={() => setIsCreateDialogOpen(true)}
-                    >
-                      Create Your First Template
-                    </Button>
+                    <div className="flex gap-2 justify-center">
+                      <Button onClick={() => setIsImportDialogOpen(true)}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import XML Templates
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
+                        Create Manually
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -227,6 +240,16 @@ const WorkflowTemplateManager = () => {
         open={isTaskEditorOpen}
         onOpenChange={setIsTaskEditorOpen}
         template={selectedTemplate}
+      />
+
+      <XMLTemplateImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+
+      <ImportHistoryDialog
+        open={isHistoryDialogOpen}
+        onOpenChange={setIsHistoryDialogOpen}
       />
     </div>
   );

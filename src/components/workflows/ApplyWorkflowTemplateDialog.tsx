@@ -1,207 +1,245 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Zap, Clock, CheckCircle, Workflow } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Workflow, Calendar, Mail, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ApplyWorkflowTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transactionId: string;
-  transactionType?: string;
 }
 
 interface WorkflowTemplate {
   id: string;
   name: string;
   type: string;
-  description: string;
-  template_tasks: any[];
+  description?: string;
   is_active: boolean;
+  template_tasks: {
+    id: string;
+    subject: string;
+    task_type?: string;
+    email_template_id?: string;
+  }[];
 }
 
 const ApplyWorkflowTemplateDialog = ({ 
   open, 
   onOpenChange, 
-  transactionId, 
-  transactionType 
+  transactionId 
 }: ApplyWorkflowTemplateDialogProps) => {
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch available workflow templates
   const { data: templates, isLoading } = useQuery({
     queryKey: ['workflow-templates-active'],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('workflow_templates')
         .select(`
           *,
-          template_tasks(*)
+          template_tasks(
+            id,
+            subject,
+            task_type,
+            email_template_id
+          )
         `)
         .eq('is_active', true)
-        .order('name');
+        .order('created_at', { ascending: false });
 
-      // Filter by transaction type if provided
-      if (transactionType && transactionType !== 'General') {
-        query = query.or(`type.eq.${transactionType},type.eq.General`);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data as WorkflowTemplate[];
     },
-    enabled: open,
+    enabled: open
   });
 
-  // Apply workflow template mutation
   const applyTemplateMutation = useMutation({
     mutationFn: async (templateId: string) => {
       const { data, error } = await supabase.rpc('apply_workflow_template', {
         p_transaction_id: transactionId,
-        p_template_id: templateId,
+        p_template_id: templateId
       });
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', transactionId] });
-      queryClient.invalidateQueries({ queryKey: ['transaction', transactionId] });
-      queryClient.invalidateQueries({ queryKey: ['workflow-instances', transactionId] });
-      toast.success('Workflow template applied successfully');
+      queryClient.invalidateQueries({ queryKey: ['transaction-tasks', transactionId] });
+      toast.success('Workflow template applied successfully!');
       onOpenChange(false);
-      setSelectedTemplateId('');
     },
     onError: (error: any) => {
-      console.error('Error applying workflow template:', error);
+      console.error('Error applying template:', error);
       toast.error('Failed to apply workflow template');
     },
   });
 
-  const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
+  const filteredTemplates = templates?.filter(template =>
+    template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    template.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleApply = () => {
-    if (selectedTemplateId) {
-      applyTemplateMutation.mutate(selectedTemplateId);
+  const getTemplatesByType = (type: string) => {
+    if (type === 'all') return filteredTemplates || [];
+    return filteredTemplates?.filter(template => template.type === type) || [];
+  };
+
+  const getTaskTypeIcon = (taskType?: string) => {
+    switch (taskType) {
+      case 'EMAIL':
+        return <Mail className="h-3 w-3" />;
+      case 'TODO':
+        return <CheckCircle className="h-3 w-3" />;
+      default:
+        return <Workflow className="h-3 w-3" />;
     }
   };
 
-  if (isLoading) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Apply Workflow Template</DialogTitle>
-          </DialogHeader>
-          <div className="p-8 text-center">Loading templates...</div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const handleApplyTemplate = () => {
+    if (selectedTemplate) {
+      applyTemplateMutation.mutate(selectedTemplate.id);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Apply Workflow Template
-          </DialogTitle>
+          <DialogTitle>Apply Workflow Template</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Template Selection */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Select Workflow Template</label>
-            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a workflow template" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates?.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name} ({template.template_tasks?.length || 0} tasks)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex-1 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
 
-          {/* Template Preview */}
-          {selectedTemplate && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{selectedTemplate.name}</CardTitle>
-                <div className="flex gap-2">
-                  <Badge variant="outline">{selectedTemplate.type}</Badge>
-                  <Badge variant="secondary">
-                    {selectedTemplate.template_tasks?.length || 0} tasks
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {selectedTemplate.description && (
-                  <p className="text-muted-foreground mb-4">{selectedTemplate.description}</p>
-                )}
-                
-                <div className="space-y-2">
-                  <h4 className="font-medium">Tasks to be created:</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {selectedTemplate.template_tasks?.map((task: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{task.subject}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {task.is_agent_visible && (
-                            <Badge variant="outline" className="text-xs">
-                              Agent
-                            </Badge>
-                          )}
-                          {task.due_date_rule?.type === 'days_from_event' && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {task.due_date_rule.days > 0 ? '+' : ''}{task.due_date_rule.days} days
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+            <div>
+              <h3 className="font-medium mb-3">Select Template</h3>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="Listing">Listing</TabsTrigger>
+                  <TabsTrigger value="Buyer">Buyer</TabsTrigger>
+                  <TabsTrigger value="General">General</TabsTrigger>
+                </TabsList>
+
+                {['all', 'Listing', 'Buyer', 'General'].map((type) => (
+                  <TabsContent key={type} value={type}>
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-2">
+                        {isLoading ? (
+                          <div className="text-center p-4">Loading templates...</div>
+                        ) : getTemplatesByType(type).length > 0 ? (
+                          getTemplatesByType(type).map((template) => (
+                            <div
+                              key={template.id}
+                              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                selectedTemplate?.id === template.id
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedTemplate(template)}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium">{template.name}</h4>
+                                <Badge variant="outline">{template.type}</Badge>
+                              </div>
+                              {template.description && (
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {template.description}
+                                </p>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                {template.template_tasks.length} tasks
+                              </div>
                             </div>
-                          )}
-                        </div>
+                          ))
+                        ) : (
+                          <div className="text-center p-4 text-muted-foreground">
+                            No {type === 'all' ? '' : type.toLowerCase()} templates found
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    </ScrollArea>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-3">Template Preview</h3>
+              {selectedTemplate ? (
+                <div className="border rounded-lg p-4 h-[400px] overflow-hidden flex flex-col">
+                  <div className="mb-4">
+                    <h4 className="font-medium text-lg">{selectedTemplate.name}</h4>
+                    {selectedTemplate.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedTemplate.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-hidden">
+                    <h5 className="font-medium mb-2">Tasks ({selectedTemplate.template_tasks.length})</h5>
+                    <ScrollArea className="h-full">
+                      <div className="space-y-2">
+                        {selectedTemplate.template_tasks.map((task, index) => (
+                          <div key={task.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span className="text-xs bg-gray-200 rounded px-1 min-w-[20px] text-center">
+                              {index + 1}
+                            </span>
+                            {getTaskTypeIcon(task.task_type)}
+                            <span className="text-sm flex-1">{task.subject}</span>
+                            {task.email_template_id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Email
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="border rounded-lg p-4 h-[400px] flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <Workflow className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Select a template to preview its tasks</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-between pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleApply}
-              disabled={!selectedTemplateId || applyTemplateMutation.isPending}
+            <Button
+              onClick={handleApplyTemplate}
+              disabled={!selectedTemplate || applyTemplateMutation.isPending}
             >
               {applyTemplateMutation.isPending ? 'Applying...' : 'Apply Template'}
             </Button>
           </div>
-
-          {templates?.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Workflow className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No workflow templates available for this transaction type.</p>
-              <p className="text-sm mt-2">
-                Create templates in the Workflows section to get started.
-              </p>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -605,6 +605,63 @@ export type Database = {
           },
         ]
       }
+      imported_email_templates: {
+        Row: {
+          created_at: string | null
+          email_bcc: string | null
+          email_cc: string | null
+          email_template_id: string
+          email_to: string | null
+          folder_name: string | null
+          id: string
+          import_id: string | null
+          is_system_template: boolean | null
+          original_xml_id: string | null
+          template_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_bcc?: string | null
+          email_cc?: string | null
+          email_template_id: string
+          email_to?: string | null
+          folder_name?: string | null
+          id?: string
+          import_id?: string | null
+          is_system_template?: boolean | null
+          original_xml_id?: string | null
+          template_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email_bcc?: string | null
+          email_cc?: string | null
+          email_template_id?: string
+          email_to?: string | null
+          folder_name?: string | null
+          id?: string
+          import_id?: string | null
+          is_system_template?: boolean | null
+          original_xml_id?: string | null
+          template_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_email_templates_email_template_id_fkey"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imported_email_templates_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "xml_template_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           communication_alerts: boolean
@@ -854,43 +911,109 @@ export type Database = {
       }
       template_tasks: {
         Row: {
+          auto_fill_with_role: string | null
+          buyer_seller_visible: boolean | null
+          color: string | null
           created_at: string
           description_notes: string | null
           due_date_rule: Json
+          due_time_minutes: number | null
           email_template_id: string | null
+          expense: number | null
           id: string
           is_agent_visible: boolean
+          is_milestone: boolean | null
+          is_on_calendar: boolean | null
+          is_prospecting: boolean | null
+          is_recurring: boolean | null
           phase: string | null
+          recurring_count: number | null
+          recurring_day_of_month: number | null
+          recurring_day_of_week: number | null
+          recurring_frequency: string | null
+          recurring_month_of_year: number | null
+          recurring_separation_count: number | null
+          reminder_delta: number | null
+          reminder_set: boolean | null
+          reminder_time_minutes: number | null
           sort_order: number
           subject: string
+          task_type: string | null
           template_id: string
           updated_at: string
+          xaction_side_buyer: boolean | null
+          xaction_side_dual: boolean | null
+          xaction_side_seller: boolean | null
         }
         Insert: {
+          auto_fill_with_role?: string | null
+          buyer_seller_visible?: boolean | null
+          color?: string | null
           created_at?: string
           description_notes?: string | null
           due_date_rule: Json
+          due_time_minutes?: number | null
           email_template_id?: string | null
+          expense?: number | null
           id?: string
           is_agent_visible?: boolean
+          is_milestone?: boolean | null
+          is_on_calendar?: boolean | null
+          is_prospecting?: boolean | null
+          is_recurring?: boolean | null
           phase?: string | null
+          recurring_count?: number | null
+          recurring_day_of_month?: number | null
+          recurring_day_of_week?: number | null
+          recurring_frequency?: string | null
+          recurring_month_of_year?: number | null
+          recurring_separation_count?: number | null
+          reminder_delta?: number | null
+          reminder_set?: boolean | null
+          reminder_time_minutes?: number | null
           sort_order?: number
           subject: string
+          task_type?: string | null
           template_id: string
           updated_at?: string
+          xaction_side_buyer?: boolean | null
+          xaction_side_dual?: boolean | null
+          xaction_side_seller?: boolean | null
         }
         Update: {
+          auto_fill_with_role?: string | null
+          buyer_seller_visible?: boolean | null
+          color?: string | null
           created_at?: string
           description_notes?: string | null
           due_date_rule?: Json
+          due_time_minutes?: number | null
           email_template_id?: string | null
+          expense?: number | null
           id?: string
           is_agent_visible?: boolean
+          is_milestone?: boolean | null
+          is_on_calendar?: boolean | null
+          is_prospecting?: boolean | null
+          is_recurring?: boolean | null
           phase?: string | null
+          recurring_count?: number | null
+          recurring_day_of_month?: number | null
+          recurring_day_of_week?: number | null
+          recurring_frequency?: string | null
+          recurring_month_of_year?: number | null
+          recurring_separation_count?: number | null
+          reminder_delta?: number | null
+          reminder_set?: boolean | null
+          reminder_time_minutes?: number | null
           sort_order?: number
           subject?: string
+          task_type?: string | null
           template_id?: string
           updated_at?: string
+          xaction_side_buyer?: boolean | null
+          xaction_side_dual?: boolean | null
+          xaction_side_seller?: boolean | null
         }
         Relationships: [
           {
@@ -1134,6 +1257,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      xml_template_imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          emails_imported: number | null
+          error_message: string | null
+          filename: string
+          id: string
+          import_status: string | null
+          imported_by: string
+          metadata: Json | null
+          tasks_imported: number | null
+          templates_imported: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          emails_imported?: number | null
+          error_message?: string | null
+          filename: string
+          id?: string
+          import_status?: string | null
+          imported_by: string
+          metadata?: Json | null
+          tasks_imported?: number | null
+          templates_imported?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          emails_imported?: number | null
+          error_message?: string | null
+          filename?: string
+          id?: string
+          import_status?: string | null
+          imported_by?: string
+          metadata?: Json | null
+          tasks_imported?: number | null
+          templates_imported?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xml_template_imports_imported_by_fkey"
+            columns: ["imported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
