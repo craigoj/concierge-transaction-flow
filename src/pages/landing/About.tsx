@@ -18,14 +18,13 @@ const About = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h1 className="text-5xl md:text-6xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider mb-6">
-                MEET EILEEN
+              <h1 className="text-5xl md:text-6xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider mb-4">
+                EILEEN MERCHANT
               </h1>
-              <div className="w-24 h-px bg-brand-taupe mb-8"></div>
-              <p className="text-xl text-brand-charcoal/80 font-brand-body leading-relaxed mb-8">
-                The visionary behind The Agent Concierge Co., bringing decades of real estate expertise 
-                and an unwavering commitment to excellence in every transaction.
+              <p className="text-2xl font-brand-heading text-brand-taupe-dark mb-6 tracking-wide">
+                Founder & Lead Transaction Coordinator
               </p>
+              <div className="w-24 h-px bg-brand-taupe mb-8"></div>
               <Button 
                 variant="brand" 
                 size="lg"
@@ -50,34 +49,21 @@ const About = () => {
       {/* Story Section */}
       <section className="py-20 bg-white/60 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide mb-6">
-              A JOURNEY OF EXCELLENCE
-            </h2>
-            <div className="w-24 h-px bg-brand-taupe mx-auto"></div>
-          </div>
-
-          <div className="space-y-8 font-brand-body text-lg text-brand-charcoal/80 leading-relaxed">
+          <div className="space-y-8 font-brand-body text-lg text-brand-charcoal/80 leading-relaxed text-justify">
             <p>
-              With over two decades in the real estate industry, Eileen has witnessed firsthand 
-              the challenges that agents face in managing complex transactions while maintaining 
-              the highest standards of client service.
+              I created The Agent Concierge after seeing so many talented agents stretched thin - trying to grow, serve, and scale all at once, without the right support behind them. They envisioned luxury - but the administrative demands kept pulling them away.
             </p>
             <p>
-              Born from a passion for operational excellence and a deep understanding of the 
-              real estate process, The Agent Concierge Co. was founded on a simple yet powerful 
-              principle: <em>Excellence is Intentional</em>.
+              So I created the systems that would give them the structure and the space to get there.
             </p>
             <p>
-              Every system, every process, and every interaction has been carefully designed 
-              to elevate the real estate experience for both agents and their clients. This 
-              isn't just about transaction coordination—it's about creating a partnership 
-              that amplifies your success.
+              With a background in communication and a mind for strategy, I designed a service rooted in clarity, speed, and high standards. My role isn&apos;t just to manage transactions - it&apos;s to create leverage, bring calm to the chaos, and help my clients grow with intention.
             </p>
             <p>
-              Today, Eileen and her team of dedicated professionals continue to set new 
-              standards in the industry, providing white-glove service that allows agents 
-              to focus on what they do best: building relationships and closing deals.
+              At the core of it all, my goal is simple: to <em>give agents their time back</em> - whether that means more moments with family, space to do what they love, or the freedom to focus on what they&apos;re best at: growing their business.
+            </p>
+            <p>
+              That shift in their voice after our first closing together - when they realize they don&apos;t have to do it all alone anymore - is exactly why I do this.
             </p>
           </div>
         </div>
@@ -105,7 +91,7 @@ const About = () => {
                   EXCELLENCE
                 </h3>
                 <p className="font-brand-body text-brand-charcoal/70">
-                  We believe excellence is not an accident—it's the result of intentional, 
+                  We believe excellence is not an accident—it&apos;s the result of intentional, 
                   deliberate action in everything we do.
                 </p>
               </CardContent>
@@ -135,7 +121,7 @@ const About = () => {
                   PARTNERSHIP
                 </h3>
                 <p className="font-brand-body text-brand-charcoal/70">
-                  Your success is our success. We're not just service providers—we're 
+                  Your success is our success. We&apos;re not just service providers—we&apos;re 
                   your dedicated partners in achievement.
                 </p>
               </CardContent>
@@ -150,7 +136,7 @@ const About = () => {
                   RELIABILITY
                 </h3>
                 <p className="font-brand-body text-brand-charcoal/70">
-                  Consistency and dependability aren't just nice-to-haves—they're 
+                  Consistency and dependability aren&apos;t just nice-to-haves—they&apos;re 
                   essential elements of professional service.
                 </p>
               </CardContent>
