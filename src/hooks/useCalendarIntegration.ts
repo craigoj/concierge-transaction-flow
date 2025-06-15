@@ -24,7 +24,7 @@ export const useCalendarIntegration = () => {
 
       // Create Google OAuth URL using the actual Google Client ID
       const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      googleAuthUrl.searchParams.append('client_id', '2044a8b6c3f708992d480240b149dc5f39f50e0b48c658031bc525dce98e92a2');
+      googleAuthUrl.searchParams.append('client_id', '2044a8b6c3f708992d480240b149dc5f39f50e0b48c658031bc525dce98e92a2.apps.googleusercontent.com');
       googleAuthUrl.searchParams.append('redirect_uri', 'https://tdupublcyigkgdlobzqi.supabase.co/functions/v1/google-calendar-auth');
       googleAuthUrl.searchParams.append('response_type', 'code');
       googleAuthUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/calendar');
@@ -60,15 +60,14 @@ export const useCalendarIntegration = () => {
         .from('calendar_integrations')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
+        .eq('is_active', true);
 
       if (error) {
-        console.log('No calendar integration found');
+        console.log('Error checking calendar integration:', error);
         return false;
       }
 
-      return !!data;
+      return data && data.length > 0;
     } catch (error) {
       console.error('Error checking calendar connection:', error);
       return false;
