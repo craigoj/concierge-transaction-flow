@@ -15,8 +15,12 @@ const LandingHeader = () => {
             className="flex items-center space-x-4 cursor-pointer group"
             onClick={() => navigate('/')}
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-brand-taupe to-brand-taupe-dark rounded-xl flex items-center justify-center shadow-brand-subtle group-hover:shadow-brand-elevation transition-all duration-300">
-              <span className="text-brand-charcoal font-brand-heading font-bold text-xl tracking-brand-wide">AC</span>
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-brand-subtle group-hover:shadow-brand-elevation transition-all duration-300">
+              <img 
+                src="/lovable-uploads/c4831673-bd4c-4354-9ab1-25fe70b2edb2.png"
+                alt="The Agent Concierge Logo"
+                className="w-10 h-10 object-contain"
+              />
             </div>
             <div className="hidden md:block">
               <h1 className="text-xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">

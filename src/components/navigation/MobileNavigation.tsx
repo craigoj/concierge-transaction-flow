@@ -59,8 +59,12 @@ const MobileNavigation = () => {
           <div className="p-6 border-b border-border/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-lg">AC</span>
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-border/20">
+                  <img 
+                    src="/lovable-uploads/c4831673-bd4c-4354-9ab1-25fe70b2edb2.png"
+                    alt="The Agent Concierge Logo"
+                    className="w-8 h-8 object-contain"
+                  />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">Agent Concierge</h2>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -128,8 +127,12 @@ const Auth = () => {
       <div className="w-full max-w-lg animate-fade-in">
         {/* Brand Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-brand-taupe to-brand-taupe-dark rounded-2xl shadow-brand-elevation mb-6">
-            <span className="text-brand-charcoal font-brand-heading font-bold text-3xl tracking-brand-wide">AC</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-brand-elevation mb-6 border border-brand-taupe/20">
+            <img 
+              src="/lovable-uploads/c4831673-bd4c-4354-9ab1-25fe70b2edb2.png"
+              alt="The Agent Concierge Logo"
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <h1 className="text-4xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide mb-3">
             THE AGENT CONCIERGE

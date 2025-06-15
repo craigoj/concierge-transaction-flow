@@ -50,10 +50,14 @@ const AppHeader = () => {
           
           <div className="flex items-center space-x-3 sm:space-x-4">
             <div 
-              className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform border border-border/20"
               onClick={() => navigate('/')}
             >
-              <span className="text-primary-foreground font-bold text-lg sm:text-xl">AC</span>
+              <img 
+                src="/lovable-uploads/c4831673-bd4c-4354-9ab1-25fe70b2edb2.png"
+                alt="The Agent Concierge Logo"
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+              />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">The Agent Concierge</h1>
