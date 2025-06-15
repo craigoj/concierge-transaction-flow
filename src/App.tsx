@@ -12,11 +12,17 @@ import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
+import CreateClient from "./pages/CreateClient";
 import Agents from "./pages/Agents";
 import AgentDetail from "./pages/AgentDetail";
 import Communications from "./pages/Communications";
 import Templates from "./pages/Templates";
 import Workflows from "./pages/Workflows";
+import Documents from "./pages/Documents";
+import Analytics from "./pages/Analytics";
+import Search from "./pages/Search";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +63,14 @@ const App = () => (
             element={
               <AuthGuard>
                 <Clients />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/clients/new" 
+            element={
+              <AuthGuard>
+                <CreateClient />
               </AuthGuard>
             } 
           />
@@ -105,6 +119,46 @@ const App = () => (
             element={
               <AuthGuard>
                 <Workflows />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/documents" 
+            element={
+              <AuthGuard>
+                <Documents />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <AuthGuard>
+                <Analytics />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/search" 
+            element={
+              <AuthGuard>
+                <Search />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <AuthGuard>
+                <Profile />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <AuthGuard>
+                <Settings />
               </AuthGuard>
             } 
           />

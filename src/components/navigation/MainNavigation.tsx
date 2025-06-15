@@ -9,7 +9,9 @@ import {
   MessageSquare, 
   FolderOpen, 
   BarChart3,
-  UserCheck
+  UserCheck,
+  Mail,
+  Workflow
 } from 'lucide-react';
 
 const MainNavigation = () => {
@@ -22,6 +24,8 @@ const MainNavigation = () => {
     { path: '/clients', label: 'Clients', icon: Users },
     { path: '/agents', label: 'Agents', icon: UserCheck },
     { path: '/communications', label: 'Communications', icon: MessageSquare },
+    { path: '/templates', label: 'Templates', icon: Mail },
+    { path: '/workflows', label: 'Workflows', icon: Workflow },
     { path: '/documents', label: 'Documents', icon: FolderOpen },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 }
   ];
