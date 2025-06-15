@@ -4,7 +4,9 @@ import { ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import PhaseColumn from './PhaseColumn';
 
-type Task = Tables<'tasks'>;
+type Task = Tables<'tasks'> & {
+  phase?: string; // Adding optional phase property to handle the migration
+};
 
 interface HorizontalTimelineProps {
   tasks: Task[];
@@ -15,7 +17,7 @@ const PHASES = ['Contract', 'Inspections', 'Appraisal', 'Financing', 'Closing'];
 const HorizontalTimeline = ({ tasks }: HorizontalTimelineProps) => {
   // Group tasks by phase
   const tasksByPhase = tasks.reduce((acc, task) => {
-    const phase = task.phase || 'Contract';
+    const phase = task.phase || 'Contract'; // Fallback to 'Contract' if phase is not set
     if (!acc[phase]) {
       acc[phase] = [];
     }
