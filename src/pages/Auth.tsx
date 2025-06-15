@@ -25,13 +25,35 @@ const Auth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to dashboard
+        // Redirect authenticated users to their appropriate dashboard
         if (session?.user) {
-          navigate('/');
+          setTimeout(async () => {
+            try {
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (!error && profile) {
+                if (profile.role === 'agent') {
+                  navigate('/agent/dashboard');
+                } else {
+                  navigate('/dashboard');
+                }
+              } else {
+                navigate('/dashboard');
+              }
+            } catch (error) {
+              console.error('Error fetching user role:', error);
+              navigate('/dashboard');
+            }
+          }, 0);
         }
       }
     );
@@ -42,7 +64,23 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate('/');
+        // Fetch user role for existing session
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile, error }) => {
+            if (!error && profile) {
+              if (profile.role === 'agent') {
+                navigate('/agent/dashboard');
+              } else {
+                navigate('/dashboard');
+              }
+            } else {
+              navigate('/dashboard');
+            }
+          });
       }
     });
 
@@ -82,7 +120,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
         email,
