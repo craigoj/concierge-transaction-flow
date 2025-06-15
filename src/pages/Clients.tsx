@@ -1,18 +1,32 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Users, Phone, Mail } from 'lucide-react';
+import { Plus, Search, Users, Phone, Mail, Filter, Download, MoreVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const Clients = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients'],
@@ -35,10 +49,14 @@ const Clients = () => {
     },
   });
 
-  const filteredClients = clients?.filter(client =>
-    client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = clients?.filter(client => {
+    const matchesSearch = client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filterType === 'all' || client.type === filterType;
+    
+    return matchesSearch && matchesFilter;
+  });
 
   const getInitials = (name: string) => {
     return name
@@ -80,14 +98,44 @@ const Clients = () => {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">Clients</h1>
         </div>
-        <Button onClick={() => navigate('/clients/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Client
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          {/* Main Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => navigate('/clients/import')}>
+                <Download className="h-4 w-4 mr-2" />
+                Import Clients
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.print()}>
+                <Download className="h-4 w-4 mr-2" />
+                Export List
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/clients/bulk-actions')}>
+                Bulk Actions
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/clients/settings')}>
+                Client Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button onClick={() => navigate('/clients/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client
+          </Button>
+        </div>
       </div>
 
-      <div className="mb-6">
-        <div className="relative">
+      {/* Enhanced Filters and Search */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search clients..."
@@ -96,8 +144,64 @@ const Clients = () => {
             className="pl-10"
           />
         </div>
+        
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-full sm:w-40">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            <SelectItem value="buyer">Buyers</SelectItem>
+            <SelectItem value="seller">Sellers</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Client Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Clients</p>
+                <p className="text-2xl font-bold">{clients?.length || 0}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Buyers</p>
+                <p className="text-2xl font-bold">
+                  {clients?.filter(c => c.type === 'buyer').length || 0}
+                </p>
+              </div>
+              <Badge className="bg-blue-100 text-blue-800">B</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Sellers</p>
+                <p className="text-2xl font-bold">
+                  {clients?.filter(c => c.type === 'seller').length || 0}
+                </p>
+              </div>
+              <Badge className="bg-green-100 text-green-800">S</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Clients List */}
       <div className="grid gap-4">
         {filteredClients?.map((client) => (
           <Card key={client.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/clients/${client.id}`)}>
