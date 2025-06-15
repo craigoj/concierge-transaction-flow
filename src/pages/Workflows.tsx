@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,9 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Play, Pause, Zap, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import AppHeader from '@/components/AppHeader';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
-import { SidebarInset } from '@/components/ui/sidebar';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 interface AutomationRule {
@@ -142,232 +140,219 @@ const Workflows = () => {
 
   if (isLoading) {
     return (
-      <>
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <AppHeader />
-          <main className="p-8">
-            <div className="mb-8">
-              <Breadcrumb />
-            </div>
-            <div className="mb-12">
-              <div className="animate-pulse space-y-6">
-                <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
-                <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
-              </div>
-            </div>
-          </main>
-        </SidebarInset>
-      </>
+      <div className="p-8">
+        <div className="mb-8">
+          <Breadcrumb />
+        </div>
+        <div className="mb-12">
+          <div className="animate-pulse space-y-6">
+            <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
+            <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset className="flex-1">
-        <AppHeader />
-        
-        <main className="p-8">
-          {/* Breadcrumb Navigation */}
-          <div className="mb-8">
-            <Breadcrumb />
+    <div className="p-8">
+      {/* Breadcrumb Navigation */}
+      <div className="mb-8">
+        <Breadcrumb />
+      </div>
+
+      {/* Premium Header Section */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
+              Automation Workflows
+            </h1>
+            <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
+              Streamline your operations with intelligent automation excellence
+            </p>
           </div>
-
-          {/* Premium Header Section */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
-                  Automation Workflows
-                </h1>
-                <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
-                  Streamline your operations with intelligent automation excellence
-                </p>
-              </div>
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3">
-                    <Plus className="h-5 w-5" />
-                    CREATE RULE
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
-                  <DialogHeader>
-                    <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Create Automation Rule</DialogTitle>
-                  </DialogHeader>
-                  <WorkflowForm onSuccess={() => setCreateDialogOpen(false)} />
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="w-24 h-px bg-brand-taupe"></div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Rules List */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Settings className="h-6 w-6 text-brand-taupe" />
-                    Active Rules
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {rules?.map((rule) => (
-                      <div key={rule.id} className="flex items-center justify-between p-6 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300 group">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <h3 className="font-brand-heading font-medium text-brand-charcoal tracking-wide">{rule.name}</h3>
-                            <Badge 
-                              variant={rule.is_active ? 'default' : 'secondary'}
-                              className={`font-brand-heading tracking-wide ${
-                                rule.is_active 
-                                  ? 'bg-green-100 text-green-800 border-green-200' 
-                                  : 'bg-gray-100 text-gray-800 border-gray-200'
-                              }`}
-                            >
-                              {rule.is_active ? 'ACTIVE' : 'INACTIVE'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm font-brand-body text-brand-charcoal/70 mb-2">
-                            <strong>Trigger:</strong> {rule.trigger_event.replace('_', ' ').toUpperCase()}
-                          </p>
-                          <p className="text-sm font-brand-body text-brand-charcoal/70">
-                            <strong>Template:</strong> {rule.template?.name}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Switch
-                            checked={rule.is_active}
-                            onCheckedChange={() => handleToggle(rule.id, rule.is_active)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRule(rule);
-                              setEditDialogOpen(true);
-                            }}
-                            className="hover:bg-brand-taupe/20"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(rule.id)}
-                            className="hover:bg-red-100 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {rules?.length === 0 && (
-                      <div className="text-center py-20">
-                        <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                          <Zap className="h-12 w-12 text-brand-taupe" />
-                        </div>
-                        <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
-                          No Automation Rules
-                        </h3>
-                        <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
-                          Create your first automation rule to streamline workflows
-                        </p>
-                        <Button 
-                          onClick={() => setCreateDialogOpen(true)}
-                          className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          CREATE FIRST RULE
-                        </Button>
-                        <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Executions */}
-            <div className="lg:col-span-1">
-              <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Play className="h-5 w-5 text-brand-taupe" />
-                    Recent Executions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {executions?.map((execution) => (
-                      <div key={execution.id} className="p-4 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-brand-heading font-medium text-brand-charcoal tracking-wide">
-                            {execution.rule?.name}
-                          </span>
-                          <Badge 
-                            variant={
-                              execution.status === 'success' ? 'default' : 
-                              execution.status === 'failed' ? 'destructive' : 'secondary'
-                            }
-                            className={`text-xs font-brand-heading tracking-wide ${
-                              execution.status === 'success' ? 'bg-green-100 text-green-800' :
-                              execution.status === 'failed' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {execution.status.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <p className="text-xs font-brand-body text-brand-charcoal/60 mb-1">
-                          {execution.transaction?.property_address}
-                        </p>
-                        <p className="text-xs font-brand-body text-brand-charcoal/60">
-                          {new Date(execution.executed_at).toLocaleString()}
-                        </p>
-                        {execution.error_message && (
-                          <p className="text-xs text-red-600 mt-2 font-brand-body">
-                            {execution.error_message}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                    {executions?.length === 0 && (
-                      <div className="text-center py-12">
-                        <div className="w-16 h-16 bg-brand-taupe/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <Play className="h-8 w-8 text-brand-taupe" />
-                        </div>
-                        <p className="text-sm font-brand-body text-brand-charcoal/60">
-                          No executions yet
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Edit Dialog */}
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3">
+                <Plus className="h-5 w-5" />
+                CREATE RULE
+              </Button>
+            </DialogTrigger>
             <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
               <DialogHeader>
-                <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Edit Automation Rule</DialogTitle>
+                <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Create Automation Rule</DialogTitle>
               </DialogHeader>
-              {selectedRule && (
-                <WorkflowForm
-                  rule={selectedRule}
-                  onSuccess={() => setEditDialogOpen(false)}
-                />
-              )}
+              <WorkflowForm onSuccess={() => setCreateDialogOpen(false)} />
             </DialogContent>
           </Dialog>
-        </main>
-      </SidebarInset>
-    </>
+        </div>
+        <div className="w-24 h-px bg-brand-taupe"></div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Rules List */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Settings className="h-6 w-6 text-brand-taupe" />
+                Active Rules
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {rules?.map((rule) => (
+                  <div key={rule.id} className="flex items-center justify-between p-6 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300 group">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <h3 className="font-brand-heading font-medium text-brand-charcoal tracking-wide">{rule.name}</h3>
+                        <Badge 
+                          variant={rule.is_active ? 'default' : 'secondary'}
+                          className={`font-brand-heading tracking-wide ${
+                            rule.is_active 
+                              ? 'bg-green-100 text-green-800 border-green-200' 
+                              : 'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}
+                        >
+                          {rule.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-brand-body text-brand-charcoal/70 mb-2">
+                        <strong>Trigger:</strong> {rule.trigger_event.replace('_', ' ').toUpperCase()}
+                      </p>
+                      <p className="text-sm font-brand-body text-brand-charcoal/70">
+                        <strong>Template:</strong> {rule.template?.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Switch
+                        checked={rule.is_active}
+                        onCheckedChange={() => handleToggle(rule.id, rule.is_active)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedRule(rule);
+                          setEditDialogOpen(true);
+                        }}
+                        className="hover:bg-brand-taupe/20"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(rule.id)}
+                        className="hover:bg-red-100 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {rules?.length === 0 && (
+                  <div className="text-center py-20">
+                    <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                      <Zap className="h-12 w-12 text-brand-taupe" />
+                    </div>
+                    <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+                      No Automation Rules
+                    </h3>
+                    <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+                      Create your first automation rule to streamline workflows
+                    </p>
+                    <Button 
+                      onClick={() => setCreateDialogOpen(true)}
+                      className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      CREATE FIRST RULE
+                    </Button>
+                    <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Executions */}
+        <div className="lg:col-span-1">
+          <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <Play className="h-5 w-5 text-brand-taupe" />
+                Recent Executions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {executions?.map((execution) => (
+                  <div key={execution.id} className="p-4 border border-brand-taupe/30 rounded-xl hover:shadow-brand-subtle transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-brand-heading font-medium text-brand-charcoal tracking-wide">
+                        {execution.rule?.name}
+                      </span>
+                      <Badge 
+                        variant={
+                          execution.status === 'success' ? 'default' : 
+                          execution.status === 'failed' ? 'destructive' : 'secondary'
+                        }
+                        className={`text-xs font-brand-heading tracking-wide ${
+                          execution.status === 'success' ? 'bg-green-100 text-green-800' :
+                          execution.status === 'failed' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {execution.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="text-xs font-brand-body text-brand-charcoal/60 mb-1">
+                      {execution.transaction?.property_address}
+                    </p>
+                    <p className="text-xs font-brand-body text-brand-charcoal/60">
+                      {new Date(execution.executed_at).toLocaleString()}
+                    </p>
+                    {execution.error_message && (
+                      <p className="text-xs text-red-600 mt-2 font-brand-body">
+                        {execution.error_message}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                {executions?.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-brand-taupe/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Play className="h-8 w-8 text-brand-taupe" />
+                    </div>
+                    <p className="text-sm font-brand-body text-brand-charcoal/60">
+                      No executions yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+          <DialogHeader>
+            <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Edit Automation Rule</DialogTitle>
+          </DialogHeader>
+          {selectedRule && (
+            <WorkflowForm
+              rule={selectedRule}
+              onSuccess={() => setEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
