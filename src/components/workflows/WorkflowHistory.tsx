@@ -11,7 +11,8 @@ interface WorkflowHistoryProps {
 }
 
 const WorkflowHistory = ({ transactionId }: WorkflowHistoryProps) => {
-  const { data: workflowInstances, isLoading } = useQuery({
+  // Fetch new workflow instances
+  const { data: workflowInstances, isLoading: isLoadingWorkflow } = useQuery({
     queryKey: ['workflow-instances', transactionId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -29,11 +30,38 @@ const WorkflowHistory = ({ transactionId }: WorkflowHistoryProps) => {
     },
   });
 
+  // Fetch legacy workflow instances for backward compatibility
+  const { data: legacyInstances, isLoading: isLoadingLegacy } = useQuery({
+    queryKey: ['legacy-workflow-instances', transactionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workflow_instances')
+        .select(`
+          *,
+          template:template_id(name, description),
+          applied_by_profile:applied_by(first_name, last_name)
+        `)
+        .eq('transaction_id', transactionId)
+        .order('applied_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isLoading = isLoadingWorkflow || isLoadingLegacy;
+
   if (isLoading) {
     return <div className="p-4">Loading workflow history...</div>;
   }
 
-  if (!workflowInstances?.length) {
+  // Combine both types of instances
+  const allInstances = [
+    ...(workflowInstances || []),
+    ...(legacyInstances || [])
+  ].sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
+
+  if (!allInstances?.length) {
     return (
       <Card>
         <CardHeader>
@@ -58,7 +86,7 @@ const WorkflowHistory = ({ transactionId }: WorkflowHistoryProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {workflowInstances.map((instance: any) => (
+        {allInstances.map((instance: any) => (
           <div key={instance.id} className="flex items-start justify-between p-4 border rounded-lg">
             <div className="space-y-1">
               <h4 className="font-medium">{instance.template?.name}</h4>

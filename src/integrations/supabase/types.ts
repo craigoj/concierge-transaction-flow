@@ -852,6 +852,63 @@ export type Database = {
           },
         ]
       }
+      template_tasks: {
+        Row: {
+          created_at: string
+          description_notes: string | null
+          due_date_rule: Json
+          email_template_id: string | null
+          id: string
+          is_agent_visible: boolean
+          phase: string | null
+          sort_order: number
+          subject: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_notes?: string | null
+          due_date_rule: Json
+          email_template_id?: string | null
+          id?: string
+          is_agent_visible?: boolean
+          phase?: string | null
+          sort_order?: number
+          subject: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_notes?: string | null
+          due_date_rule?: Json
+          email_template_id?: string | null
+          id?: string
+          is_agent_visible?: boolean
+          phase?: string | null
+          sort_order?: number
+          subject?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_tasks_email_template_id_fkey"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates: {
         Row: {
           category: string | null
@@ -1045,12 +1102,53 @@ export type Database = {
           },
         ]
       }
+      workflow_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       apply_task_template: {
+        Args: {
+          p_transaction_id: string
+          p_template_id: string
+          p_applied_by?: string
+        }
+        Returns: string
+      }
+      apply_workflow_template: {
         Args: {
           p_transaction_id: string
           p_template_id: string
