@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
-import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
-import LuxuryTransactionCard from "@/components/agent/LuxuryTransactionCard";
+import PremiumDashboardMetrics from "@/components/agent/PremiumDashboardMetrics";
+import PremiumTransactionCard from "@/components/agent/PremiumTransactionCard";
 import WelcomeCard from "@/components/agent/WelcomeCard";
 import { SecureAgentDataProvider, useAgentData } from "@/components/agent/SecureAgentDataProvider";
 
@@ -37,7 +38,6 @@ const AgentDashboardContent = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Get agent profile
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("first_name, last_name")
@@ -67,7 +67,6 @@ const AgentDashboardContent = () => {
       return;
     }
 
-    // Calculate stats from the secure transaction data
     const activeTransactions = transactions.filter(t => 
       t.status === "active" || t.status === "intake"
     ).length;
@@ -81,7 +80,6 @@ const AgentDashboardContent = () => {
       new Date(t.closing_date) >= now
     ).length;
 
-    // Count tasks that require agent action
     const actionRequired = transactions.reduce((count, transaction) => {
       const actionTasks = transaction.tasks?.filter(task => 
         task.requires_agent_action && !task.is_completed
@@ -109,44 +107,75 @@ const AgentDashboardContent = () => {
   );
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-7xl">
-      {/* Welcome Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-brand-heading font-light text-brand-charcoal tracking-brand-wide mb-2">
-          Welcome back{agentName ? `, ${agentName}` : ""}
-        </h1>
-        <p className="text-brand-charcoal/60 font-brand-serif text-lg">
-          Your secure transaction coordination portal
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream/30 to-brand-background">
+      <div className="container mx-auto px-6 md:px-8 py-12 max-w-7xl">
+        {/* Welcome Header */}
+        <motion.div 
+          className="mb-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-brand-heading font-light text-brand-charcoal tracking-brand-wider mb-4">
+            Welcome back{agentName ? `, ${agentName}` : ""}
+          </h1>
+          <p className="text-brand-charcoal/70 font-brand-body text-lg md:text-xl leading-relaxed">
+            Your secure transaction coordination portal
+          </p>
+        </motion.div>
+
+        {/* Premium Metrics */}
+        <PremiumDashboardMetrics 
+          activeTransactions={stats.activeTransactions}
+          closingThisWeek={stats.closingThisWeek}
+          actionRequired={stats.actionRequired}
+          isLoading={isLoading}
+        />
+
+        {/* Main Content */}
+        {!isLoading && activeTransactions.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <WelcomeCard onNewTransaction={handleNewTransaction} />
+          </motion.div>
+        ) : (
+          <motion.div 
+            className="space-y-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl md:text-3xl font-brand-heading font-semibold text-brand-charcoal tracking-wide">
+                Your Active Transactions
+              </h2>
+              <div className="hidden md:flex items-center gap-2 text-brand-taupe">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs font-brand-heading uppercase tracking-wide">Live Updates</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+              {activeTransactions.map((transaction, index) => (
+                <motion.div
+                  key={transaction.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                >
+                  <PremiumTransactionCard
+                    transaction={transaction}
+                    onClick={() => handleTransactionClick(transaction.id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
-
-      {/* At a Glance Metrics */}
-      <AgentDashboardMetrics 
-        activeTransactions={stats.activeTransactions}
-        closingThisWeek={stats.closingThisWeek}
-        actionRequired={stats.actionRequired}
-        isLoading={isLoading}
-      />
-
-      {/* Main Content */}
-      {!isLoading && activeTransactions.length === 0 ? (
-        <WelcomeCard onNewTransaction={handleNewTransaction} />
-      ) : (
-        <div className="space-y-8">
-          <h2 className="text-2xl font-brand-heading font-semibold text-brand-charcoal tracking-wide">
-            Your Active Transactions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeTransactions.map((transaction) => (
-              <LuxuryTransactionCard
-                key={transaction.id}
-                transaction={transaction}
-                onClick={() => handleTransactionClick(transaction.id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
