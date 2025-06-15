@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/navigation/AppSidebar";
-import AppHeader from "@/components/AppHeader";
 import AuthGuard from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -56,7 +55,7 @@ const App: React.FC = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/agent/setup/:token" element={<AgentSetup />} />
             
-            {/* Protected routes */}
+            {/* Protected routes with sidebar */}
             <Route
               path="/*"
               element={
@@ -64,33 +63,30 @@ const App: React.FC = () => {
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <AppSidebar />
-                      <div className="flex-1 flex flex-col">
-                        <AppHeader />
-                        <main className="flex-1">
-                          <Routes>
-                            <Route path="/dashboard" element={<Index />} />
-                            <Route path="/agent/dashboard" element={<AgentDashboard />} />
-                            <Route path="/agent/transaction/:id" element={<AgentTransactionDetail />} />
-                            <Route path="/transactions" element={<Transactions />} />
-                            <Route path="/transactions/:id" element={<TransactionDetail />} />
-                            <Route path="/clients" element={<Clients />} />
-                            <Route path="/clients/new" element={<CreateClient />} />
-                            <Route path="/clients/:id" element={<ClientDetail />} />
-                            <Route path="/agents" element={<Agents />} />
-                            <Route path="/agents/:id" element={<AgentDetail />} />
-                            <Route path="/communications" element={<Communications />} />
-                            <Route path="/templates" element={<Templates />} />
-                            <Route path="/workflows" element={<Workflows />} />
-                            <Route path="/workflow-templates" element={<WorkflowTemplates />} />
-                            <Route path="/documents" element={<Documents />} />
-                            <Route path="/analytics" element={<Analytics />} />
-                            <Route path="/search" element={<Search />} />
-                            <Route path="/settings" element={<Settings />} />
-                            <Route path="/profile" element={<Profile />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </main>
-                      </div>
+                      <main className="flex-1">
+                        <Routes>
+                          <Route path="/dashboard" element={<Index />} />
+                          <Route path="/agent/dashboard" element={<AgentDashboard />} />
+                          <Route path="/agent/transaction/:id" element={<AgentTransactionDetail />} />
+                          <Route path="/transactions" element={<Transactions />} />
+                          <Route path="/transactions/:id" element={<TransactionDetail />} />
+                          <Route path="/clients" element={<Clients />} />
+                          <Route path="/clients/new" element={<CreateClient />} />
+                          <Route path="/clients/:id" element={<ClientDetail />} />
+                          <Route path="/agents" element={<Agents />} />
+                          <Route path="/agents/:id" element={<AgentDetail />} />
+                          <Route path="/communications" element={<Communications />} />
+                          <Route path="/templates" element={<Templates />} />
+                          <Route path="/workflows" element={<Workflows />} />
+                          <Route path="/workflow-templates" element={<WorkflowTemplates />} />
+                          <Route path="/documents" element={<Documents />} />
+                          <Route path="/analytics" element={<Analytics />} />
+                          <Route path="/search" element={<Search />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </main>
                     </div>
                   </SidebarProvider>
                 </AuthGuard>
