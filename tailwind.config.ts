@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,6 +53,16 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Brand-specific colors from The Agent Concierge
+				brand: {
+					background: '#F4F1EE',
+					charcoal: '#3C3C3C',
+					taupe: '#D1C7BC',
+					'taupe-dark': '#7a7065',
+					'taupe-light': '#E5DDD6',
+					white: '#FFFFFF',
+					cream: '#F8F6F3'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -62,6 +73,16 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			fontFamily: {
+				'brand-heading': ['Montserrat', 'sans-serif'],
+				'brand-body': ['Libre Baskerville', 'serif'],
+				sans: ['Montserrat', 'sans-serif'],
+				serif: ['Libre Baskerville', 'serif']
+			},
+			letterSpacing: {
+				'brand-wide': '0.1em',
+				'brand-wider': '0.15em'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +105,38 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'slide-up': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(20px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.6s ease-out',
+				'slide-up': 'slide-up 0.4s ease-out'
+			},
+			boxShadow: {
+				'brand-subtle': '0 2px 8px rgba(60, 60, 60, 0.08)',
+				'brand-elevation': '0 4px 16px rgba(60, 60, 60, 0.12)',
+				'brand-glass': '0 8px 32px rgba(60, 60, 60, 0.15)',
 			}
 		}
 	},

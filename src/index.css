@@ -1,97 +1,99 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* Brand-specific design system for The Agent Concierge */
 
 @layer base {
   :root {
-    /* Updated sophisticated beige/tan and brown color palette */
-    --background: 45 25% 96%; /* Very light warm beige */
-    --foreground: 25 25% 20%; /* Rich dark brown */
+    /* Brand colors from The Agent Concierge website */
+    --background: 32 25% 96%; /* Brand background: #F4F1EE */
+    --foreground: 0 0% 24%; /* Brand charcoal: #3C3C3C */
 
     --card: 0 0% 100%; /* Pure white for cards */
-    --card-foreground: 25 25% 20%;
+    --card-foreground: 0 0% 24%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 25% 20%;
+    --popover-foreground: 0 0% 24%;
 
-    /* Primary: Warm brown/tan accent */
-    --primary: 30 40% 45%; /* Rich warm brown */
-    --primary-foreground: 0 0% 98%;
+    /* Primary: Brand taupe */
+    --primary: 32 20% 65%; /* Brand taupe: #D1C7BC */
+    --primary-foreground: 0 0% 24%;
 
-    /* Secondary: Light tan/beige */
-    --secondary: 40 30% 88%; /* Soft warm beige */
-    --secondary-foreground: 25 25% 20%;
+    /* Secondary: Light brand cream */
+    --secondary: 32 25% 94%; /* Brand cream: #F8F6F3 */
+    --secondary-foreground: 0 0% 24%;
 
-    /* Muted: Very light warm gray-beige */
-    --muted: 35 20% 94%; /* Subtle warm background */
-    --muted-foreground: 25 15% 50%; /* Medium brown-gray */
+    /* Muted: Very light brand background */
+    --muted: 32 20% 90%; /* Subtle brand background */
+    --muted-foreground: 0 0% 40%; /* Medium brand gray */
 
-    /* Accent: Medium tan */
-    --accent: 35 35% 82%; /* Warm tan accent */
-    --accent-foreground: 25 25% 20%;
+    /* Accent: Brand taupe light */
+    --accent: 32 25% 88%; /* Brand taupe light: #E5DDD6 */
+    --accent-foreground: 0 0% 24%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    /* Borders: Subtle warm beige */
-    --border: 40 25% 90%; /* Very light tan border */
-    --input: 40 25% 90%;
-    --ring: 30 40% 45%; /* Focus ring matches primary */
+    /* Borders: Subtle brand taupe */
+    --border: 32 20% 80%; /* Light brand taupe */
+    --input: 32 20% 80%;
+    --ring: 32 20% 65%; /* Focus ring matches primary */
 
-    --radius: 0.75rem; /* Slightly more rounded for sophistication */
+    --radius: 0.5rem; /* Refined border radius */
 
-    /* Sidebar colors for future use */
-    --sidebar-background: 25 30% 15%;
-    --sidebar-foreground: 40 30% 88%;
-    --sidebar-primary: 30 40% 55%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 25 20% 25%;
-    --sidebar-accent-foreground: 40 30% 88%;
-    --sidebar-border: 25 15% 30%;
-    --sidebar-ring: 30 40% 55%;
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 24%;
+    --sidebar-foreground: 32 25% 94%;
+    --sidebar-primary: 32 20% 65%;
+    --sidebar-primary-foreground: 0 0% 24%;
+    --sidebar-accent: 0 0% 30%;
+    --sidebar-accent-foreground: 32 25% 94%;
+    --sidebar-border: 0 0% 35%;
+    --sidebar-ring: 32 20% 65%;
   }
 
   .dark {
-    /* Dark theme with warm tones */
-    --background: 25 30% 8%; /* Very dark warm brown */
-    --foreground: 40 30% 90%; /* Light warm beige */
+    /* Dark theme with brand sophistication */
+    --background: 0 0% 18%; /* Deep charcoal */
+    --foreground: 32 25% 94%; /* Light brand cream */
 
-    --card: 25 25% 12%; /* Dark warm card background */
-    --card-foreground: 40 30% 90%;
+    --card: 0 0% 22%; /* Dark card background */
+    --card-foreground: 32 25% 94%;
 
-    --popover: 25 25% 12%;
-    --popover-foreground: 40 30% 90%;
+    --popover: 0 0% 22%;
+    --popover-foreground: 32 25% 94%;
 
-    --primary: 30 45% 65%; /* Lighter warm brown for dark mode */
-    --primary-foreground: 25 30% 8%;
+    --primary: 32 25% 70%; /* Lighter taupe for dark mode */
+    --primary-foreground: 0 0% 18%;
 
-    --secondary: 25 20% 18%; /* Dark warm secondary */
-    --secondary-foreground: 40 30% 90%;
+    --secondary: 0 0% 26%; /* Dark secondary */
+    --secondary-foreground: 32 25% 94%;
 
-    --muted: 25 20% 15%; /* Dark muted background */
-    --muted-foreground: 40 20% 70%; /* Light muted text */
+    --muted: 0 0% 24%; /* Dark muted background */
+    --muted-foreground: 32 15% 70%; /* Light muted text */
 
-    --accent: 25 20% 18%;
-    --accent-foreground: 40 30% 90%;
+    --accent: 0 0% 26%;
+    --accent-foreground: 32 25% 94%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 25 20% 18%;
-    --input: 25 20% 18%;
-    --ring: 30 45% 65%;
+    --border: 0 0% 26%;
+    --input: 0 0% 26%;
+    --ring: 32 25% 70%;
     
-    --sidebar-background: 25 35% 5%;
-    --sidebar-foreground: 40 30% 90%;
-    --sidebar-primary: 30 45% 65%;
-    --sidebar-primary-foreground: 25 30% 8%;
-    --sidebar-accent: 25 15% 15%;
-    --sidebar-accent-foreground: 40 30% 90%;
-    --sidebar-border: 25 15% 15%;
-    --sidebar-ring: 30 45% 65%;
+    --sidebar-background: 0 0% 15%;
+    --sidebar-foreground: 32 25% 94%;
+    --sidebar-primary: 32 25% 70%;
+    --sidebar-primary-foreground: 0 0% 18%;
+    --sidebar-accent: 0 0% 20%;
+    --sidebar-accent-foreground: 32 25% 94%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 32 25% 70%;
   }
 }
 
@@ -101,28 +103,64 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    @apply bg-brand-background text-brand-charcoal;
+    font-family: 'Libre Baskerville', serif;
     font-weight: 400;
-    line-height: 1.6;
-    letter-spacing: -0.01em;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
   }
 
-  /* Enhanced typography for sophistication */
+  /* Brand Typography Hierarchy */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-foreground;
+    @apply text-brand-charcoal font-brand-heading;
     font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.02em;
+    line-height: 1.2;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
-  /* Subtle shadows for depth */
-  .card-shadow {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+    letter-spacing: 0.15em;
   }
 
-  .card-shadow-hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  h2 {
+    @apply text-3xl md:text-4xl;
+    letter-spacing: 0.12em;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+    letter-spacing: 0.1em;
+  }
+
+  /* Body text maintains elegance */
+  p, span, div {
+    font-family: 'Libre Baskerville', serif;
+  }
+
+  /* Brand button styles */
+  .btn-brand {
+    @apply inline-flex items-center justify-center px-8 py-3 text-sm font-brand-heading;
+    @apply bg-transparent border-2 border-brand-charcoal text-brand-charcoal;
+    @apply hover:bg-brand-charcoal hover:text-brand-background;
+    @apply transition-all duration-300 ease-in-out;
+    @apply tracking-brand-wide uppercase;
+    @apply shadow-brand-subtle hover:shadow-brand-elevation;
+  }
+
+  /* Premium card styles */
+  .card-brand {
+    @apply bg-white/80 backdrop-blur-sm border border-brand-taupe/30;
+    @apply shadow-brand-subtle hover:shadow-brand-elevation;
+    @apply transition-all duration-300 ease-in-out;
+    @apply rounded-lg;
+  }
+
+  /* Glass effect for premium elements */
+  .glass-effect {
+    @apply bg-white/60 backdrop-blur-md border border-white/20;
+    @apply shadow-brand-glass;
   }
 }
 
@@ -132,22 +170,22 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted/30;
+  @apply bg-brand-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full;
+  @apply bg-brand-taupe rounded-full;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/40;
+  @apply bg-brand-taupe-dark;
 }
 
-/* Smooth transitions for premium feel */
+/* Smooth premium transitions */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 /* Focus styles for accessibility and premium feel */
@@ -155,6 +193,15 @@ button:focus-visible,
 input:focus-visible, 
 textarea:focus-visible, 
 select:focus-visible {
-  @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  @apply ring-2 ring-brand-taupe ring-offset-2 ring-offset-brand-background;
   outline: none;
+}
+
+/* Animation utilities */
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
 }
