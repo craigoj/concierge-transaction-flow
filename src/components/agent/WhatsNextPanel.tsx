@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, TrendingRight } from 'lucide-react';
+import { Clock, TrendingUp } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Transaction = Tables<'transactions'> & {
@@ -46,7 +46,7 @@ const WhatsNextPanel = ({ transaction }: WhatsNextPanelProps) => {
     <Card className="border-brand-taupe/20 bg-white shadow-brand-subtle">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-3 font-brand-heading text-lg text-brand-charcoal">
-          <TrendingRight className="h-5 w-5 text-brand-taupe" />
+          <TrendingUp className="h-5 w-5 text-brand-taupe" />
           What's Next
         </CardTitle>
       </CardHeader>

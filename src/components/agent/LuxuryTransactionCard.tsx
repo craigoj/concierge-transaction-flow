@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, User, Progress } from 'lucide-react';
+import { Calendar, MapPin, User, BarChart3 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Transaction = Tables<'transactions'> & {
@@ -84,7 +84,7 @@ const LuxuryTransactionCard = ({ transaction, onClick }: LuxuryTransactionCardPr
 
           {totalTasks > 0 && (
             <div className="flex items-center text-sm text-brand-charcoal/60">
-              <Progress className="w-4 h-4 mr-3 text-brand-taupe" />
+              <BarChart3 className="w-4 h-4 mr-3 text-brand-taupe" />
               <span className="font-brand-body">
                 {completedTasks} of {totalTasks} tasks complete
               </span>
