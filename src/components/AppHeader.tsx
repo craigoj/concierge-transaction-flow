@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut, Search } from "lucide-react";
+import { Settings, User, LogOut, Search, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +62,48 @@ const AppHeader = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          {/* Global Create Button - AFrame Style */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2 font-medium">
+                <Plus className="h-4 w-4 mr-2" />
+                Create
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-white border-border/50 shadow-lg">
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/transactions/new')}
+              >
+                🏠 Transaction
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/clients/new')}
+              >
+                👤 Contact
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/tasks/new')}
+              >
+                ✓ Task
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/communications/new')}
+              >
+                📝 Contact Note
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/templates/new')}
+              >
+                📄 Letter (Blank)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Search Button */}
           <Button 
             variant="ghost" 
