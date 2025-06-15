@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FolderOpen, Upload, File, Search, Filter, FileText, Download, Share2, Eye } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
+import { AppSidebar } from '@/components/navigation/AppSidebar';
+import { SidebarInset } from '@/components/ui/sidebar';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -81,42 +84,61 @@ const Documents = () => {
       case 'png':
         return <File className="h-8 w-8 text-green-500" />;
       default:
-        return <File className="h-8 w-8 text-gray-500" />;
+        return <File className="h-8 w-8 text-brand-taupe" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <AppHeader />
-      <div className="container mx-auto p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <FolderOpen className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Documents</h1>
-        </div>
+    <>
+      <AppSidebar />
+      <SidebarInset className="flex-1">
+        <AppHeader />
+        
+        <main className="p-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-8">
+            <Breadcrumb />
+          </div>
 
-        {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Button className="bg-primary hover:bg-primary/90">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Document
-          </Button>
-          
-          <div className="flex flex-1 gap-3">
+          {/* Premium Header Section */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
+                  Documents
+                </h1>
+                <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
+                  Organize and manage your transaction documents with elegance
+                </p>
+              </div>
+              <Button 
+                className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3"
+                size="lg"
+              >
+                <Upload className="h-5 w-5" />
+                UPLOAD DOCUMENT
+              </Button>
+            </div>
+            <div className="w-24 h-px bg-brand-taupe"></div>
+          </div>
+
+          {/* Enhanced Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-brand-taupe" />
               <Input
                 placeholder="Search documents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-10 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl"
               />
             </div>
             
             <Select value={selectedTransaction} onValueChange={setSelectedTransaction}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-64 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl">
                 <SelectValue placeholder="All Transactions" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
                 <SelectItem value="all">All Transactions</SelectItem>
                 {transactions?.map((transaction) => (
                   <SelectItem key={transaction.id} value={transaction.id}>
@@ -127,10 +149,10 @@ const Documents = () => {
             </Select>
 
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-48 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
                 <SelectItem value="all">All Categories</SelectItem>
                 {documentCategories.map((category) => (
                   <SelectItem key={category} value={category}>
@@ -140,86 +162,97 @@ const Documents = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* Documents Grid */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Document Library ({filteredDocuments?.length || 0} documents)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading documents...</div>
-            ) : filteredDocuments && filteredDocuments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredDocuments.map((document) => (
-                  <Card key={document.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col items-center text-center space-y-3">
-                        {getFileIcon(document.file_name)}
-                        
-                        <div className="space-y-1 w-full">
-                          <h4 className="font-medium text-sm truncate" title={document.file_name}>
-                            {document.file_name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {document.transactions?.property_address}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(document.created_at), 'MMM d, yyyy')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            by {document.profiles ? `${document.profiles.first_name} ${document.profiles.last_name}` : 'Unknown'}
-                          </p>
-                        </div>
+          {/* Documents Section */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-brand-heading tracking-wide text-brand-charcoal uppercase">
+                Document Library ({filteredDocuments?.length || 0} documents)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-12">
+                  <div className="text-brand-charcoal/60 font-brand-body">Loading documents...</div>
+                </div>
+              ) : filteredDocuments && filteredDocuments.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredDocuments.map((document) => (
+                    <Card key={document.id} className="hover:shadow-brand-elevation transition-all duration-300 group">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                          <div className="w-16 h-16 bg-brand-taupe/10 rounded-2xl flex items-center justify-center">
+                            {getFileIcon(document.file_name)}
+                          </div>
+                          
+                          <div className="space-y-2 w-full">
+                            <h4 className="font-brand-heading font-medium text-sm text-brand-charcoal tracking-wide truncate" title={document.file_name}>
+                              {document.file_name}
+                            </h4>
+                            <p className="text-xs font-brand-body text-brand-charcoal/60 truncate">
+                              {document.transactions?.property_address}
+                            </p>
+                            <p className="text-xs font-brand-body text-brand-charcoal/60">
+                              {format(new Date(document.created_at), 'MMM d, yyyy')}
+                            </p>
+                            <p className="text-xs font-brand-body text-brand-charcoal/60">
+                              by {document.profiles ? `${document.profiles.first_name} ${document.profiles.last_name}` : 'Unknown'}
+                            </p>
+                          </div>
 
-                        {/* Document Status */}
-                        <div className="w-full">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            document.e_sign_status === 'signed' ? 'bg-green-100 text-green-800' :
-                            document.e_sign_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {document.e_sign_status || 'Uploaded'}
-                          </span>
-                        </div>
+                          {/* Document Status */}
+                          <div className="w-full">
+                            <span className={`px-3 py-1 rounded-full text-xs font-brand-heading tracking-wide ${
+                              document.e_sign_status === 'signed' ? 'bg-green-100 text-green-800' :
+                              document.e_sign_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {(document.e_sign_status || 'uploaded').toUpperCase()}
+                            </span>
+                          </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-1 w-full">
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Download className="h-3 w-3" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Share2 className="h-3 w-3" />
-                          </Button>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 w-full">
+                            <Button variant="outline" size="sm" className="flex-1 text-xs">
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1 text-xs">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1 text-xs">
+                              <Share2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <FolderOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Documents Found</h3>
-                <p className="text-muted-foreground mb-6">
-                  Upload your first document to get started with document management.
-                </p>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                      <FolderOpen className="h-12 w-12 text-brand-taupe" />
+                    </div>
+                    <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+                      No Documents Found
+                    </h3>
+                    <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+                      Upload your first document to begin organizing with excellence
+                    </p>
+                    <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl">
+                      <Upload className="h-4 w-4 mr-2" />
+                      UPLOAD DOCUMENT
+                    </Button>
+                    <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </SidebarInset>
+    </>
   );
 };
 

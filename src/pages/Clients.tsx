@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import AppHeader from '@/components/AppHeader';
+import { AppSidebar } from '@/components/navigation/AppSidebar';
+import { SidebarInset } from '@/components/ui/sidebar';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -74,205 +78,235 @@ const Clients = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">Clients</h1>
-          </div>
-          <div className="grid gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
+      <>
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          <AppHeader />
+          <main className="p-8">
+            <div className="mb-8">
+              <Breadcrumb />
+            </div>
+            <div className="mb-12">
+              <div className="animate-pulse space-y-6">
+                <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
+                <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
+              </div>
+            </div>
+          </main>
+        </SidebarInset>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Clients</h1>
+    <>
+      <AppSidebar />
+      <SidebarInset className="flex-1">
+        <AppHeader />
+        
+        <main className="p-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-8">
+            <Breadcrumb />
           </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Main Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MoreVertical className="h-4 w-4" />
+
+          {/* Premium Header Section */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
+                  Clients
+                </h1>
+                <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
+                  Manage your client relationships with precision and care
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm border-brand-taupe/30 hover:bg-brand-taupe/10 rounded-xl">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+                    <DropdownMenuItem onClick={() => navigate('/clients/import')} className="font-brand-body">
+                      <Download className="h-4 w-4 mr-2" />
+                      Import Clients
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.print()} className="font-brand-body">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export List
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/clients/bulk-actions')} className="font-brand-body">
+                      Bulk Actions
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button 
+                  onClick={() => navigate('/clients/new')}
+                  className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3"
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5" />
+                  NEW CLIENT
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate('/clients/import')}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Import Clients
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.print()}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export List
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/clients/bulk-actions')}>
-                  Bulk Actions
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/clients/settings')}>
-                  Client Settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button onClick={() => navigate('/clients/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+              </div>
+            </div>
+            <div className="w-24 h-px bg-brand-taupe"></div>
           </div>
-        </div>
 
-        {/* Enhanced Filters and Search */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          {/* Enhanced Filters and Search */}
+          <div className="mb-8 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-taupe h-4 w-4" />
+              <Input
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl"
+              />
+            </div>
+            
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-48 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
+                <SelectItem value="all">All Clients</SelectItem>
+                <SelectItem value="buyer">Buyers</SelectItem>
+                <SelectItem value="seller">Sellers</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-full sm:w-40">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Clients</SelectItem>
-              <SelectItem value="buyer">Buyers</SelectItem>
-              <SelectItem value="seller">Sellers</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        {/* Client Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Clients</p>
-                  <p className="text-2xl font-bold">{clients?.length || 0}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Buyers</p>
-                  <p className="text-2xl font-bold">
-                    {clients?.filter(c => c.type === 'buyer').length || 0}
-                  </p>
-                </div>
-                <Badge className="bg-blue-100 text-blue-800">B</Badge>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Sellers</p>
-                  <p className="text-2xl font-bold">
-                    {clients?.filter(c => c.type === 'seller').length || 0}
-                  </p>
-                </div>
-                <Badge className="bg-green-100 text-green-800">S</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Clients List */}
-        <div className="grid gap-4">
-          {filteredClients?.map((client) => (
-            <Card key={client.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/clients/${client.id}`)}>
+          {/* Client Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="hover:shadow-brand-elevation transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getInitials(client.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="text-lg font-semibold">{client.full_name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        {client.email && (
-                          <div className="flex items-center space-x-1">
-                            <Mail className="h-3 w-3" />
-                            <span>{client.email}</span>
-                          </div>
-                        )}
-                        {client.phone && (
-                          <div className="flex items-center space-x-1">
-                            <Phone className="h-3 w-3" />
-                            <span>{client.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  <div>
+                    <p className="text-sm font-brand-body text-brand-charcoal/60 mb-2">Total Clients</p>
+                    <p className="text-3xl font-brand-heading font-bold text-brand-charcoal tracking-wide">{clients?.length || 0}</p>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Badge className={getClientTypeColor(client.type)}>
-                      {client.type}
-                    </Badge>
-                    {client.transactions && (
-                      <div className="text-right">
-                        <p className="text-sm font-medium">
-                          {client.transactions.property_address}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Status: {client.transactions.status}
-                        </p>
-                      </div>
-                    )}
+                  <div className="w-16 h-16 bg-brand-taupe/20 rounded-2xl flex items-center justify-center">
+                    <Users className="h-8 w-8 text-brand-taupe" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-
-        {filteredClients?.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first client'}
-            </p>
-            <Button onClick={() => navigate('/clients/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+            
+            <Card className="hover:shadow-brand-elevation transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-brand-body text-brand-charcoal/60 mb-2">Buyers</p>
+                    <p className="text-3xl font-brand-heading font-bold text-brand-charcoal tracking-wide">
+                      {clients?.filter(c => c.type === 'buyer').length || 0}
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <Badge className="bg-blue-500 text-white text-lg font-brand-heading">B</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-brand-elevation transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-brand-body text-brand-charcoal/60 mb-2">Sellers</p>
+                    <p className="text-3xl font-brand-heading font-bold text-brand-charcoal tracking-wide">
+                      {clients?.filter(c => c.type === 'seller').length || 0}
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
+                    <Badge className="bg-green-500 text-white text-lg font-brand-heading">S</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Clients List */}
+          {filteredClients && filteredClients.length > 0 ? (
+            <div className="grid gap-6">
+              {filteredClients.map((client) => (
+                <Card key={client.id} className="hover:shadow-brand-elevation transition-all duration-300 cursor-pointer group" onClick={() => navigate(`/clients/${client.id}`)}>
+                  <CardContent className="p-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-6">
+                        <Avatar className="h-16 w-16 shadow-brand-subtle">
+                          <AvatarFallback className="bg-brand-charcoal text-brand-background text-lg font-brand-heading">
+                            {getInitials(client.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="text-xl font-brand-heading font-semibold text-brand-charcoal tracking-wide uppercase mb-2">{client.full_name}</h3>
+                          <div className="flex items-center space-x-6 text-sm font-brand-body text-brand-charcoal/70">
+                            {client.email && (
+                              <div className="flex items-center space-x-2">
+                                <Mail className="h-4 w-4 text-brand-taupe" />
+                                <span>{client.email}</span>
+                              </div>
+                            )}
+                            {client.phone && (
+                              <div className="flex items-center space-x-2">
+                                <Phone className="h-4 w-4 text-brand-taupe" />
+                                <span>{client.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <Badge className={`${getClientTypeColor(client.type)} font-brand-heading tracking-wide text-xs px-4 py-2 border`}>
+                          {client.type.toUpperCase()}
+                        </Badge>
+                        {client.transactions && (
+                          <div className="text-right">
+                            <p className="text-sm font-brand-heading font-medium text-brand-charcoal tracking-wide">
+                              {client.transactions.property_address}
+                            </p>
+                            <p className="text-xs font-brand-body text-brand-charcoal/60 uppercase tracking-wide">
+                              Status: {client.transactions.status}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <div className="max-w-md mx-auto">
+                <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                  <Users className="h-12 w-12 text-brand-taupe" />
+                </div>
+                <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+                  {searchTerm ? 'No Clients Found' : 'No Clients Yet'}
+                </h3>
+                <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+                  {searchTerm ? 'Try adjusting your search terms to find what you\'re looking for' : 'Create your first client to begin building exceptional relationships'}
+                </p>
+                <Button 
+                  onClick={() => navigate('/clients/new')}
+                  className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  ADD CLIENT
+                </Button>
+                <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
+              </div>
+            </div>
+          )}
+        </main>
+      </SidebarInset>
+    </>
   );
 };
 
