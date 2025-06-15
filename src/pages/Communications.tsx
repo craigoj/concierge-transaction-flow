@@ -1,103 +1,149 @@
 
 import React, { useState } from 'react';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Send, Mail, Phone, User, Filter, Search, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquare, Send, Mail, Phone, Calendar, Plus, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const Communications = () => {
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [composeOpen, setComposeOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [newCommunication, setNewCommunication] = useState({
+    recipient_id: '',
+    type: 'email' as 'email' | 'phone' | 'text' | 'meeting',
+    subject: '',
+    content: '',
+    transaction_id: ''
+  });
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch communications with explicit column aliases to avoid ambiguity
+  // Fetch communications with proper relationship hints
   const { data: communications, isLoading } = useQuery({
-    queryKey: ['communications', selectedFilter, searchTerm],
+    queryKey: ['communications', selectedType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('communications')
         .select(`
           *,
-          sender_profile:sender_id(first_name, last_name),
-          recipient_profile:recipient_id(first_name, last_name),
-          transaction:transaction_id(property_address)
+          sender:sender_id(full_name),
+          recipient:recipient_id(full_name),
+          transactions(property_address, status)
         `)
-        .order('sent_at', { ascending: false });
+        .order('created_at', { ascending: false });
+
+      if (selectedType !== 'all') {
+        query = query.eq('type', selectedType);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     }
   });
 
-  // Fetch contacts for compose dialog
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts'],
+  // Fetch clients for recipient selection
+  const { data: clients } = useQuery({
+    queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
+        .from('clients')
+        .select('id, full_name, email')
         .order('full_name');
       if (error) throw error;
       return data;
     }
   });
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: {
-      recipient_id: string;
-      subject?: string;
-      content: string;
-      type: string;
-      transaction_id?: string;
-    }) => {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) throw new Error('Not authenticated');
+  // Fetch transactions for linking
+  const { data: transactions } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, property_address, status')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
 
+  // Create communication mutation
+  const createCommunicationMutation = useMutation({
+    mutationFn: async (data: typeof newCommunication) => {
       const { error } = await supabase
         .from('communications')
         .insert({
-          ...messageData,
-          sender_id: user.data.user.id,
-          status: 'sent'
+          ...data,
+          sender_id: (await supabase.auth.getUser()).data.user?.id
         });
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success('Communication logged successfully');
       queryClient.invalidateQueries({ queryKey: ['communications'] });
-      toast.success('Message sent successfully');
-      setComposeOpen(false);
+      setNewCommunication({
+        recipient_id: '',
+        type: 'email',
+        subject: '',
+        content: '',
+        transaction_id: ''
+      });
+      setShowCreateForm(false);
     },
     onError: (error) => {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      console.error('Error creating communication:', error);
+      toast.error('Failed to log communication');
     }
   });
 
-  const filteredCommunications = communications?.filter(comm => {
-    const matchesFilter = selectedFilter === 'all' || comm.type === selectedFilter;
-    const matchesSearch = !searchTerm || 
-      comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.content.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newCommunication.recipient_id || !newCommunication.content) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    createCommunicationMutation.mutate(newCommunication);
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'email': return <Mail className="h-4 w-4" />;
+      case 'phone': return <Phone className="h-4 w-4" />;
+      case 'text': return <MessageSquare className="h-4 w-4" />;
+      case 'meeting': return <Calendar className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'email': return 'bg-blue-100 text-blue-800';
+      case 'phone': return 'bg-green-100 text-green-800';
+      case 'text': return 'bg-purple-100 text-purple-800';
+      case 'meeting': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
         <AppHeader />
         <div className="container mx-auto p-6">
-          <div className="text-center">Loading communications...</div>
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -107,247 +153,218 @@ const Communications = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <AppHeader />
       <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
+          <Breadcrumb 
+            items={[
+              { label: 'Dashboard', href: '/' },
+              { label: 'Communications', isCurrentPage: true }
+            ]}
+          />
+        </div>
+
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <MessageSquare className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold">Communications</h1>
           </div>
-          <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Compose Message
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Compose Message</DialogTitle>
-              </DialogHeader>
-              <ComposeForm 
-                contacts={contacts || []}
-                onSend={(data) => sendMessageMutation.mutate(data)}
-                isLoading={sendMessageMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setShowCreateForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Log Communication
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar with filters */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Filters</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Message Type</Label>
-                  <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Messages</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="sms">SMS</SelectItem>
-                      <SelectItem value="call">Phone Call</SelectItem>
-                      <SelectItem value="internal">Internal Note</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Filter Bar */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filter by type:</span>
+          </div>
+          <div className="flex gap-2">
+            {['all', 'email', 'phone', 'text', 'meeting'].map((type) => (
+              <Button
+                key={type}
+                variant={selectedType === type ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedType(type)}
+                className="capitalize"
+              >
+                {type === 'all' ? 'All' : type}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Create Communication Form */}
+        {showCreateForm && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Log New Communication</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Recipient *</label>
+                    <Select 
+                      value={newCommunication.recipient_id} 
+                      onValueChange={(value) => setNewCommunication(prev => ({ ...prev, recipient_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select recipient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients?.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.full_name} ({client.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Type *</label>
+                    <Select 
+                      value={newCommunication.type} 
+                      onValueChange={(value: 'email' | 'phone' | 'text' | 'meeting') => 
+                        setNewCommunication(prev => ({ ...prev, type: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone Call</SelectItem>
+                        <SelectItem value="text">Text Message</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                
-                <div>
-                  <Label>Search</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Subject</label>
                     <Input
-                      placeholder="Search messages..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      value={newCommunication.subject}
+                      onChange={(e) => setNewCommunication(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Communication subject"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Total Messages:</span>
-                    <span className="font-medium">{communications?.length || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>This Week:</span>
-                    <span className="font-medium">
-                      {communications?.filter(c => 
-                        new Date(c.sent_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                      ).length || 0}
-                    </span>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Related Transaction</label>
+                    <Select 
+                      value={newCommunication.transaction_id} 
+                      onValueChange={(value) => setNewCommunication(prev => ({ ...prev, transaction_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select transaction (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transactions?.map((transaction) => (
+                          <SelectItem key={transaction.id} value={transaction.id}>
+                            {transaction.property_address} ({transaction.status})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Messages list */}
-          <div className="lg:col-span-3">
-            <div className="space-y-4">
-              {filteredCommunications?.map((communication) => (
-                <Card key={communication.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          {communication.type === 'email' && <Mail className="h-4 w-4 text-primary" />}
-                          {communication.type === 'sms' && <MessageSquare className="h-4 w-4 text-primary" />}
-                          {communication.type === 'call' && <Phone className="h-4 w-4 text-primary" />}
-                          {communication.type === 'internal' && <User className="h-4 w-4 text-primary" />}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">
-                              From: {communication.sender_profile?.first_name} {communication.sender_profile?.last_name}
-                            </span>
-                            <Badge variant="outline">{communication.type}</Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            To: {communication.recipient_profile?.first_name} {communication.recipient_profile?.last_name}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(communication.sent_at).toLocaleDateString()}
-                      </div>
-                    </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Content *</label>
+                  <Textarea
+                    value={newCommunication.content}
+                    onChange={(e) => setNewCommunication(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Communication details, notes, or summary"
+                    rows={4}
+                    required
+                  />
+                </div>
 
-                    {communication.subject && (
-                      <h3 className="font-semibold mb-2">{communication.subject}</h3>
-                    )}
-                    
-                    <div className="text-sm text-muted-foreground mb-3 line-clamp-3">
-                      {communication.content}
-                    </div>
-
-                    {communication.transaction && (
-                      <div className="text-xs text-muted-foreground">
-                        Related to: {communication.transaction.property_address}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredCommunications?.length === 0 && (
-                <div className="text-center py-12">
-                  <MessageSquare className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No communications found</h3>
-                  <p className="text-gray-500 mb-4">
-                    {searchTerm || selectedFilter !== 'all' 
-                      ? 'Try adjusting your search or filters' 
-                      : 'Start a conversation with your clients'
-                    }
-                  </p>
-                  <Button onClick={() => setComposeOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Send Message
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => setShowCreateForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createCommunicationMutation.isPending}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {createCommunicationMutation.isPending ? 'Logging...' : 'Log Communication'}
                   </Button>
                 </div>
-              )}
-            </div>
-          </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Communications List */}
+        <div className="space-y-4">
+          {communications?.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <MessageSquare className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Communications Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  Start logging your client communications to keep track of all interactions.
+                </p>
+                <Button onClick={() => setShowCreateForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Log First Communication
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            communications?.map((comm) => (
+              <Card key={comm.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Badge className={`${getTypeColor(comm.type)} flex items-center gap-1`}>
+                          {getTypeIcon(comm.type)}
+                          {comm.type}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(comm.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      {comm.subject && (
+                        <h3 className="font-semibold text-lg mb-2">{comm.subject}</h3>
+                      )}
+                      
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                        <span>
+                          From: {comm.sender?.full_name || 'Unknown'}
+                        </span>
+                        <span>
+                          To: {comm.recipient?.full_name || 'Unknown'}
+                        </span>
+                        {comm.transactions && (
+                          <span>
+                            Re: {comm.transactions.property_address}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-gray-700 whitespace-pre-wrap">{comm.content}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>
-  );
-};
-
-interface ComposeFormProps {
-  contacts: any[];
-  onSend: (data: any) => void;
-  isLoading: boolean;
-}
-
-const ComposeForm: React.FC<ComposeFormProps> = ({ contacts, onSend, isLoading }) => {
-  const [formData, setFormData] = useState({
-    recipient_id: '',
-    subject: '',
-    content: '',
-    type: 'email'
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.recipient_id || !formData.content) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    onSend(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Recipient</Label>
-          <Select value={formData.recipient_id} onValueChange={(value) => setFormData({...formData, recipient_id: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select recipient" />
-            </SelectTrigger>
-            <SelectContent>
-              {contacts.map((contact) => (
-                <SelectItem key={contact.id} value={contact.id}>
-                  {contact.full_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Type</Label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="sms">SMS</SelectItem>
-              <SelectItem value="internal">Internal Note</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div>
-        <Label>Subject</Label>
-        <Input
-          value={formData.subject}
-          onChange={(e) => setFormData({...formData, subject: e.target.value})}
-          placeholder="Message subject"
-        />
-      </div>
-
-      <div>
-        <Label>Message</Label>
-        <Textarea
-          value={formData.content}
-          onChange={(e) => setFormData({...formData, content: e.target.value})}
-          placeholder="Type your message here..."
-          rows={6}
-          required
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Sending...' : 'Send Message'}
-        </Button>
-      </div>
-    </form>
   );
 };
 
