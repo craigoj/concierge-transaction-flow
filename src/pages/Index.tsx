@@ -11,10 +11,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const isMobile = useIsMobile();
 
   // Fetch transactions for the main pane
   const { data: transactions, isLoading } = useQuery({
@@ -44,16 +46,16 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
       
-      <main className="max-w-7xl mx-auto px-8 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
         <div className="mb-6">
           <Breadcrumb />
         </div>
 
         <div className="mb-8">
-          <h2 className="text-4xl font-semibold text-foreground mb-3 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-semibold text-foreground mb-3 tracking-tight">
             Mission Control
           </h2>
-          <p className="text-lg text-muted-foreground font-medium">
+          <p className="text-base sm:text-lg text-muted-foreground font-medium">
             Your transaction coordination dashboard for today.
           </p>
         </div>
@@ -63,29 +65,31 @@ const Index = () => {
           <EnhancedDashboardStats />
         </div>
 
-        {/* Three-Pane Layout inspired by AFrame */}
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-400px)]">
-          {/* Main Pane - Transactions List (Center) */}
-          <div className="col-span-8 bg-white rounded-lg border border-border/50 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-border/50">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-foreground">
-                  Transactions ({filteredTransactions?.length || 0})
-                </h3>
-                <div className="flex items-center gap-3">
+        {/* Mobile: Vertical Stack Layout */}
+        {isMobile ? (
+          <div className="space-y-6">
+            {/* Main Transactions List */}
+            <div className="bg-white rounded-lg border border-border/50 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-border/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Transactions ({filteredTransactions?.length || 0})
+                  </h3>
+                </div>
+                <div className="space-y-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search transactions..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 w-64"
+                      className="pl-9"
                     />
                   </div>
                   <select 
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
                   >
                     <option value="all">All Status</option>
                     <option value="intake">Intake</option>
@@ -95,21 +99,21 @@ const Index = () => {
                   </select>
                 </div>
               </div>
-            </div>
-            
-            <div className="p-6 overflow-y-auto h-full">
-              {isLoading ? (
-                <div className="text-center py-8">Loading transactions...</div>
-              ) : filteredTransactions && filteredTransactions.length > 0 ? (
-                <div className="space-y-4">
-                  {filteredTransactions.map((transaction) => (
-                    <div key={transaction.id} className="border border-border/30 rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-base mb-1">{transaction.property_address}</h4>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              
+              <div className="p-4 max-h-96 overflow-y-auto">
+                {isLoading ? (
+                  <div className="text-center py-8">Loading transactions...</div>
+                ) : filteredTransactions && filteredTransactions.length > 0 ? (
+                  <div className="space-y-3">
+                    {filteredTransactions.map((transaction) => (
+                      <div key={transaction.id} className="border border-border/30 rounded-lg p-3 hover:bg-muted/30 transition-colors">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">{transaction.property_address}</h4>
+                          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                             <span>Client: {transaction.clients?.[0]?.full_name || 'N/A'}</span>
                             <span>Agent: {transaction.profiles ? `${transaction.profiles.first_name} ${transaction.profiles.last_name}` : 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               transaction.status === 'active' ? 'bg-blue-100 text-blue-800' :
                               transaction.status === 'intake' ? 'bg-yellow-100 text-yellow-800' :
@@ -118,34 +122,116 @@ const Index = () => {
                             }`}>
                               {transaction.status?.replace('_', ' ').toUpperCase()}
                             </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">${transaction.purchase_price?.toLocaleString()}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'No closing date'}
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">${transaction.purchase_price?.toLocaleString()}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'No closing date'}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">No transactions found</div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">No transactions found</div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Right Sidebar - Upcoming Deadlines */}
-          <div className="col-span-4">
+            {/* Daily Focus Tasks */}
+            <DailyFocusPane />
+
+            {/* Upcoming Deadlines */}
             <UpcomingDeadlinesPane />
           </div>
-        </div>
+        ) : (
+          /* Desktop: Three-Pane Layout */
+          <div className="grid grid-cols-12 gap-6 h-[calc(100vh-400px)]">
+            {/* Main Pane - Transactions List (Center) */}
+            <div className="col-span-8 bg-white rounded-lg border border-border/50 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-border/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Transactions ({filteredTransactions?.length || 0})
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search transactions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 w-64"
+                      />
+                    </div>
+                    <select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="intake">Intake</option>
+                      <option value="active">Active</option>
+                      <option value="closed">Closed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 overflow-y-auto h-full">
+                {isLoading ? (
+                  <div className="text-center py-8">Loading transactions...</div>
+                ) : filteredTransactions && filteredTransactions.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredTransactions.map((transaction) => (
+                      <div key={transaction.id} className="border border-border/30 rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-base mb-1">{transaction.property_address}</h4>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Client: {transaction.clients?.[0]?.full_name || 'N/A'}</span>
+                              <span>Agent: {transaction.profiles ? `${transaction.profiles.first_name} ${transaction.profiles.last_name}` : 'N/A'}</span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                transaction.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                                transaction.status === 'intake' ? 'bg-yellow-100 text-yellow-800' :
+                                transaction.status === 'closed' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {transaction.status?.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-semibold">${transaction.purchase_price?.toLocaleString()}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'No closing date'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">No transactions found</div>
+                )}
+              </div>
+            </div>
 
-        {/* Bottom Pane - Daily Focus Tasks */}
-        <div className="mt-6">
-          <DailyFocusPane />
-        </div>
+            {/* Right Sidebar - Upcoming Deadlines */}
+            <div className="col-span-4">
+              <UpcomingDeadlinesPane />
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Pane - Daily Focus Tasks (Desktop only) */}
+        {!isMobile && (
+          <div className="mt-6">
+            <DailyFocusPane />
+          </div>
+        )}
       </main>
     </div>
   );

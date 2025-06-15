@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import MainNavigation from "@/components/navigation/MainNavigation";
+import MobileNavigation from "@/components/navigation/MobileNavigation";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const AppHeader = () => {
@@ -41,33 +42,36 @@ const AppHeader = () => {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-8 py-6 sticky top-0 z-50">
+    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-4 sm:px-8 py-4 sm:py-6 sticky top-0 z-50">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 sm:space-x-6">
+          {/* Mobile Navigation */}
+          <MobileNavigation />
+          
+          <div className="flex items-center space-x-3 sm:space-x-4">
             <div 
-              className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform"
               onClick={() => navigate('/')}
             >
-              <span className="text-primary-foreground font-bold text-xl">AC</span>
+              <span className="text-primary-foreground font-bold text-lg sm:text-xl">AC</span>
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground tracking-tight">The Agent Concierge</h1>
-              <p className="text-sm text-muted-foreground font-medium">Transaction Coordination Platform</p>
+            <div className="hidden sm:block">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">The Agent Concierge</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Transaction Coordination Platform</p>
             </div>
           </div>
           
-          {/* Enhanced Main Navigation */}
+          {/* Enhanced Main Navigation - Hidden on mobile */}
           <MainNavigation />
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Global Create Button - AFrame Style */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2 font-medium">
-                <Plus className="h-4 w-4 mr-2" />
-                Create
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3 sm:px-4 py-2 font-medium text-sm">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Create</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white border-border/50 shadow-lg">
@@ -111,7 +115,7 @@ const AppHeader = () => {
             className="hover:bg-muted/50 rounded-xl"
             onClick={() => navigate('/search')}
           >
-            <Search className="h-5 w-5 text-muted-foreground" />
+            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           </Button>
 
           {/* Enhanced Notification Center */}
@@ -120,15 +124,21 @@ const AppHeader = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-muted/50 rounded-xl">
-                <User className="h-5 w-5 text-muted-foreground" />
+                <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-white border-border/50 shadow-lg">
-              <DropdownMenuItem className="hover:bg-muted/50">
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/profile')}
+              >
                 <User className="mr-3 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-muted/50">
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 cursor-pointer"
+                onClick={() => navigate('/settings')}
+              >
                 <Settings className="mr-3 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
