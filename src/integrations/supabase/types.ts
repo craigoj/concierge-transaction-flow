@@ -418,6 +418,7 @@ export type Database = {
           file_name: string
           file_path: string
           id: string
+          is_agent_visible: boolean | null
           transaction_id: string
           uploaded_by_id: string
         }
@@ -429,6 +430,7 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
+          is_agent_visible?: boolean | null
           transaction_id: string
           uploaded_by_id: string
         }
@@ -440,6 +442,7 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
+          is_agent_visible?: boolean | null
           transaction_id?: string
           uploaded_by_id?: string
         }
@@ -700,6 +703,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          agent_action_prompt: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -707,10 +711,12 @@ export type Database = {
           id: string
           is_completed: boolean
           priority: Database["public"]["Enums"]["task_priority"]
+          requires_agent_action: boolean | null
           title: string
           transaction_id: string
         }
         Insert: {
+          agent_action_prompt?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -718,10 +724,12 @@ export type Database = {
           id?: string
           is_completed?: boolean
           priority?: Database["public"]["Enums"]["task_priority"]
+          requires_agent_action?: boolean | null
           title: string
           transaction_id: string
         }
         Update: {
+          agent_action_prompt?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -729,6 +737,7 @@ export type Database = {
           id?: string
           is_completed?: boolean
           priority?: Database["public"]["Enums"]["task_priority"]
+          requires_agent_action?: boolean | null
           title?: string
           transaction_id?: string
         }

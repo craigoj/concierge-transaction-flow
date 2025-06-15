@@ -7,6 +7,7 @@ import { Tables } from "@/integrations/supabase/types";
 import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
 import LuxuryTransactionCard from "@/components/agent/LuxuryTransactionCard";
 import WelcomeCard from "@/components/agent/WelcomeCard";
+import { SecureAgentDataProvider, useAgentData } from "@/components/agent/SecureAgentDataProvider";
 
 type Transaction = Tables<'transactions'> & {
   clients: Tables<'clients'>[];
@@ -19,20 +20,19 @@ interface AgentStats {
   actionRequired: number;
 }
 
-const AgentDashboard = () => {
+const AgentDashboardContent = () => {
   const [stats, setStats] = useState<AgentStats>({
     activeTransactions: 0,
     closingThisWeek: 0,
     actionRequired: 0,
   });
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [agentName, setAgentName] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { transactions, isLoading } = useAgentData();
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchAgentProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -49,64 +49,52 @@ const AgentDashboard = () => {
         } else {
           setAgentName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
         }
-
-        // Get transactions with related data for this agent
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from("transactions")
-          .select(`
-            *,
-            clients (*),
-            tasks (*)
-          `)
-          .eq("agent_id", user.id);
-
-        if (transactionsError) {
-          throw transactionsError;
-        }
-
-        setTransactions(transactionsData || []);
-
-        // Calculate stats
-        const activeTransactions = transactionsData?.filter(t => 
-          t.status === "active" || t.status === "intake"
-        ).length || 0;
-
-        const now = new Date();
-        const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        
-        const closingThisWeek = transactionsData?.filter(t => 
-          t.closing_date && 
-          new Date(t.closing_date) <= weekFromNow &&
-          new Date(t.closing_date) >= now
-        ).length || 0;
-
-        // Count high priority incomplete tasks as action required
-        const actionRequired = transactionsData?.reduce((count, transaction) => {
-          const highPriorityTasks = transaction.tasks?.filter(task => 
-            !task.is_completed && task.priority === 'high'
-          ).length || 0;
-          return count + highPriorityTasks;
-        }, 0) || 0;
-
-        setStats({
-          activeTransactions,
-          closingThisWeek,
-          actionRequired,
-        });
       } catch (error: any) {
-        console.error("Error fetching dashboard data:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load dashboard data",
-        });
-      } finally {
-        setIsLoading(false);
+        console.error("Error fetching agent profile:", error);
       }
     };
 
-    fetchDashboardData();
-  }, [toast]);
+    fetchAgentProfile();
+  }, []);
+
+  useEffect(() => {
+    if (transactions.length === 0) {
+      setStats({
+        activeTransactions: 0,
+        closingThisWeek: 0,
+        actionRequired: 0,
+      });
+      return;
+    }
+
+    // Calculate stats from the secure transaction data
+    const activeTransactions = transactions.filter(t => 
+      t.status === "active" || t.status === "intake"
+    ).length;
+
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    const closingThisWeek = transactions.filter(t => 
+      t.closing_date && 
+      new Date(t.closing_date) <= weekFromNow &&
+      new Date(t.closing_date) >= now
+    ).length;
+
+    // Count tasks that require agent action
+    const actionRequired = transactions.reduce((count, transaction) => {
+      const actionTasks = transaction.tasks?.filter(task => 
+        task.requires_agent_action && !task.is_completed
+      ).length || 0;
+      return count + actionTasks;
+    }, 0);
+
+    setStats({
+      activeTransactions,
+      closingThisWeek,
+      actionRequired,
+    });
+  }, [transactions]);
 
   const handleNewTransaction = () => {
     navigate("/transactions/new");
@@ -128,7 +116,7 @@ const AgentDashboard = () => {
           Welcome back{agentName ? `, ${agentName}` : ""}
         </h1>
         <p className="text-brand-charcoal/60 font-brand-serif text-lg">
-          Your transaction coordination portal
+          Your secure transaction coordination portal
         </p>
       </div>
 
@@ -146,7 +134,7 @@ const AgentDashboard = () => {
       ) : (
         <div className="space-y-8">
           <h2 className="text-2xl font-brand-heading font-semibold text-brand-charcoal tracking-wide">
-            Active Transactions
+            Your Active Transactions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeTransactions.map((transaction) => (
@@ -160,6 +148,14 @@ const AgentDashboard = () => {
         </div>
       )}
     </div>
+  );
+};
+
+const AgentDashboard = () => {
+  return (
+    <SecureAgentDataProvider>
+      <AgentDashboardContent />
+    </SecureAgentDataProvider>
   );
 };
 
