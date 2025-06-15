@@ -17,13 +17,34 @@ interface XMLTemplateImportDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface ParsedTask {
+  subject: string;
+  taskType: string;
+  dueDateRule: {
+    type: string;
+    event?: string;
+    days?: number;
+  };
+  isAgentVisible: boolean;
+  hasEmail: boolean;
+  sortOrder: number;
+}
+
+interface ParsedEmail {
+  name: string;
+  subject: string;
+  to: string;
+  cc: string;
+  bcc: string;
+}
+
 interface ParsedTemplate {
   name: string;
   type: string;
   description: string;
   folderName: string;
-  tasks: any[];
-  emails: any[];
+  tasks: ParsedTask[];
+  emails: ParsedEmail[];
 }
 
 interface ValidationIssue {
@@ -178,7 +199,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
 
       // Parse tasks
       const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
-      const tasks = Array.from(templateEntries).map((entry, index) => {
+      const tasks: ParsedTask[] = Array.from(templateEntries).map((entry, index) => {
         const subject = entry.querySelector('subject')?.textContent || '';
         const taskType = entry.querySelector('taskType')?.textContent || 'TODO';
         const agentVisible = entry.querySelector('agentVisible')?.textContent === 'true';
@@ -189,7 +210,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         const dueDateAdjustDelta = parseInt(entry.querySelector('dueDateAdjustDelta')?.textContent || '0');
         const dueDateAdjustType = entry.querySelector('dueDateAdjustType')?.textContent || 'TEMPLATE_START_DATE';
 
-        let dueDateRule = { type: 'no_due_date' };
+        let dueDateRule: { type: string; event?: string; days?: number } = { type: 'no_due_date' };
         if (dueDateAdjustActive) {
           const event = dueDateAdjustType === 'CLOSING_DATE' ? 'closing_date' : 'ratified_date';
           dueDateRule = {
@@ -210,7 +231,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
       });
 
       // Parse email templates
-      const emails = Array.from(templateEntries)
+      const emails: ParsedEmail[] = Array.from(templateEntries)
         .filter(entry => entry.querySelector('letterTemplate'))
         .map(entry => {
           const letterTemplate = entry.querySelector('letterTemplate')!;
