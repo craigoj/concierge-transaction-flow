@@ -37,7 +37,7 @@ const About = () => {
             <div className="relative">
               <div className="w-full h-96 rounded-2xl overflow-hidden shadow-brand-elevation">
                 <img 
-                  src="/lovable-uploads/c1b9f5b7-fb45-4434-9475-bc103e34c663.png"
+                  src="/lovable-uploads/878f5626-53d7-4407-ab51-df42b2f48eb8.png"
                   alt="Eileen - Founder of The Agent Concierge Co."
                   className="w-full h-full object-cover"
                 />
