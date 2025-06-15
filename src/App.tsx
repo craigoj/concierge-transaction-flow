@@ -36,7 +36,15 @@ import About from "./pages/landing/About";
 import Services from "./pages/landing/Services";
 import Contact from "./pages/landing/Contact";
 
-const queryClient = new QueryClient();
+// Create a stable query client instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 const App: React.FC = () => {
   return (
