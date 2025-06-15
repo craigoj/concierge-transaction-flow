@@ -8,6 +8,27 @@ import { Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
+interface BaseDeadline {
+  id: string;
+  type: 'closing' | 'task';
+  title: string;
+  date: string;
+  priority: string;
+}
+
+interface ClosingDeadline extends BaseDeadline {
+  type: 'closing';
+  client?: string;
+}
+
+interface TaskDeadline extends BaseDeadline {
+  type: 'task';
+  property?: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
+type DeadlineItem = ClosingDeadline | TaskDeadline;
+
 const UpcomingDeadlines = () => {
   const navigate = useNavigate();
 
@@ -105,10 +126,10 @@ const UpcomingDeadlines = () => {
     );
   }
 
-  const allDeadlines = [
+  const allDeadlines: DeadlineItem[] = [
     ...deadlines?.transactions.map(t => ({
       id: t.id,
-      type: 'closing',
+      type: 'closing' as const,
       title: `Closing: ${t.property_address}`,
       date: t.closing_date,
       client: t.clients?.[0]?.full_name,
@@ -116,11 +137,11 @@ const UpcomingDeadlines = () => {
     })) || [],
     ...deadlines?.tasks.map(t => ({
       id: t.id,
-      type: 'task',
+      type: 'task' as const,
       title: t.title,
       date: t.due_date,
       property: t.transactions?.property_address,
-      priority: t.priority
+      priority: t.priority as 'low' | 'medium' | 'high'
     })) || []
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -156,12 +177,12 @@ const UpcomingDeadlines = () => {
                       <p className="text-sm font-medium text-foreground">
                         {deadline.title}
                       </p>
-                      {deadline.client && (
+                      {deadline.type === 'closing' && deadline.client && (
                         <p className="text-xs text-muted-foreground">
                           Client: {deadline.client}
                         </p>
                       )}
-                      {deadline.property && (
+                      {deadline.type === 'task' && deadline.property && (
                         <p className="text-xs text-muted-foreground">
                           Property: {deadline.property}
                         </p>
