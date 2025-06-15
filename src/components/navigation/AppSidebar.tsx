@@ -21,6 +21,7 @@ import {
   UserCheck,
   Mail,
   Workflow,
+  Settings,
 } from "lucide-react";
 
 const navigationItems = [
@@ -31,6 +32,7 @@ const navigationItems = [
   { path: '/communications', label: 'Communications', icon: MessageSquare },
   { path: '/templates', label: 'Templates', icon: Mail },
   { path: '/workflows', label: 'Workflows', icon: Workflow },
+  { path: '/workflow-templates', label: 'Workflow Templates', icon: Settings },
   { path: '/documents', label: 'Documents', icon: FolderOpen },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 }
 ];

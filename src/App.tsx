@@ -21,6 +21,7 @@ import AgentDetail from "./pages/AgentDetail";
 import Communications from "./pages/Communications";
 import Templates from "./pages/Templates";
 import Workflows from "./pages/Workflows";
+import WorkflowTemplates from "./pages/WorkflowTemplates";
 import Documents from "./pages/Documents";
 import Analytics from "./pages/Analytics";
 import Search from "./pages/Search";
@@ -70,6 +71,7 @@ const App: React.FC = () => {
                             <Route path="/communications" element={<Communications />} />
                             <Route path="/templates" element={<Templates />} />
                             <Route path="/workflows" element={<Workflows />} />
+                            <Route path="/workflow-templates" element={<WorkflowTemplates />} />
                             <Route path="/documents" element={<Documents />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/search" element={<Search />} />
