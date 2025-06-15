@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Settings, User, LogOut, Search, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -11,13 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import MainNavigation from "@/components/navigation/MainNavigation";
-import MobileNavigation from "@/components/navigation/MobileNavigation";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const AppHeader = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
@@ -42,69 +40,69 @@ const AppHeader = () => {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-4 sm:px-8 py-4 sm:py-6 sticky top-0 z-50">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center space-x-4 sm:space-x-6">
-          {/* Mobile Navigation */}
-          <MobileNavigation />
+    <header className="bg-white/80 backdrop-blur-sm border-b border-brand-taupe/20 px-6 py-4 sticky top-0 z-50">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center space-x-4">
+          <SidebarTrigger className="hover:bg-brand-taupe/20 text-brand-charcoal" />
           
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-3">
             <div 
-              className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-sm cursor-pointer hover:scale-105 transition-transform border border-border/20 p-1"
+              className="w-10 h-10 bg-brand-charcoal rounded-xl flex items-center justify-center shadow-brand-subtle cursor-pointer hover:scale-105 transition-transform"
               onClick={() => navigate('/')}
             >
               <img 
                 src="/lovable-uploads/5daf1e7a-db5b-46d0-bd10-afb6f64213b2.png"
                 alt="The Agent Concierge Logo"
-                className="w-full h-full object-contain"
+                className="w-6 h-6 object-contain"
               />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">The Agent Concierge</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Transaction Coordination Platform</p>
+            <div className="hidden lg:block">
+              <h1 className="text-xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
+                THE AGENT CONCIERGE
+              </h1>
+              <p className="text-sm text-brand-charcoal/60 font-brand-body">
+                Transaction Coordination Platform
+              </p>
             </div>
           </div>
-          
-          {/* Enhanced Main Navigation - Hidden on mobile */}
-          <MainNavigation />
         </div>
         
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Global Create Button - AFrame Style */}
+        <div className="flex items-center space-x-3">
+          {/* Global Create Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3 sm:px-4 py-2 font-medium text-sm">
-                <Plus className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Create</span>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-4 py-2 font-brand-heading font-medium tracking-wide shadow-brand-subtle">
+                <Plus className="h-4 w-4 mr-2" />
+                CREATE
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white border-border/50 shadow-lg">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-brand-taupe/20 shadow-brand-elevation">
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/transactions/new')}
               >
                 🏠 Transaction
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/clients/new')}
               >
                 👤 Contact
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/tasks/new')}
               >
                 ✓ Task
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/communications/new')}
               >
                 📝 Contact Note
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/templates/new')}
               >
                 📄 Letter (Blank)
@@ -116,39 +114,40 @@ const AppHeader = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hover:bg-muted/50 rounded-xl"
+            className="hover:bg-brand-taupe/20 rounded-xl text-brand-charcoal"
             onClick={() => navigate('/search')}
           >
-            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+            <Search className="h-5 w-5" />
           </Button>
 
-          {/* Enhanced Notification Center */}
+          {/* Notification Center */}
           <NotificationCenter />
           
+          {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-muted/50 rounded-xl">
-                <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+              <Button variant="ghost" size="icon" className="hover:bg-brand-taupe/20 rounded-xl text-brand-charcoal">
+                <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-border/50 shadow-lg">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-brand-taupe/20 shadow-brand-elevation">
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/profile')}
               >
                 <User className="mr-3 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem 
-                className="hover:bg-muted/50 cursor-pointer"
+                className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/settings')}
               >
                 <Settings className="mr-3 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuSeparator className="bg-brand-taupe/20" />
               <DropdownMenuItem 
-                className="hover:bg-muted/50 text-destructive cursor-pointer"
+                className="hover:bg-brand-taupe/10 text-destructive cursor-pointer font-brand-body"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-3 h-4 w-4" />
