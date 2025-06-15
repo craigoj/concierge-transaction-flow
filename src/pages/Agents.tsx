@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
 import { AgentsList } from "@/components/agents/AgentsList";
 import { Users } from "lucide-react";
+import Breadcrumb from "@/components/navigation/Breadcrumb";
 
 const Agents = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -12,7 +13,11 @@ const Agents = () => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-7xl">
+    <div className="p-8">
+      <div className="mb-8">
+        <Breadcrumb />
+      </div>
+      
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">

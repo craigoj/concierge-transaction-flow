@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import WorkflowTemplateManager from '@/components/workflows/WorkflowTemplateManager';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const WorkflowTemplates = () => {
   // Check if user is a coordinator
@@ -25,7 +26,10 @@ const WorkflowTemplates = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="p-8">
+        <div className="mb-8">
+          <Breadcrumb />
+        </div>
         <Card>
           <CardContent className="p-8 text-center">
             Loading...
@@ -37,7 +41,10 @@ const WorkflowTemplates = () => {
 
   if (userRole !== 'coordinator') {
     return (
-      <div className="container mx-auto p-6">
+      <div className="p-8">
+        <div className="mb-8">
+          <Breadcrumb />
+        </div>
         <Card>
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
@@ -51,7 +58,10 @@ const WorkflowTemplates = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="p-8">
+      <div className="mb-8">
+        <Breadcrumb />
+      </div>
       <WorkflowTemplateManager />
     </div>
   );

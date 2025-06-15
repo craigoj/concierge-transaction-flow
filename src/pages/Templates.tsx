@@ -12,9 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Eye, Copy, Mail, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
-import AppHeader from '@/components/AppHeader';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
-import { SidebarInset } from '@/components/ui/sidebar';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import TaskTemplateManager from '@/components/workflows/TaskTemplateManager';
 
@@ -92,272 +89,259 @@ const Templates = () => {
 
   if (isLoading) {
     return (
-      <>
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <AppHeader />
-          <main className="p-8">
-            <div className="mb-8">
-              <Breadcrumb />
-            </div>
-            <div className="mb-12">
-              <div className="animate-pulse space-y-6">
-                <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
-                <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
-              </div>
-            </div>
-          </main>
-        </SidebarInset>
-      </>
+      <div className="p-8">
+        <div className="mb-8">
+          <Breadcrumb />
+        </div>
+        <div className="mb-12">
+          <div className="animate-pulse space-y-6">
+            <div className="h-12 bg-brand-taupe/20 rounded-xl w-1/3"></div>
+            <div className="h-6 bg-brand-taupe/20 rounded-lg w-2/3"></div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset className="flex-1">
-        <AppHeader />
-        
-        <main className="p-8">
-          {/* Breadcrumb Navigation */}
-          <div className="mb-8">
-            <Breadcrumb />
+    <div className="p-8">
+      {/* Breadcrumb Navigation */}
+      <div className="mb-8">
+        <Breadcrumb />
+      </div>
+
+      {/* Premium Header Section */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
+              Templates
+            </h1>
+            <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
+              Create and manage professional communication templates with elegance
+            </p>
+          </div>
+        </div>
+        <div className="w-24 h-px bg-brand-taupe"></div>
+      </div>
+
+      <Tabs defaultValue="email" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl p-2">
+          <TabsTrigger 
+            value="email" 
+            className="flex items-center gap-2 font-brand-heading tracking-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background rounded-lg"
+          >
+            <Mail className="h-4 w-4" />
+            EMAIL TEMPLATES
+          </TabsTrigger>
+          <TabsTrigger 
+            value="tasks" 
+            className="flex items-center gap-2 font-brand-heading tracking-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background rounded-lg"
+          >
+            <CheckSquare className="h-4 w-4" />
+            TASK TEMPLATES
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="email" className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-brand-heading font-semibold text-brand-charcoal tracking-wide uppercase">
+              Email Templates
+            </h2>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3">
+                  <Plus className="h-5 w-5" />
+                  CREATE TEMPLATE
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+                <DialogHeader>
+                  <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Create Email Template</DialogTitle>
+                </DialogHeader>
+                <TemplateForm onSuccess={() => setCreateDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
 
-          {/* Premium Header Section */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-4xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider uppercase mb-4">
-                  Templates
-                </h1>
-                <p className="text-lg font-brand-body text-brand-charcoal/70 max-w-2xl">
-                  Create and manage professional communication templates with elegance
-                </p>
-              </div>
-            </div>
-            <div className="w-24 h-px bg-brand-taupe"></div>
-          </div>
-
-          <Tabs defaultValue="email" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border-brand-taupe/30 rounded-xl p-2">
-              <TabsTrigger 
-                value="email" 
-                className="flex items-center gap-2 font-brand-heading tracking-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background rounded-lg"
-              >
-                <Mail className="h-4 w-4" />
-                EMAIL TEMPLATES
-              </TabsTrigger>
-              <TabsTrigger 
-                value="tasks" 
-                className="flex items-center gap-2 font-brand-heading tracking-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background rounded-lg"
-              >
-                <CheckSquare className="h-4 w-4" />
-                TASK TEMPLATES
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="email" className="space-y-8">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-brand-heading font-semibold text-brand-charcoal tracking-wide uppercase">
-                  Email Templates
-                </h2>
-                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3">
-                      <Plus className="h-5 w-5" />
-                      CREATE TEMPLATE
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-brand-taupe/30">
-                    <DialogHeader>
-                      <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Create Email Template</DialogTitle>
-                    </DialogHeader>
-                    <TemplateForm onSuccess={() => setCreateDialogOpen(false)} />
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Template categories sidebar */}
-                <div className="lg:col-span-1">
-                  <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Categories</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {Object.keys(templatesByCategory).map((category) => (
-                          <div key={category} className="flex items-center justify-between p-2 rounded-lg hover:bg-brand-taupe/10 transition-colors">
-                            <span className="text-sm font-brand-body text-brand-charcoal">{category}</span>
-                            <Badge variant="secondary" className="bg-brand-taupe/20 text-brand-charcoal">
-                              {templatesByCategory[category].length}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-6 shadow-brand-subtle">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Available Variables</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3 text-sm font-brand-body">
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{agent_name}}'}</code> - Agent's full name
-                        </div>
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{client_name}}'}</code> - Client's full name
-                        </div>
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{property_address}}'}</code> - Property address
-                        </div>
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{closing_date}}'}</code> - Closing date
-                        </div>
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{purchase_price}}'}</code> - Purchase price
-                        </div>
-                        <div className="p-2 bg-brand-taupe/10 rounded-lg">
-                          <code className="text-brand-charcoal">{'{{transaction_status}}'}</code> - Current status
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Templates grid */}
-                <div className="lg:col-span-3">
-                  <Tabs defaultValue="all" className="space-y-6">
-                    <TabsList className="bg-white/80 border-brand-taupe/30 rounded-xl">
-                      <TabsTrigger value="all" className="font-brand-heading tracking-wide">All Templates</TabsTrigger>
-                      {Object.keys(templatesByCategory).map((category) => (
-                        <TabsTrigger key={category} value={category} className="font-brand-heading tracking-wide">
-                          {category}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-
-                    <TabsContent value="all">
-                      {templates && templates.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {templates.map((template) => (
-                            <TemplateCard
-                              key={template.id}
-                              template={template}
-                              onEdit={() => {
-                                setSelectedTemplate(template);
-                                setEditDialogOpen(true);
-                              }}
-                              onDelete={() => handleDelete(template.id)}
-                              onPreview={() => {
-                                setSelectedTemplate(template);
-                                setPreviewDialogOpen(true);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-20">
-                          <div className="max-w-md mx-auto">
-                            <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                              <Mail className="h-12 w-12 text-brand-taupe" />
-                            </div>
-                            <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
-                              No Templates Yet
-                            </h3>
-                            <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
-                              Create your first template to streamline communications
-                            </p>
-                            <Button 
-                              onClick={() => setCreateDialogOpen(true)}
-                              className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              CREATE FIRST TEMPLATE
-                            </Button>
-                            <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Template categories sidebar */}
+            <div className="lg:col-span-1">
+              <Card className="shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-lg">Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
                     {Object.keys(templatesByCategory).map((category) => (
-                      <TabsContent key={category} value={category}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {templatesByCategory[category].map((template) => (
-                            <TemplateCard
-                              key={template.id}
-                              template={template}
-                              onEdit={() => {
-                                setSelectedTemplate(template);
-                                setEditDialogOpen(true);
-                              }}
-                              onDelete={() => handleDelete(template.id)}
-                              onPreview={() => {
-                                setSelectedTemplate(template);
-                                setPreviewDialogOpen(true);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                </div>
-              </div>
-
-              {/* Edit Dialog */}
-              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-brand-taupe/30">
-                  <DialogHeader>
-                    <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Edit Template</DialogTitle>
-                  </DialogHeader>
-                  {selectedTemplate && (
-                    <TemplateForm
-                      template={selectedTemplate}
-                      onSuccess={() => setEditDialogOpen(false)}
-                    />
-                  )}
-                </DialogContent>
-              </Dialog>
-
-              {/* Preview Dialog */}
-              <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-                <DialogContent className="max-w-4xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
-                  <DialogHeader>
-                    <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Template Preview</DialogTitle>
-                  </DialogHeader>
-                  {selectedTemplate && (
-                    <div className="space-y-6">
-                      <div>
-                        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Subject</Label>
-                        <div className="p-4 bg-brand-taupe/10 rounded-xl font-brand-body text-brand-charcoal mt-2">
-                          {selectedTemplate.subject}
-                        </div>
+                      <div key={category} className="flex items-center justify-between p-2 rounded-lg hover:bg-brand-taupe/10 transition-colors">
+                        <span className="text-sm font-brand-body text-brand-charcoal">{category}</span>
+                        <Badge variant="secondary" className="bg-brand-taupe/20 text-brand-charcoal">
+                          {templatesByCategory[category].length}
+                        </Badge>
                       </div>
-                      <div>
-                        <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Content</Label>
-                        <div 
-                          className="p-6 bg-brand-taupe/10 rounded-xl prose max-w-none font-brand-body text-brand-charcoal mt-2"
-                          dangerouslySetInnerHTML={{ __html: selectedTemplate.body_html }}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="mt-6 shadow-brand-subtle">
+                <CardHeader>
+                  <CardTitle className="text-lg">Available Variables</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm font-brand-body">
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{agent_name}}'}</code> - Agent's full name
+                    </div>
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{client_name}}'}</code> - Client's full name
+                    </div>
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{property_address}}'}</code> - Property address
+                    </div>
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{closing_date}}'}</code> - Closing date
+                    </div>
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{purchase_price}}'}</code> - Purchase price
+                    </div>
+                    <div className="p-2 bg-brand-taupe/10 rounded-lg">
+                      <code className="text-brand-charcoal">{'{{transaction_status}}'}</code> - Current status
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Templates grid */}
+            <div className="lg:col-span-3">
+              <Tabs defaultValue="all" className="space-y-6">
+                <TabsList className="bg-white/80 border-brand-taupe/30 rounded-xl">
+                  <TabsTrigger value="all" className="font-brand-heading tracking-wide">All Templates</TabsTrigger>
+                  {Object.keys(templatesByCategory).map((category) => (
+                    <TabsTrigger key={category} value={category} className="font-brand-heading tracking-wide">
+                      {category}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                <TabsContent value="all">
+                  {templates && templates.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {templates.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={() => {
+                            setSelectedTemplate(template);
+                            setEditDialogOpen(true);
+                          }}
+                          onDelete={() => handleDelete(template.id)}
+                          onPreview={() => {
+                            setSelectedTemplate(template);
+                            setPreviewDialogOpen(true);
+                          }}
                         />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20">
+                      <div className="max-w-md mx-auto">
+                        <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                          <Mail className="h-12 w-12 text-brand-taupe" />
+                        </div>
+                        <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+                          No Templates Yet
+                        </h3>
+                        <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+                          Create your first template to streamline communications
+                        </p>
+                        <Button 
+                          onClick={() => setCreateDialogOpen(true)}
+                          className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          CREATE FIRST TEMPLATE
+                        </Button>
+                        <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
                       </div>
                     </div>
                   )}
-                </DialogContent>
-              </Dialog>
-            </TabsContent>
+                </TabsContent>
 
-            <TabsContent value="tasks">
-              <TaskTemplateManager />
-            </TabsContent>
-          </Tabs>
-        </main>
-      </SidebarInset>
-    </>
+                {Object.keys(templatesByCategory).map((category) => (
+                  <TabsContent key={category} value={category}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {templatesByCategory[category].map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={() => {
+                            setSelectedTemplate(template);
+                            setEditDialogOpen(true);
+                          }}
+                          onDelete={() => handleDelete(template.id)}
+                          onPreview={() => {
+                            setSelectedTemplate(template);
+                            setPreviewDialogOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+          </div>
+
+          {/* Edit Dialog */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+              <DialogHeader>
+                <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Edit Template</DialogTitle>
+              </DialogHeader>
+              {selectedTemplate && (
+                <TemplateForm
+                  template={selectedTemplate}
+                  onSuccess={() => setEditDialogOpen(false)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Preview Dialog */}
+          <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+            <DialogContent className="max-w-4xl bg-white/95 backdrop-blur-sm border-brand-taupe/30">
+              <DialogHeader>
+                <DialogTitle className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Template Preview</DialogTitle>
+              </DialogHeader>
+              {selectedTemplate && (
+                <div className="space-y-6">
+                  <div>
+                    <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Subject</Label>
+                    <div className="p-4 bg-brand-taupe/10 rounded-xl font-brand-body text-brand-charcoal mt-2">
+                      {selectedTemplate.subject}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="font-brand-heading text-brand-charcoal tracking-wide uppercase">Content</Label>
+                    <div 
+                      className="p-6 bg-brand-taupe/10 rounded-xl prose max-w-none font-brand-body text-brand-charcoal mt-2"
+                      dangerouslySetInnerHTML={{ __html: selectedTemplate.body_html }}
+                    />
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <TaskTemplateManager />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

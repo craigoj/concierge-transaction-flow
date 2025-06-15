@@ -4,10 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Settings as SettingsIcon, Mail, Calendar, Bell } from 'lucide-react';
 import CalendarIntegration from '@/components/settings/CalendarIntegration';
 import IntegrationTestPanel from '@/components/settings/IntegrationTestPanel';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const Settings = () => {
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="p-8">
+      <div className="mb-8">
+        <Breadcrumb />
+      </div>
+
       <div className="flex items-center gap-2 mb-8">
         <SettingsIcon className="h-8 w-8 text-brand-charcoal" />
         <h1 className="text-3xl font-brand-heading font-semibold text-brand-charcoal uppercase tracking-brand-wide">
