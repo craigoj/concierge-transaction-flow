@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings as SettingsIcon, Mail, Calendar, Bell } from 'lucide-react';
 import CalendarIntegration from '@/components/settings/CalendarIntegration';
+import IntegrationTestPanel from '@/components/settings/IntegrationTestPanel';
 
 const Settings = () => {
   return (
@@ -15,6 +16,9 @@ const Settings = () => {
       </div>
 
       <div className="grid gap-6">
+        {/* Integration Testing */}
+        <IntegrationTestPanel />
+
         {/* Calendar Integration */}
         <CalendarIntegration />
 

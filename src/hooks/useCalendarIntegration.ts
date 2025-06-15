@@ -22,9 +22,9 @@ export const useCalendarIntegration = () => {
         return;
       }
 
-      // Create Google OAuth URL using the actual Supabase URL
+      // Create Google OAuth URL using the actual Google Client ID
       const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      googleAuthUrl.searchParams.append('client_id', 'YOUR_GOOGLE_CLIENT_ID');
+      googleAuthUrl.searchParams.append('client_id', '2044a8b6c3f708992d480240b149dc5f39f50e0b48c658031bc525dce98e92a2');
       googleAuthUrl.searchParams.append('redirect_uri', 'https://tdupublcyigkgdlobzqi.supabase.co/functions/v1/google-calendar-auth');
       googleAuthUrl.searchParams.append('response_type', 'code');
       googleAuthUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/calendar');
