@@ -27,6 +27,16 @@ interface WorkflowTemplate {
   is_active: boolean;
 }
 
+interface TaskTemplate {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  tasks: any[];
+  transaction_type: string;
+  service_tier: string;
+}
+
 const ApplyWorkflowDialog = ({ 
   open, 
   onOpenChange, 
@@ -35,6 +45,7 @@ const ApplyWorkflowDialog = ({
   serviceTier 
 }: ApplyWorkflowDialogProps) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [selectedTemplateType, setSelectedTemplateType] = useState<'workflow' | 'task'>('workflow');
   const queryClient = useQueryClient();
 
   // Fetch available workflow templates (new system)
@@ -82,7 +93,7 @@ const ApplyWorkflowDialog = ({
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as TaskTemplate[];
     },
     enabled: open,
   });
@@ -135,14 +146,42 @@ const ApplyWorkflowDialog = ({
   });
 
   const isLoading = isLoadingWorkflowTemplates || isLoadingTaskTemplates;
+  
   const selectedWorkflowTemplate = workflowTemplates?.find(t => t.id === selectedTemplateId);
   const selectedTaskTemplate = taskTemplates?.find(t => t.id === selectedTemplateId);
 
+  const getTaskCount = () => {
+    if (selectedWorkflowTemplate) {
+      return selectedWorkflowTemplate.template_tasks?.length || 0;
+    }
+    if (selectedTaskTemplate) {
+      return Array.isArray(selectedTaskTemplate.tasks) ? selectedTaskTemplate.tasks.length : 0;
+    }
+    return 0;
+  };
+
+  const getTasks = () => {
+    if (selectedWorkflowTemplate) {
+      return selectedWorkflowTemplate.template_tasks || [];
+    }
+    if (selectedTaskTemplate && Array.isArray(selectedTaskTemplate.tasks)) {
+      return selectedTaskTemplate.tasks;
+    }
+    return [];
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    // Determine if this is a workflow template or task template
+    const isWorkflowTemplate = workflowTemplates?.some(t => t.id === templateId);
+    setSelectedTemplateType(isWorkflowTemplate ? 'workflow' : 'task');
+  };
+
   const handleApply = () => {
     if (selectedTemplateId) {
-      if (selectedWorkflowTemplate) {
+      if (selectedTemplateType === 'workflow') {
         applyWorkflowTemplateMutation.mutate(selectedTemplateId);
-      } else if (selectedTaskTemplate) {
+      } else {
         applyTaskTemplateMutation.mutate(selectedTemplateId);
       }
     }
@@ -161,9 +200,19 @@ const ApplyWorkflowDialog = ({
     );
   }
 
-  const allTemplates = [
-    ...(workflowTemplates || []).map(t => ({ ...t, source: 'workflow' })),
-    ...(taskTemplates || []).map(t => ({ ...t, source: 'task', template_tasks: t.tasks }))
+  const allTemplatesOptions = [
+    ...(workflowTemplates || []).map(t => ({ 
+      id: t.id, 
+      name: t.name, 
+      taskCount: t.template_tasks?.length || 0,
+      type: 'workflow' as const
+    })),
+    ...(taskTemplates || []).map(t => ({ 
+      id: t.id, 
+      name: t.name, 
+      taskCount: Array.isArray(t.tasks) ? t.tasks.length : 0,
+      type: 'task' as const
+    }))
   ];
 
   return (
@@ -180,14 +229,14 @@ const ApplyWorkflowDialog = ({
           {/* Template Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">Select Workflow Template</label>
-            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+            <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a workflow template" />
               </SelectTrigger>
               <SelectContent>
-                {allTemplates?.map((template) => (
+                {allTemplatesOptions.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
-                    {template.name} ({template.template_tasks?.length || template.tasks?.length || 0} tasks)
+                    {template.name} ({template.taskCount} tasks)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -206,7 +255,7 @@ const ApplyWorkflowDialog = ({
                     {selectedWorkflowTemplate?.type || selectedTaskTemplate?.category}
                   </Badge>
                   <Badge variant="secondary">
-                    {selectedWorkflowTemplate?.template_tasks?.length || selectedTaskTemplate?.tasks?.length || 0} tasks
+                    {getTaskCount()} tasks
                   </Badge>
                 </div>
               </CardHeader>
@@ -220,7 +269,7 @@ const ApplyWorkflowDialog = ({
                 <div className="space-y-2">
                   <h4 className="font-medium">Tasks to be created:</h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {(selectedWorkflowTemplate?.template_tasks || selectedTaskTemplate?.tasks || []).map((task: any, index: number) => (
+                    {getTasks().map((task: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-muted-foreground" />
@@ -261,7 +310,7 @@ const ApplyWorkflowDialog = ({
             </Button>
           </div>
 
-          {allTemplates?.length === 0 && (
+          {allTemplatesOptions.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Workflow className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No workflow templates available for this transaction type.</p>
