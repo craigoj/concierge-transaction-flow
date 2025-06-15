@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthGuard from "./components/AuthGuard";
 import NotFound from "./pages/NotFound";
+import Transactions from "./pages/Transactions";
+import TransactionDetail from "./pages/TransactionDetail";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,22 @@ const App = () => (
             element={
               <AuthGuard>
                 <Index />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/transactions" 
+            element={
+              <AuthGuard>
+                <Transactions />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/transactions/:id" 
+            element={
+              <AuthGuard>
+                <TransactionDetail />
               </AuthGuard>
             } 
           />

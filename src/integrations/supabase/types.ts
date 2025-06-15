@@ -306,8 +306,12 @@ export type Database = {
           id: string
           property_address: string
           purchase_price: number | null
+          service_tier: Database["public"]["Enums"]["service_tier_type"] | null
           state: string
           status: Database["public"]["Enums"]["transaction_status"]
+          transaction_type:
+            | Database["public"]["Enums"]["transaction_type_enum"]
+            | null
           updated_at: string
           zip_code: string
         }
@@ -320,8 +324,12 @@ export type Database = {
           id?: string
           property_address: string
           purchase_price?: number | null
+          service_tier?: Database["public"]["Enums"]["service_tier_type"] | null
           state: string
           status?: Database["public"]["Enums"]["transaction_status"]
+          transaction_type?:
+            | Database["public"]["Enums"]["transaction_type_enum"]
+            | null
           updated_at?: string
           zip_code: string
         }
@@ -334,8 +342,12 @@ export type Database = {
           id?: string
           property_address?: string
           purchase_price?: number | null
+          service_tier?: Database["public"]["Enums"]["service_tier_type"] | null
           state?: string
           status?: Database["public"]["Enums"]["transaction_status"]
+          transaction_type?:
+            | Database["public"]["Enums"]["transaction_type_enum"]
+            | null
           updated_at?: string
           zip_code?: string
         }
@@ -366,8 +378,16 @@ export type Database = {
     Enums: {
       client_type: "buyer" | "seller"
       contact_rating: "A" | "B" | "C" | "D"
+      service_tier_type:
+        | "buyer_core"
+        | "buyer_elite"
+        | "white_glove_buyer"
+        | "listing_core"
+        | "listing_elite"
+        | "white_glove_listing"
       task_priority: "low" | "medium" | "high"
       transaction_status: "intake" | "active" | "closed" | "cancelled"
+      transaction_type_enum: "buyer" | "seller" | "dual"
       user_role: "agent" | "coordinator"
     }
     CompositeTypes: {
@@ -486,8 +506,17 @@ export const Constants = {
     Enums: {
       client_type: ["buyer", "seller"],
       contact_rating: ["A", "B", "C", "D"],
+      service_tier_type: [
+        "buyer_core",
+        "buyer_elite",
+        "white_glove_buyer",
+        "listing_core",
+        "listing_elite",
+        "white_glove_listing",
+      ],
       task_priority: ["low", "medium", "high"],
       transaction_status: ["intake", "active", "closed", "cancelled"],
+      transaction_type_enum: ["buyer", "seller", "dual"],
       user_role: ["agent", "coordinator"],
     },
   },
