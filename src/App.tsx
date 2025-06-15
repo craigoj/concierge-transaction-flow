@@ -14,6 +14,9 @@ import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Agents from "./pages/Agents";
 import AgentDetail from "./pages/AgentDetail";
+import Communications from "./pages/Communications";
+import Templates from "./pages/Templates";
+import Workflows from "./pages/Workflows";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +81,30 @@ const App = () => (
             element={
               <AuthGuard>
                 <AgentDetail />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/communications" 
+            element={
+              <AuthGuard>
+                <Communications />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/templates" 
+            element={
+              <AuthGuard>
+                <Templates />
+              </AuthGuard>
+            } 
+          />
+          <Route 
+            path="/workflows" 
+            element={
+              <AuthGuard>
+                <Workflows />
               </AuthGuard>
             } 
           />

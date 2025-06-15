@@ -50,6 +50,57 @@ export type Database = {
           },
         ]
       }
+      automation_rules: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          template_id: string
+          trigger_condition: Json | null
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          template_id: string
+          trigger_condition?: Json | null
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_id?: string
+          trigger_condition?: Json | null
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -196,6 +247,67 @@ export type Database = {
         }
         Relationships: []
       }
+      communications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+          sent_at: string
+          status: string
+          subject: string | null
+          transaction_id: string | null
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          transaction_id?: string | null
+          type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          transaction_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           auto_prospect: boolean
@@ -249,6 +361,9 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          e_sign_provider: string | null
+          e_sign_request_id: string | null
+          e_sign_status: string | null
           file_name: string
           file_path: string
           id: string
@@ -257,6 +372,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          e_sign_provider?: string | null
+          e_sign_request_id?: string | null
+          e_sign_status?: string | null
           file_name: string
           file_path: string
           id?: string
@@ -265,6 +383,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          e_sign_provider?: string | null
+          e_sign_request_id?: string | null
+          e_sign_status?: string | null
           file_name?: string
           file_path?: string
           id?: string
@@ -282,6 +403,47 @@ export type Database = {
           {
             foreignKeyName: "documents_uploaded_by_id_fkey"
             columns: ["uploaded_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          body_html: string
+          category: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          category?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -524,6 +686,51 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_executions: {
+        Row: {
+          error_message: string | null
+          executed_at: string
+          id: string
+          metadata: Json | null
+          rule_id: string
+          status: string
+          transaction_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          metadata?: Json | null
+          rule_id: string
+          status?: string
+          transaction_id: string
+        }
+        Update: {
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          metadata?: Json | null
+          rule_id?: string
+          status?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_executions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
