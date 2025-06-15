@@ -80,6 +80,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { xmlContent, filename }: XMLImportRequest = await req.json();
 
+    console.log(`Starting XML import for file: ${filename}`);
+
     // Create import record
     const { data: importRecord, error: importError } = await supabaseClient
       .from('xml_template_imports')
@@ -91,120 +93,190 @@ const handler = async (req: Request): Promise<Response> => {
       .select()
       .single();
 
-    if (importError) throw importError;
+    if (importError) {
+      console.error('Failed to create import record:', importError);
+      throw importError;
+    }
+
+    console.log(`Created import record: ${importRecord.id}`);
 
     let templatesImported = 0;
     let tasksImported = 0;
     let emailsImported = 0;
 
     try {
-      // Parse XML content
+      // Parse XML content with enhanced error handling
+      console.log('Parsing XML content...');
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
       
+      // Check for parsing errors
+      const parserError = xmlDoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error(`XML parsing failed: ${parserError.textContent}`);
+      }
+      
       const taskTemplates = xmlDoc.querySelectorAll('taskTemplate');
+      console.log(`Found ${taskTemplates.length} task templates to process`);
 
-      for (const templateElement of taskTemplates) {
-        const folderName = templateElement.getAttribute('folderName') || '';
-        const name = templateElement.querySelector('name')?.textContent || '';
-        const description = templateElement.querySelector('description')?.textContent || '';
-        const templateType = templateElement.querySelector('taskTemplateType')?.textContent || 'XACTION';
+      if (taskTemplates.length === 0) {
+        throw new Error("No task templates found in XML file");
+      }
 
-        // Map template type to our enum
-        let mappedType = 'General';
-        if (name.toLowerCase().includes('listing') || name.toLowerCase().includes('seller')) {
-          mappedType = 'Listing';
-        } else if (name.toLowerCase().includes('buyer') || name.toLowerCase().includes('purchase')) {
-          mappedType = 'Buyer';
-        }
+      for (const [templateIndex, templateElement] of Array.from(taskTemplates).entries()) {
+        try {
+          const folderName = templateElement.getAttribute('folderName') || '';
+          const name = templateElement.querySelector('name')?.textContent || '';
+          const description = templateElement.querySelector('description')?.textContent || '';
+          const templateType = templateElement.querySelector('taskTemplateType')?.textContent || 'XACTION';
 
-        // Create workflow template
-        const { data: workflowTemplate, error: templateError } = await supabaseClient
-          .from('workflow_templates')
-          .insert({
-            name,
-            type: mappedType,
-            description: description || `Imported from ${folderName}`,
-            created_by: user.id,
-            is_active: true
-          })
-          .select()
-          .single();
+          console.log(`Processing template ${templateIndex + 1}/${taskTemplates.length}: ${name}`);
 
-        if (templateError) throw templateError;
-        templatesImported++;
+          if (!name.trim()) {
+            console.warn(`Skipping template ${templateIndex + 1}: No name found`);
+            continue;
+          }
 
-        // Process template entries (tasks)
-        const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
-        
-        for (const [index, entryElement] of Array.from(templateEntries).entries()) {
-          const entry = parseTemplateEntry(entryElement);
+          // Map template type to our enum
+          let mappedType = 'General';
+          if (name.toLowerCase().includes('listing') || name.toLowerCase().includes('seller')) {
+            mappedType = 'Listing';
+          } else if (name.toLowerCase().includes('buyer') || name.toLowerCase().includes('purchase')) {
+            mappedType = 'Buyer';
+          }
+
+          // Check for duplicate template names
+          const { data: existingTemplate } = await supabaseClient
+            .from('workflow_templates')
+            .select('id')
+            .eq('name', name)
+            .single();
+
+          if (existingTemplate) {
+            console.warn(`Template "${name}" already exists, skipping...`);
+            continue;
+          }
+
+          // Create workflow template
+          const { data: workflowTemplate, error: templateError } = await supabaseClient
+            .from('workflow_templates')
+            .insert({
+              name,
+              type: mappedType,
+              description: description || `Imported from ${folderName}`,
+              created_by: user.id,
+              is_active: true
+            })
+            .select()
+            .single();
+
+          if (templateError) {
+            console.error(`Failed to create template "${name}":`, templateError);
+            throw templateError;
+          }
+
+          templatesImported++;
+          console.log(`Created template: ${name} (ID: ${workflowTemplate.id})`);
+
+          // Process template entries (tasks)
+          const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
+          console.log(`Processing ${templateEntries.length} tasks for template: ${name}`);
           
-          // Create due date rule
-          const dueDateRule = createDueDateRule(entry);
-
-          // Handle email template if present
-          let emailTemplateId = null;
-          if (entry.letterTemplate) {
-            const { data: emailTemplate, error: emailError } = await supabaseClient
-              .from('email_templates')
-              .insert({
-                name: entry.letterTemplate.name,
-                subject: entry.letterTemplate.emailSubject,
-                body_html: entry.letterTemplate.htmlText,
-                category: 'Imported Templates',
-                created_by: user.id
-              })
-              .select()
-              .single();
-
-            if (!emailError && emailTemplate) {
-              emailTemplateId = emailTemplate.id;
+          for (const [index, entryElement] of Array.from(templateEntries).entries()) {
+            try {
+              const entry = parseTemplateEntry(entryElement);
               
-              // Track imported email template
-              await supabaseClient
-                .from('imported_email_templates')
+              if (!entry.subject.trim()) {
+                console.warn(`Skipping task ${index + 1} in template "${name}": No subject`);
+                continue;
+              }
+
+              // Create due date rule
+              const dueDateRule = createDueDateRule(entry);
+
+              // Handle email template if present
+              let emailTemplateId = null;
+              if (entry.letterTemplate && entry.letterTemplate.name.trim()) {
+                try {
+                  const { data: emailTemplate, error: emailError } = await supabaseClient
+                    .from('email_templates')
+                    .insert({
+                      name: entry.letterTemplate.name,
+                      subject: entry.letterTemplate.emailSubject,
+                      body_html: entry.letterTemplate.htmlText,
+                      category: 'Imported Templates',
+                      created_by: user.id
+                    })
+                    .select()
+                    .single();
+
+                  if (!emailError && emailTemplate) {
+                    emailTemplateId = emailTemplate.id;
+                    
+                    // Track imported email template
+                    await supabaseClient
+                      .from('imported_email_templates')
+                      .insert({
+                        email_template_id: emailTemplate.id,
+                        original_xml_id: entry.letterTemplate.letterTemplateId,
+                        folder_name: folderName,
+                        email_to: entry.letterTemplate.emailTo,
+                        email_cc: entry.letterTemplate.emailCc,
+                        email_bcc: entry.letterTemplate.emailBcc,
+                        template_type: templateType,
+                        import_id: importRecord.id
+                      });
+
+                    emailsImported++;
+                    console.log(`Created email template: ${entry.letterTemplate.name}`);
+                  } else {
+                    console.warn(`Failed to create email template "${entry.letterTemplate.name}":`, emailError);
+                  }
+                } catch (emailErr) {
+                  console.warn(`Error creating email template for task "${entry.subject}":`, emailErr);
+                }
+              }
+
+              // Create template task with all enhanced properties
+              const { error: taskError } = await supabaseClient
+                .from('template_tasks')
                 .insert({
-                  email_template_id: emailTemplate.id,
-                  original_xml_id: entry.letterTemplate.letterTemplateId,
-                  folder_name: folderName,
-                  email_to: entry.letterTemplate.emailTo,
-                  email_cc: entry.letterTemplate.emailCc,
-                  email_bcc: entry.letterTemplate.emailBcc,
-                  template_type: templateType,
-                  import_id: importRecord.id
+                  template_id: workflowTemplate.id,
+                  subject: entry.subject,
+                  description_notes: entry.note || '',
+                  due_date_rule: dueDateRule,
+                  sort_order: entry.sort,
+                  email_template_id: emailTemplateId,
+                  is_agent_visible: entry.agentVisible,
+                  task_type: entry.taskType,
+                  auto_fill_with_role: entry.autoFillWithRole,
+                  is_on_calendar: entry.isOnCalendar,
+                  is_milestone: entry.milestone,
+                  reminder_set: entry.reminderSet,
+                  reminder_delta: entry.reminderDelta,
+                  reminder_time_minutes: entry.reminderTimeMinutes,
+                  xaction_side_buyer: entry.xactionSideBuyer,
+                  xaction_side_seller: entry.xactionSideSeller,
+                  xaction_side_dual: entry.xactionSideDual,
+                  buyer_seller_visible: entry.buyerSellerVisible
                 });
 
-              emailsImported++;
+              if (taskError) {
+                console.error(`Failed to create task "${entry.subject}":`, taskError);
+                throw taskError;
+              }
+
+              tasksImported++;
+            } catch (taskErr) {
+              console.error(`Error processing task ${index + 1} in template "${name}":`, taskErr);
+              // Continue with other tasks instead of failing the entire import
             }
           }
 
-          // Create template task
-          const { error: taskError } = await supabaseClient
-            .from('template_tasks')
-            .insert({
-              template_id: workflowTemplate.id,
-              subject: entry.subject,
-              description_notes: entry.note || '',
-              due_date_rule: dueDateRule,
-              sort_order: entry.sort,
-              email_template_id: emailTemplateId,
-              is_agent_visible: entry.agentVisible,
-              task_type: entry.taskType,
-              auto_fill_with_role: entry.autoFillWithRole,
-              is_on_calendar: entry.isOnCalendar,
-              is_milestone: entry.milestone,
-              reminder_set: entry.reminderSet,
-              reminder_delta: entry.reminderDelta,
-              reminder_time_minutes: entry.reminderTimeMinutes,
-              xaction_side_buyer: entry.xactionSideBuyer,
-              xaction_side_seller: entry.xactionSideSeller,
-              xaction_side_dual: entry.xactionSideDual,
-              buyer_seller_visible: entry.buyerSellerVisible
-            });
-
-          if (taskError) throw taskError;
-          tasksImported++;
+          console.log(`Completed template: ${name} (${templateEntries.length} tasks processed)`);
+        } catch (templateErr) {
+          console.error(`Error processing template ${templateIndex + 1}:`, templateErr);
+          // Continue with other templates instead of failing the entire import
         }
       }
 
@@ -220,6 +292,8 @@ const handler = async (req: Request): Promise<Response> => {
         })
         .eq('id', importRecord.id);
 
+      console.log(`Import completed successfully: ${templatesImported} templates, ${tasksImported} tasks, ${emailsImported} emails`);
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -234,6 +308,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
 
     } catch (processingError) {
+      console.error('Processing error:', processingError);
+      
       // Update import record with error
       await supabaseClient
         .from('xml_template_imports')
@@ -253,7 +329,13 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in xml-template-import function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        templatesImported: 0,
+        tasksImported: 0,
+        emailsImported: 0
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -269,12 +351,12 @@ function parseTemplateEntry(entryElement: Element): TaskTemplateEntry {
 
   const entry: TaskTemplateEntry = {
     taskTemplateEntryId: getText('taskTemplateEntryId'),
-    taskType: getText('taskType'),
+    taskType: getText('taskType') || 'TODO',
     subject: getText('subject'),
     note: getText('note'),
     dueDateAdjustActive: getBool('dueDateAdjustActive'),
     dueDateAdjustDelta: getNum('dueDateAdjustDelta'),
-    dueDateAdjustType: getText('dueDateAdjustType'),
+    dueDateAdjustType: getText('dueDateAdjustType') || 'TEMPLATE_START_DATE',
     autoFillWithRole: getText('autoFillWithRole'),
     agentVisible: getBool('agentVisible'),
     buyerSellerVisible: getBool('buyerSellerVisible'),
@@ -282,7 +364,7 @@ function parseTemplateEntry(entryElement: Element): TaskTemplateEntry {
     milestone: getBool('milestone'),
     reminderSet: getBool('reminderSet'),
     reminderDelta: getNum('reminderDelta'),
-    reminderTimeMinutes: getNum('reminderTimeMinutes'),
+    reminderTimeMinutes: getNum('reminderTimeMinutes') || 540,
     xactionSideBuyer: getBool('xactionSideBuyer'),
     xactionSideSeller: getBool('xactionSideSeller'),
     xactionSideDual: getBool('xactionSideDual'),
