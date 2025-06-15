@@ -47,8 +47,8 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-brand-taupe/20">
-      <SidebarHeader className="p-6 border-b border-brand-taupe/20">
+    <Sidebar className="border-r border-gray-700 bg-gray-900">
+      <SidebarHeader className="p-6 border-b border-gray-700">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-brand-charcoal rounded-xl flex items-center justify-center">
             <img 
@@ -58,10 +58,10 @@ export function AppSidebar() {
             />
           </div>
           <div>
-            <h2 className="text-lg font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
+            <h2 className="text-lg font-brand-heading font-semibold text-white tracking-brand-wide">
               AGENT CONCIERGE
             </h2>
-            <p className="text-xs text-brand-charcoal/60 font-brand-body">
+            <p className="text-xs text-gray-300 font-brand-body">
               Coordination Platform
             </p>
           </div>
@@ -70,7 +70,7 @@ export function AppSidebar() {
       
       <SidebarContent className="px-4 py-6">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-brand-heading tracking-brand-wide text-brand-charcoal/60 uppercase mb-4">
+          <SidebarGroupLabel className="text-xs font-brand-heading tracking-brand-wide text-gray-400 uppercase mb-4">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -82,8 +82,8 @@ export function AppSidebar() {
                     isActive={isActive(item.path)}
                     className={`w-full justify-start gap-3 h-12 rounded-lg font-brand-body transition-all duration-200 ${
                       isActive(item.path)
-                        ? 'bg-brand-charcoal text-brand-background shadow-brand-subtle'
-                        : 'text-brand-charcoal/70 hover:bg-brand-taupe/20 hover:text-brand-charcoal'
+                        ? 'bg-brand-charcoal text-white shadow-brand-subtle'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                   >
                     <item.icon className="h-5 w-5" />
