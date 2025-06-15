@@ -152,6 +152,107 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          calendar_integration_id: string
+          created_at: string
+          description: string | null
+          event_date: string
+          event_type: string
+          external_event_id: string
+          id: string
+          title: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_integration_id: string
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_type: string
+          external_event_id: string
+          id?: string
+          title: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_integration_id?: string
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          external_event_id?: string
+          id?: string
+          title?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_calendar_integration_id_fkey"
+            columns: ["calendar_integration_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_integrations: {
+        Row: {
+          access_token: string
+          calendar_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          provider: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_integrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
