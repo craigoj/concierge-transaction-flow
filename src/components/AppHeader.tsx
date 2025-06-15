@@ -1,6 +1,9 @@
 
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, User } from "lucide-react";
+import { Bell, Settings, User, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +13,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const AppHeader = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Sign Out Error",
+          description: error.message,
+        });
+      } else {
+        navigate('/auth');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign Out Error",
+        description: "An unexpected error occurred.",
+      });
+    }
+  };
+
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-border/50 px-8 py-6">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -47,7 +74,11 @@ const AppHeader = () => {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/50" />
-              <DropdownMenuItem className="hover:bg-muted/50 text-destructive">
+              <DropdownMenuItem 
+                className="hover:bg-muted/50 text-destructive cursor-pointer"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-3 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
