@@ -55,19 +55,20 @@ export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) =>
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch("/functions/v1/create-agent-invitation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(data),
+      console.log("Making request to create-agent-invitation with data:", data);
+
+      const response = await supabase.functions.invoke('create-agent-invitation', {
+        body: data,
       });
 
-      const result = await response.json();
+      console.log("Function response:", response);
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to create agent invitation");
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to create agent invitation");
+      }
+
+      if (!response.data) {
+        throw new Error("No response data received");
       }
 
       toast({
