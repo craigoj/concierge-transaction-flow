@@ -51,7 +51,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className }) => {
   return (
     <nav aria-label="Breadcrumb" className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}>
       {breadcrumbItems.map((item, index) => (
-        <React.Fragment key={index}>
+        <div key={index} className="flex items-center">
           {index > 0 && <ChevronRight className="h-4 w-4" />}
           {item.href && !item.isCurrentPage ? (
             <Link 
@@ -67,7 +67,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className }) => {
               {item.label}
             </span>
           )}
-        </React.Fragment>
+        </div>
       ))}
     </nav>
   );
