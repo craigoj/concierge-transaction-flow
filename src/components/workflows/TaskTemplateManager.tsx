@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface TaskItem {
   title: string;
@@ -46,7 +47,12 @@ const TaskTemplateManager = () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as TaskTemplate[];
+      
+      // Convert the Json type to TaskItem[] for proper typing
+      return data.map(template => ({
+        ...template,
+        tasks: template.tasks as TaskItem[]
+      })) as TaskTemplate[];
     }
   });
 
