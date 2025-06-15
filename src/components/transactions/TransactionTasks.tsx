@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Calendar, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useRealtime } from '@/hooks/useRealtime';
 
 interface TransactionTasksProps {
   transactionId: string;
@@ -28,6 +28,13 @@ const TransactionTasks = ({ transactionId }: TransactionTasksProps) => {
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Enable real-time updates for tasks
+  useRealtime({
+    table: 'tasks',
+    queryKeys: [['tasks', transactionId]],
+    filter: { column: 'transaction_id', value: transactionId }
+  });
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['tasks', transactionId],

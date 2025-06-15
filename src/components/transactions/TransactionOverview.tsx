@@ -1,10 +1,12 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, User, MapPin, Home, Edit } from 'lucide-react';
+import { Calendar, DollarSign, User, MapPin, Home, Edit, Zap } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import ApplyWorkflowDialog from '@/components/workflows/ApplyWorkflowDialog';
+import WorkflowHistory from '@/components/workflows/WorkflowHistory';
+import { useRealtime } from '@/hooks/useRealtime';
 
 type Transaction = Tables<'transactions'> & {
   clients: Tables<'clients'>[];
@@ -17,6 +19,21 @@ interface TransactionOverviewProps {
 }
 
 const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+
+  // Enable real-time updates for this transaction
+  useRealtime({
+    table: 'tasks',
+    queryKeys: [['transaction', transaction.id], ['tasks', transaction.id]],
+    filter: { column: 'transaction_id', value: transaction.id }
+  });
+
+  useRealtime({
+    table: 'transactions',
+    queryKeys: [['transaction', transaction.id]],
+    filter: { column: 'id', value: transaction.id }
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'intake':
@@ -49,10 +66,20 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Transaction Status</CardTitle>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setWorkflowDialogOpen(true)}
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Apply Workflow
+              </Button>
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
@@ -163,6 +190,9 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
             </CardContent>
           </Card>
         )}
+
+        {/* Workflow History */}
+        <WorkflowHistory transactionId={transaction.id} />
       </div>
 
       {/* Quick Stats Sidebar */}
@@ -201,6 +231,15 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Apply Workflow Dialog */}
+      <ApplyWorkflowDialog
+        open={workflowDialogOpen}
+        onOpenChange={setWorkflowDialogOpen}
+        transactionId={transaction.id}
+        transactionType={transaction.transaction_type}
+        serviceTier={transaction.service_tier}
+      />
     </div>
   );
 };

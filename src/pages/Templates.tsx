@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Eye, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Copy, Mail, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import AppHeader from '@/components/AppHeader';
+import TaskTemplateManager from '@/components/workflows/TaskTemplateManager';
 
 interface Template {
   id: string;
@@ -88,163 +89,193 @@ const Templates = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading templates...</div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
+        <AppHeader />
+        <div className="container mx-auto p-6">
+          <div className="text-center">Loading templates...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Email Templates</h1>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Template
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create Email Template</DialogTitle>
-            </DialogHeader>
-            <TemplateForm onSuccess={() => setCreateDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Template categories sidebar */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.keys(templatesByCategory).map((category) => (
-                  <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm">{category}</span>
-                    <Badge variant="secondary">{templatesByCategory[category].length}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Available Variables</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div><code>{'{{agent_name}}'}</code> - Agent's full name</div>
-                <div><code>{'{{client_name}}'}</code> - Client's full name</div>
-                <div><code>{'{{property_address}}'}</code> - Property address</div>
-                <div><code>{'{{closing_date}}'}</code> - Closing date</div>
-                <div><code>{'{{purchase_price}}'}</code> - Purchase price</div>
-                <div><code>{'{{transaction_status}}'}</code> - Current status</div>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
+      <AppHeader />
+      <div className="container mx-auto p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Mail className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Templates</h1>
         </div>
 
-        {/* Templates grid */}
-        <div className="lg:col-span-3">
-          <Tabs defaultValue="all" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="all">All Templates</TabsTrigger>
-              {Object.keys(templatesByCategory).map((category) => (
-                <TabsTrigger key={category} value={category}>
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <Tabs defaultValue="email" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Templates
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4" />
+              Task Templates
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {templates?.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    onEdit={() => {
-                      setSelectedTemplate(template);
-                      setEditDialogOpen(true);
-                    }}
-                    onDelete={() => handleDelete(template.id)}
-                    onPreview={() => {
-                      setSelectedTemplate(template);
-                      setPreviewDialogOpen(true);
-                    }}
-                  />
-                ))}
+          <TabsContent value="email" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Email Templates</h2>
+              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Email Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create Email Template</DialogTitle>
+                  </DialogHeader>
+                  <TemplateForm onSuccess={() => setCreateDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Template categories sidebar */}
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Categories</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {Object.keys(templatesByCategory).map((category) => (
+                        <div key={category} className="flex items-center justify-between">
+                          <span className="text-sm">{category}</span>
+                          <Badge variant="secondary">{templatesByCategory[category].length}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Available Variables</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div><code>{'{{agent_name}}'}</code> - Agent's full name</div>
+                      <div><code>{'{{client_name}}'}</code> - Client's full name</div>
+                      <div><code>{'{{property_address}}'}</code> - Property address</div>
+                      <div><code>{'{{closing_date}}'}</code> - Closing date</div>
+                      <div><code>{'{{purchase_price}}'}</code> - Purchase price</div>
+                      <div><code>{'{{transaction_status}}'}</code> - Current status</div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </TabsContent>
 
-            {Object.keys(templatesByCategory).map((category) => (
-              <TabsContent key={category} value={category}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {templatesByCategory[category].map((template) => (
-                    <TemplateCard
-                      key={template.id}
-                      template={template}
-                      onEdit={() => {
-                        setSelectedTemplate(template);
-                        setEditDialogOpen(true);
-                      }}
-                      onDelete={() => handleDelete(template.id)}
-                      onPreview={() => {
-                        setSelectedTemplate(template);
-                        setPreviewDialogOpen(true);
-                      }}
-                    />
+              {/* Templates grid */}
+              <div className="lg:col-span-3">
+                <Tabs defaultValue="all" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="all">All Templates</TabsTrigger>
+                    {Object.keys(templatesByCategory).map((category) => (
+                      <TabsTrigger key={category} value={category}>
+                        {category}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+
+                  <TabsContent value="all">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {templates?.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={() => {
+                            setSelectedTemplate(template);
+                            setEditDialogOpen(true);
+                          }}
+                          onDelete={() => handleDelete(template.id)}
+                          onPreview={() => {
+                            setSelectedTemplate(template);
+                            setPreviewDialogOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  {Object.keys(templatesByCategory).map((category) => (
+                    <TabsContent key={category} value={category}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {templatesByCategory[category].map((template) => (
+                          <TemplateCard
+                            key={template.id}
+                            template={template}
+                            onEdit={() => {
+                              setSelectedTemplate(template);
+                              setEditDialogOpen(true);
+                            }}
+                            onDelete={() => handleDelete(template.id)}
+                            onPreview={() => {
+                              setSelectedTemplate(template);
+                              setPreviewDialogOpen(true);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </TabsContent>
                   ))}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Template</DialogTitle>
-          </DialogHeader>
-          {selectedTemplate && (
-            <TemplateForm
-              template={selectedTemplate}
-              onSuccess={() => setEditDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Preview Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Template Preview</DialogTitle>
-          </DialogHeader>
-          {selectedTemplate && (
-            <div className="space-y-4">
-              <div>
-                <Label>Subject</Label>
-                <div className="p-2 bg-muted rounded">{selectedTemplate.subject}</div>
-              </div>
-              <div>
-                <Label>Content</Label>
-                <div 
-                  className="p-4 bg-muted rounded prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: selectedTemplate.body_html }}
-                />
+                </Tabs>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Template</DialogTitle>
+                </DialogHeader>
+                {selectedTemplate && (
+                  <TemplateForm
+                    template={selectedTemplate}
+                    onSuccess={() => setEditDialogOpen(false)}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Preview Dialog */}
+            <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Template Preview</DialogTitle>
+                </DialogHeader>
+                {selectedTemplate && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Subject</Label>
+                      <div className="p-2 bg-muted rounded">{selectedTemplate.subject}</div>
+                    </div>
+                    <div>
+                      <Label>Content</Label>
+                      <div 
+                        className="p-4 bg-muted rounded prose max-w-none"
+                        dangerouslySetInnerHTML={{ __html: selectedTemplate.body_html }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <TaskTemplateManager />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

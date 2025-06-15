@@ -450,6 +450,45 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          communication_alerts: boolean
+          created_at: string
+          email_notifications: boolean
+          id: string
+          push_notifications: boolean
+          sms_notifications: boolean
+          status_updates: boolean
+          task_reminders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          communication_alerts?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          push_notifications?: boolean
+          sms_notifications?: boolean
+          status_updates?: boolean
+          task_reminders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          communication_alerts?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          push_notifications?: boolean
+          sms_notifications?: boolean
+          status_updates?: boolean
+          task_reminders?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -540,6 +579,48 @@ export type Database = {
           specialties?: string[] | null
           updated_at?: string
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      task_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          service_tier: string | null
+          tasks: Json
+          transaction_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          service_tier?: string | null
+          tasks: Json
+          transaction_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          service_tier?: string | null
+          tasks?: Json
+          transaction_type?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -735,11 +816,64 @@ export type Database = {
           },
         ]
       }
+      workflow_instances: {
+        Row: {
+          applied_at: string
+          applied_by: string
+          id: string
+          metadata: Json | null
+          status: string
+          template_id: string
+          transaction_id: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          template_id: string
+          transaction_id: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          template_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_workflow_instances_template"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_workflow_instances_transaction"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_task_template: {
+        Args: {
+          p_transaction_id: string
+          p_template_id: string
+          p_applied_by?: string
+        }
+        Returns: string
+      }
       get_my_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
