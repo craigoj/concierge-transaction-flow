@@ -1,21 +1,16 @@
 
 import AppHeader from "@/components/AppHeader";
-import EnhancedDashboardStats from "@/components/dashboard/EnhancedDashboardStats";
-import TransactionCard from "@/components/TransactionCard";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
-import DailyFocusPane from "@/components/dashboard/DailyFocusPane";
-import UpcomingDeadlinesPane from "@/components/dashboard/UpcomingDeadlinesPane";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Building, Calendar, Clock, DollarSign, MapPin, TrendingUp, Users, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const Index = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedTimeframe, setSelectedTimeframe] = useState("today");
   const isMobile = useIsMobile();
 
   // Fetch transactions for the main pane
@@ -35,15 +30,17 @@ const Index = () => {
     }
   });
 
-  const filteredTransactions = transactions?.filter(transaction => {
-    const matchesSearch = transaction.property_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.clients?.[0]?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const activeTransactions = transactions?.filter(t => t.status === 'active') || [];
+  const pendingTransactions = transactions?.filter(t => t.status === 'intake') || [];
+  const closedThisMonth = transactions?.filter(t => 
+    t.status === 'closed' && 
+    new Date(t.closing_date || '').getMonth() === new Date().getMonth()
+  ) || [];
+
+  const totalVolume = closedThisMonth.reduce((sum, t) => sum + (t.purchase_price || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-taupe-light">
       <AppHeader />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
@@ -51,187 +48,234 @@ const Index = () => {
           <Breadcrumb />
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-3xl sm:text-4xl font-semibold text-foreground mb-3 tracking-tight">
-            Mission Control
-          </h2>
-          <p className="text-base sm:text-lg text-muted-foreground font-medium">
-            Your transaction coordination dashboard for today.
+        {/* Hero Section with Elegant Typography */}
+        <div className="mb-12 text-center">
+          <h1 className="text-5xl sm:text-6xl font-brand-heading font-bold text-brand-charcoal tracking-brand-wider mb-4">
+            COORDINATION
+          </h1>
+          <div className="w-32 h-px bg-brand-taupe mx-auto mb-6"></div>
+          <p className="text-xl font-brand-body text-brand-charcoal/80 max-w-2xl mx-auto leading-relaxed">
+            Your premium transaction coordination workspace, designed for discerning real estate professionals.
           </p>
         </div>
 
-        {/* Enhanced Dashboard Stats */}
-        <div className="mb-8">
-          <EnhancedDashboardStats />
+        {/* Timeframe Selector - Elegant Toggle */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex bg-white/60 backdrop-blur-sm rounded-full border border-brand-taupe/30 p-1">
+            {[
+              { key: 'today', label: 'TODAY' },
+              { key: 'week', label: 'THIS WEEK' },
+              { key: 'month', label: 'THIS MONTH' }
+            ].map((timeframe) => (
+              <button
+                key={timeframe.key}
+                onClick={() => setSelectedTimeframe(timeframe.key)}
+                className={`px-6 py-2 rounded-full text-sm font-brand-heading tracking-brand-wide transition-all duration-300 ${
+                  selectedTimeframe === timeframe.key
+                    ? 'bg-brand-charcoal text-brand-background shadow-brand-elevation'
+                    : 'text-brand-charcoal/70 hover:text-brand-charcoal'
+                }`}
+              >
+                {timeframe.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Mobile: Vertical Stack Layout */}
-        {isMobile ? (
-          <div className="space-y-6">
-            {/* Main Transactions List */}
-            <div className="bg-white rounded-lg border border-border/50 shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-border/50">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Transactions ({filteredTransactions?.length || 0})
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search transactions..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
+        {/* Premium Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {[
+            {
+              icon: Zap,
+              label: "ACTIVE COORDINATION",
+              value: activeTransactions.length,
+              subtitle: "transactions in progress",
+              color: "text-blue-600"
+            },
+            {
+              icon: Clock,
+              label: "PENDING INTAKE",
+              value: pendingTransactions.length,
+              subtitle: "awaiting coordination",
+              color: "text-amber-600"
+            },
+            {
+              icon: TrendingUp,
+              label: "MONTHLY CLOSINGS",
+              value: closedThisMonth.length,
+              subtitle: "successful completions",
+              color: "text-emerald-600"
+            },
+            {
+              icon: DollarSign,
+              label: "VOLUME COORDINATED",
+              value: `$${(totalVolume / 1000000).toFixed(1)}M`,
+              subtitle: "this month",
+              color: "text-violet-600"
+            }
+          ].map((stat, index) => (
+            <div key={index} className="group">
+              <Card className="bg-white/80 backdrop-blur-sm border-brand-taupe/20 shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-500 p-6 h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-3 rounded-lg bg-gray-50 ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
+                    <stat.icon className="h-6 w-6" />
                   </div>
-                  <select 
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-brand-heading tracking-brand-wide text-brand-charcoal/60 uppercase">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-bold text-brand-charcoal">
+                    {stat.value}
+                  </p>
+                  <p className="text-sm font-brand-body text-brand-charcoal/70">
+                    {stat.subtitle}
+                  </p>
+                </div>
+              </Card>
+            </div>
+          ))}
+        </div>
+
+        {/* Transaction Coordination Center */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Primary Coordination Panel */}
+          <div className="lg:col-span-2">
+            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation overflow-hidden">
+              <div className="p-8 border-b border-brand-taupe/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-2">
+                      Active Coordination
+                    </h3>
+                    <p className="font-brand-body text-brand-charcoal/70">
+                      {activeTransactions.length} transactions requiring your expertise
+                    </p>
+                  </div>
+                  <Button 
+                    className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide"
                   >
-                    <option value="all">All Status</option>
-                    <option value="intake">Intake</option>
-                    <option value="active">Active</option>
-                    <option value="closed">Closed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                    VIEW ALL
+                  </Button>
                 </div>
               </div>
               
-              <div className="p-4 max-h-96 overflow-y-auto">
+              <div className="p-8 max-h-96 overflow-y-auto">
                 {isLoading ? (
-                  <div className="text-center py-8">Loading transactions...</div>
-                ) : filteredTransactions && filteredTransactions.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredTransactions.map((transaction) => (
-                      <div key={transaction.id} className="border border-border/30 rounded-lg p-3 hover:bg-muted/30 transition-colors">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-sm">{transaction.property_address}</h4>
-                          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                            <span>Client: {transaction.clients?.[0]?.full_name || 'N/A'}</span>
-                            <span>Agent: {transaction.profiles ? `${transaction.profiles.first_name} ${transaction.profiles.last_name}` : 'N/A'}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              transaction.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                              transaction.status === 'intake' ? 'bg-yellow-100 text-yellow-800' :
-                              transaction.status === 'closed' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {transaction.status?.replace('_', ' ').toUpperCase()}
-                            </span>
-                            <div className="text-right">
-                              <div className="text-sm font-semibold">${transaction.purchase_price?.toLocaleString()}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'No closing date'}
+                  <div className="text-center py-12">
+                    <div className="w-8 h-8 border-2 border-brand-taupe border-t-brand-charcoal rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="font-brand-body text-brand-charcoal/60">Loading coordination data...</p>
+                  </div>
+                ) : activeTransactions.length > 0 ? (
+                  <div className="space-y-6">
+                    {activeTransactions.slice(0, 4).map((transaction) => (
+                      <div key={transaction.id} className="group border border-brand-taupe/30 rounded-lg p-6 hover:border-brand-taupe hover:shadow-brand-subtle transition-all duration-300">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Building className="h-5 w-5 text-brand-charcoal/60" />
+                              <h4 className="font-brand-heading tracking-wide text-brand-charcoal uppercase text-sm">
+                                {transaction.property_address}
+                              </h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-brand-charcoal/50" />
+                                <span className="font-brand-body text-brand-charcoal/70">
+                                  {transaction.clients?.[0]?.full_name || 'Client TBD'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-brand-charcoal/50" />
+                                <span className="font-brand-body text-brand-charcoal/70">
+                                  {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'Date TBD'}
+                                </span>
                               </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-brand-charcoal mb-1">
+                              ${transaction.purchase_price?.toLocaleString() || 'TBD'}
+                            </div>
+                            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-brand-heading tracking-wide bg-blue-100 text-blue-800">
+                              COORDINATING
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">No transactions found</div>
+                  <div className="text-center py-12">
+                    <Building className="h-12 w-12 mx-auto text-brand-taupe mb-4" />
+                    <h4 className="font-brand-heading text-brand-charcoal uppercase tracking-wide mb-2">
+                      No Active Coordination
+                    </h4>
+                    <p className="font-brand-body text-brand-charcoal/60">
+                      All transactions are operating smoothly
+                    </p>
+                  </div>
                 )}
               </div>
-            </div>
-
-            {/* Daily Focus Tasks */}
-            <DailyFocusPane />
-
-            {/* Upcoming Deadlines */}
-            <UpcomingDeadlinesPane />
+            </Card>
           </div>
-        ) : (
-          /* Desktop: Three-Pane Layout */
-          <div className="grid grid-cols-12 gap-6 h-[calc(100vh-400px)]">
-            {/* Main Pane - Transactions List (Center) */}
-            <div className="col-span-8 bg-white rounded-lg border border-border/50 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-border/50">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-foreground">
-                    Transactions ({filteredTransactions?.length || 0})
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search transactions..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 w-64"
-                      />
+
+          {/* Coordination Insights */}
+          <div className="space-y-6">
+            
+            {/* Priority Actions */}
+            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+              <div className="p-6">
+                <h3 className="text-lg font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-6">
+                  Priority Actions
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    { action: "Schedule Inspection", property: "Oak Street", urgency: "high" },
+                    { action: "Title Review Due", property: "Pine Avenue", urgency: "medium" },
+                    { action: "Document Upload", property: "Maple Drive", urgency: "low" }
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-brand-background/50 hover:bg-brand-background/80 transition-colors">
+                      <div>
+                        <p className="font-brand-body text-sm text-brand-charcoal">{item.action}</p>
+                        <p className="text-xs text-brand-charcoal/60">{item.property}</p>
+                      </div>
+                      <div className={`w-3 h-3 rounded-full ${
+                        item.urgency === 'high' ? 'bg-red-400' :
+                        item.urgency === 'medium' ? 'bg-amber-400' : 'bg-green-400'
+                      }`}></div>
                     </div>
-                    <select 
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="intake">Intake</option>
-                      <option value="active">Active</option>
-                      <option value="closed">Closed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Market Pulse */}
+            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+              <div className="p-6">
+                <h3 className="text-lg font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-6">
+                  Market Pulse
+                </h3>
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-brand-charcoal mb-1">
+                      18
+                    </div>
+                    <div className="text-xs font-brand-heading tracking-wide text-brand-charcoal/60 uppercase">
+                      Days Avg Close
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-brand-body text-brand-charcoal/70">This Month</span>
+                    <span className="text-sm font-bold text-emerald-600">↗ 2 days faster</span>
                   </div>
                 </div>
               </div>
-              
-              <div className="p-6 overflow-y-auto h-full">
-                {isLoading ? (
-                  <div className="text-center py-8">Loading transactions...</div>
-                ) : filteredTransactions && filteredTransactions.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredTransactions.map((transaction) => (
-                      <div key={transaction.id} className="border border-border/30 rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-base mb-1">{transaction.property_address}</h4>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Client: {transaction.clients?.[0]?.full_name || 'N/A'}</span>
-                              <span>Agent: {transaction.profiles ? `${transaction.profiles.first_name} ${transaction.profiles.last_name}` : 'N/A'}</span>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                transaction.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                                transaction.status === 'intake' ? 'bg-yellow-100 text-yellow-800' :
-                                transaction.status === 'closed' ? 'bg-green-100 text-green-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {transaction.status?.replace('_', ' ').toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-semibold">${transaction.purchase_price?.toLocaleString()}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {transaction.closing_date ? new Date(transaction.closing_date).toLocaleDateString() : 'No closing date'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">No transactions found</div>
-                )}
-              </div>
-            </div>
+            </Card>
 
-            {/* Right Sidebar - Upcoming Deadlines */}
-            <div className="col-span-4">
-              <UpcomingDeadlinesPane />
-            </div>
           </div>
-        )}
-
-        {/* Bottom Pane - Daily Focus Tasks (Desktop only) */}
-        {!isMobile && (
-          <div className="mt-6">
-            <DailyFocusPane />
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );
