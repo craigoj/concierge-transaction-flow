@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
     let emailsImported = 0;
 
     try {
-      // Parse XML content with enhanced error handling
+      // Parse XML content with enhanced error handling using Deno DOM
       console.log('Parsing XML content...');
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
@@ -488,16 +489,8 @@ function mapTaskType(xmlTaskType: string): string {
 function processEmailHtmlContent(htmlText: string): string {
   if (!htmlText) return '';
   
-  // Decode HTML entities
-  const textarea = new DOMParser().parseFromString(
-    `<textarea>${htmlText}</textarea>`, 
-    'text/html'
-  ).querySelector('textarea');
-  
-  let processedHtml = textarea?.textContent || htmlText;
-  
-  // Clean up common XML/HTML issues
-  processedHtml = processedHtml
+  // Since we're in Deno, we need to manually decode HTML entities
+  let processedHtml = htmlText
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
