@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -28,6 +29,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AgentSetup from "./pages/agent/AgentSetup";
 import AgentDashboard from "./pages/agent/AgentDashboard";
+import AgentTransactionDetail from "./pages/agent/TransactionDetail";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +59,7 @@ const App: React.FC = () => {
                           <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/agent/dashboard" element={<AgentDashboard />} />
-                            <Route path="/agent/transaction/:id" element={<TransactionDetail />} />
+                            <Route path="/agent/transaction/:id" element={<AgentTransactionDetail />} />
                             <Route path="/transactions" element={<Transactions />} />
                             <Route path="/transactions/:id" element={<TransactionDetail />} />
                             <Route path="/clients" element={<Clients />} />
