@@ -113,7 +113,7 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
         due_date_rule: task.due_date_rule,
         phase: task.phase,
         is_agent_visible: task.is_agent_visible,
-        email_template_id: task.email_template_id || null,
+        email_template_id: task.email_template_id === 'none' ? null : task.email_template_id || null,
         sort_order: index,
       }));
 
@@ -277,16 +277,18 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
                   {emailTemplates && emailTemplates.length > 0 && (
                     <div className="w-48">
                       <Select
-                        value={task.email_template_id || ''}
+                        value={task.email_template_id || 'none'}
                         onValueChange={(value) =>
-                          updateTask(index, { email_template_id: value || undefined })
+                          updateTask(index, { 
+                            email_template_id: value === 'none' ? undefined : value 
+                          })
                         }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Link email template" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No email template</SelectItem>
+                          <SelectItem value="none">No email template</SelectItem>
                           {emailTemplates.map((template) => (
                             <SelectItem key={template.id} value={template.id}>
                               {template.name}

@@ -184,7 +184,7 @@ const TaskTemplateForm: React.FC<TaskTemplateFormProps> = ({ template, onSuccess
     description: template?.description || '',
     category: template?.category || '',
     transaction_type: template?.transaction_type || 'both',
-    service_tier: template?.service_tier || '',
+    service_tier: template?.service_tier || 'any',
     is_active: template?.is_active ?? true
   });
 
@@ -201,7 +201,7 @@ const TaskTemplateForm: React.FC<TaskTemplateFormProps> = ({ template, onSuccess
       const payload = {
         ...data,
         tasks: tasks.filter(task => task.title.trim()),
-        service_tier: data.service_tier || null
+        service_tier: data.service_tier === 'any' ? null : data.service_tier
       };
 
       if (template) {
@@ -302,7 +302,7 @@ const TaskTemplateForm: React.FC<TaskTemplateFormProps> = ({ template, onSuccess
               <SelectValue placeholder="Any tier" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Any tier</SelectItem>
+              <SelectItem value="any">Any tier</SelectItem>
               <SelectItem value="basic">Basic</SelectItem>
               <SelectItem value="premium">Premium</SelectItem>
               <SelectItem value="full_service">Full Service</SelectItem>
