@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,7 +199,7 @@ const WorkflowTemplateManager = () => {
               />
             </div>
             
-            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+            <Select value={sortBy} onValueChange={(value: 'name' | 'created_at' | 'task_count') => setSortBy(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -211,7 +210,7 @@ const WorkflowTemplateManager = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterStatus(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -222,7 +221,7 @@ const WorkflowTemplateManager = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterSource} onValueChange={(value: any) => setFilterSource(value)}>
+            <Select value={filterSource} onValueChange={(value: 'all' | 'imported' | 'manual') => setFilterSource(value)}>
               <SelectTrigger className="w-36">
                 <SelectValue />
               </SelectTrigger>
