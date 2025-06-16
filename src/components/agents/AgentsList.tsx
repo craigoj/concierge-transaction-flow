@@ -11,7 +11,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Mail, Phone, Building } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Loader2, 
+  User, 
+  Mail, 
+  Phone, 
+  Building, 
+  MoreHorizontal,
+  RefreshCw,
+  Trash2
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 
 interface Agent {
@@ -34,6 +50,7 @@ interface AgentsListProps {
 export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchAgents = async () => {
@@ -64,6 +81,86 @@ export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
   useEffect(() => {
     fetchAgents();
   }, [refreshTrigger]);
+
+  const handleResendInvitation = async (agent: Agent) => {
+    if (!agent.email) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Agent email is required to resend invitation",
+      });
+      return;
+    }
+
+    setActionLoading(agent.id);
+    try {
+      const { error } = await supabase.functions.invoke('create-agent-invitation', {
+        body: {
+          firstName: agent.first_name,
+          lastName: agent.last_name,
+          email: agent.email,
+          phoneNumber: agent.phone_number,
+          brokerage: agent.brokerage,
+          isResend: true
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Invitation resent successfully",
+      });
+
+      fetchAgents(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error resending invitation:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to resend invitation",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteAgent = async (agent: Agent) => {
+    if (!confirm(`Are you sure you want to delete ${agent.first_name} ${agent.last_name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setActionLoading(agent.id);
+    try {
+      // Delete the profile record
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', agent.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Agent deleted successfully",
+      });
+
+      fetchAgents(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error deleting agent:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete agent",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const getStatusBadge = (agent: Agent) => {
     if (agent.onboarding_completed_at) {
@@ -107,6 +204,7 @@ export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
             <TableHead className="font-brand-heading text-brand-charcoal">Brokerage</TableHead>
             <TableHead className="font-brand-heading text-brand-charcoal">Status</TableHead>
             <TableHead className="font-brand-heading text-brand-charcoal">Invited</TableHead>
+            <TableHead className="font-brand-heading text-brand-charcoal w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -153,6 +251,42 @@ export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
                 <div className="text-sm text-brand-charcoal/60 font-brand-body">
                   {agent.invited_at ? format(new Date(agent.invited_at), "MMM d, yyyy") : "-"}
                 </div>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      disabled={actionLoading === agent.id}
+                    >
+                      {actionLoading === agent.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MoreHorizontal className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!agent.onboarding_completed_at && (
+                      <DropdownMenuItem
+                        onClick={() => handleResendInvitation(agent)}
+                        className="cursor-pointer"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Resend Invitation
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteAgent(agent)}
+                      className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Agent
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}

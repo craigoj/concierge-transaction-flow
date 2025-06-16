@@ -14,6 +14,7 @@ interface CreateAgentRequest {
   email: string;
   phoneNumber?: string;
   brokerage?: string;
+  isResend?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -62,17 +63,79 @@ const handler = async (req: Request): Promise<Response> => {
     const requestBody = await req.json();
     console.log("Request body:", requestBody);
     
-    const { firstName, lastName, email, phoneNumber, brokerage }: CreateAgentRequest = requestBody;
+    const { firstName, lastName, email, phoneNumber, brokerage, isResend }: CreateAgentRequest = requestBody;
 
-    // Generate invitation token
+    if (isResend) {
+      // For resend, find existing agent and update invitation details
+      console.log("Resending invitation for email:", email);
+      
+      const { data: existingAgent, error: findError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .eq("role", "agent")
+        .single();
+
+      if (findError || !existingAgent) {
+        throw new Error("Agent not found for resend");
+      }
+
+      // Generate new invitation token
+      const invitationToken = crypto.randomUUID();
+      
+      // Update the profile with new invitation details
+      const { error: updateProfileError } = await supabase
+        .from("profiles")
+        .update({
+          invitation_status: "sent",
+          invitation_token: invitationToken,
+          invited_at: new Date().toISOString(),
+          invited_by: user.id
+        })
+        .eq("id", existingAgent.id);
+
+      if (updateProfileError) {
+        console.log("Failed to update profile for resend:", updateProfileError.message);
+        throw new Error("Failed to update invitation details");
+      }
+
+      // Update invitation record
+      const { error: invitationError } = await supabase
+        .from("agent_invitations")
+        .update({
+          invitation_token: invitationToken,
+          status: "sent",
+          invited_at: new Date().toISOString()
+        })
+        .eq("agent_id", existingAgent.id);
+
+      if (invitationError) {
+        console.log("Failed to update invitation record:", invitationError.message);
+        // Don't throw here as the profile was updated successfully
+      }
+
+      console.log("Agent invitation resent successfully for agent ID:", existingAgent.id);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          agentId: existingAgent.id,
+          email,
+          message: "Agent invitation resent successfully"
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Original create logic for new agents
     const invitationToken = crypto.randomUUID();
-    
-    // Create the agent user account with a temporary password
     const tempPassword = crypto.randomUUID();
     
     console.log("Creating user with email:", email);
     
-    // Create user with role in metadata to prevent trigger function errors
     const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -82,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: lastName,
         phone: phoneNumber,
         brokerage,
-        role: 'agent' // Add role to prevent trigger function casting error
+        role: 'agent'
       }
     });
 
@@ -92,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create user: ${createUserError?.message}`);
     }
 
-    // Update the profile with invitation details (role should already be set by trigger)
+    // Update the profile with invitation details
     const { error: updateProfileError } = await supabase
       .from("profiles")
       .update({
@@ -107,7 +170,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateProfileError) {
       console.log("Failed to update profile:", updateProfileError.message);
-      // Don't throw here as the user was created successfully
     }
 
     // Create invitation record
@@ -125,7 +187,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (invitationError) {
       console.log("Failed to create invitation record:", invitationError.message);
-      // Don't throw here as the user was created successfully
     }
 
     console.log("Agent invitation created successfully:", {
