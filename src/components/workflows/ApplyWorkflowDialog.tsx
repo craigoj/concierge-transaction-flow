@@ -200,19 +200,24 @@ const ApplyWorkflowDialog = ({
     );
   }
 
+  // Filter out templates with empty or invalid IDs
   const allTemplatesOptions = [
-    ...(workflowTemplates || []).map(t => ({ 
-      id: t.id, 
-      name: t.name, 
-      taskCount: t.template_tasks?.length || 0,
-      type: 'workflow' as const
-    })),
-    ...(taskTemplates || []).map(t => ({ 
-      id: t.id, 
-      name: t.name, 
-      taskCount: Array.isArray(t.tasks) ? t.tasks.length : 0,
-      type: 'task' as const
-    }))
+    ...(workflowTemplates || [])
+      .filter(t => t.id && t.id.trim() !== '')
+      .map(t => ({ 
+        id: t.id, 
+        name: t.name, 
+        taskCount: t.template_tasks?.length || 0,
+        type: 'workflow' as const
+      })),
+    ...(taskTemplates || [])
+      .filter(t => t.id && t.id.trim() !== '')
+      .map(t => ({ 
+        id: t.id, 
+        name: t.name, 
+        taskCount: Array.isArray(t.tasks) ? t.tasks.length : 0,
+        type: 'task' as const
+      }))
   ];
 
   return (
