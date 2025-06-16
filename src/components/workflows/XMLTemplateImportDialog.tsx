@@ -96,14 +96,12 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
     
     try {
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+      const xmlDoc = parser.parseFromString(xmlContent, "text/html");
       
-      // Check for XML parsing errors
-      const parserError = xmlDoc.querySelector('parsererror');
-      if (parserError) {
+      if (!xmlDoc) {
         issues.push({
           type: 'error',
-          message: 'XML parsing failed: Invalid XML format',
+          message: 'Failed to parse XML content',
           location: 'Document root'
         });
         return issues;
@@ -242,7 +240,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
 
   const parseXMLData = (xmlContent: string): ParsedTemplate[] => {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+    const xmlDoc = parser.parseFromString(xmlContent, "text/html");
     const taskTemplates = xmlDoc.querySelectorAll('taskTemplate');
     
     return Array.from(taskTemplates).map(templateElement => {

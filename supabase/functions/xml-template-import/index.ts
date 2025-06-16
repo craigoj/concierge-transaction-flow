@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
@@ -106,15 +105,13 @@ const handler = async (req: Request): Promise<Response> => {
     let emailsImported = 0;
 
     try {
-      // Parse XML content using text/xml for better Deno compatibility
+      // Parse XML content using HTML parser for better Deno compatibility
       console.log('Parsing XML content...');
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+      const xmlDoc = parser.parseFromString(xmlContent, "text/html");
       
-      // Check for parsing errors
-      const parserError = xmlDoc.querySelector('parsererror');
-      if (parserError) {
-        throw new Error(`XML parsing failed: ${parserError.textContent}`);
+      if (!xmlDoc) {
+        throw new Error("Failed to parse XML content");
       }
       
       const taskTemplates = xmlDoc.querySelectorAll('taskTemplate');
