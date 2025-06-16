@@ -17,6 +17,58 @@ interface CreateAgentRequest {
   isResend?: boolean;
 }
 
+const sendWelcomeEmail = async (email: string, firstName: string, lastName: string) => {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey) {
+    console.log('RESEND_API_KEY not configured, skipping email');
+    return;
+  }
+
+  try {
+    const portalUrl = 'https://0bfc22b0-8528-4f58-aca1-98f16c16dad6.lovableproject.com';
+    
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'The Agent Concierge Co. <noreply@theagentconcierge.co>',
+        to: [email],
+        subject: 'Welcome to The Agent Concierge Co. - Complete Your Setup',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #2c3e50;">Welcome to The Agent Concierge Co.</h1>
+            <p>Hi ${firstName} ${lastName},</p>
+            <p>Your agent account has been created! You can now access the platform and complete your onboarding.</p>
+            <p style="margin: 20px 0;">
+              <a href="${portalUrl}/agent/setup" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Complete Your Setup
+              </a>
+            </p>
+            <p>If you have any questions, please don't hesitate to reach out to us.</p>
+            <p>Best regards,<br>The Agent Concierge Co. Team</p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error('Resend API error:', errorText);
+      throw new Error(`Resend API error: ${errorText}`);
+    }
+
+    const result = await emailResponse.json();
+    console.log('Welcome email sent successfully:', result);
+    return result;
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    // Don't throw here - we don't want email failures to block agent creation
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   console.log("Request method:", req.method);
   console.log("Request headers:", Object.fromEntries(req.headers.entries()));
@@ -114,6 +166,10 @@ const handler = async (req: Request): Promise<Response> => {
         // Don't throw here as the profile was updated successfully
       }
 
+      // Send welcome email for resend
+      console.log("Sending welcome email for resend...");
+      await sendWelcomeEmail(email, firstName, lastName);
+
       console.log("Agent invitation resent successfully for agent ID:", existingAgent.id);
 
       return new Response(
@@ -188,6 +244,10 @@ const handler = async (req: Request): Promise<Response> => {
     if (invitationError) {
       console.log("Failed to create invitation record:", invitationError.message);
     }
+
+    // Send welcome email for new agent
+    console.log("Sending welcome email for new agent...");
+    await sendWelcomeEmail(email, firstName, lastName);
 
     console.log("Agent invitation created successfully:", {
       agentId: newUser.user.id,
