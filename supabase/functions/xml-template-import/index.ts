@@ -106,10 +106,10 @@ const handler = async (req: Request): Promise<Response> => {
     let emailsImported = 0;
 
     try {
-      // Parse XML content with enhanced error handling using Deno DOM
+      // Parse XML content using text/xml for better Deno compatibility
       console.log('Parsing XML content...');
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
       
       // Check for parsing errors
       const parserError = xmlDoc.querySelector('parsererror');

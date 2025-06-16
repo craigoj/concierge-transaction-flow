@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -97,7 +96,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
     
     try {
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
       
       // Check for XML parsing errors
       const parserError = xmlDoc.querySelector('parsererror');
@@ -243,7 +242,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
 
   const parseXMLData = (xmlContent: string): ParsedTemplate[] => {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+    const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
     const taskTemplates = xmlDoc.querySelectorAll('taskTemplate');
     
     return Array.from(taskTemplates).map(templateElement => {
