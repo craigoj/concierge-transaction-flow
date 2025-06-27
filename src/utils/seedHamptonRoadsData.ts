@@ -17,37 +17,34 @@ export const generateHamptonRoadsMockData = async () => {
     // Clear existing data first to avoid duplicates
     await clearExistingData();
     
-    // 1. Create professional profiles
-    await createHamptonRoadsProfessionals();
+    // 1. Create realistic Hampton Roads transactions
+    await createHamptonRoadsTransactions(user.id);
     
-    // 2. Create realistic Hampton Roads transactions
-    await createHamptonRoadsTransactions();
-    
-    // 3. Create Hampton Roads specific clients (enhanced)
+    // 2. Create Hampton Roads specific clients (enhanced)
     await createHamptonRoadsEnhancedClients();
     
-    // 4. Create professional contacts database
+    // 3. Create professional contacts database
     await createProfessionalContacts();
     
-    // 5. Create email templates (standard + advanced)
+    // 4. Create email templates (standard + advanced)
     await createHamptonRoadsEmailTemplates();
     await createAdvancedEmailTemplates();
     
-    // 6. Create workflow templates (standard + advanced)
+    // 5. Create workflow templates (standard + advanced)
     await createHamptonRoadsWorkflowTemplates();
     await createAdvancedWorkflowTemplates();
     
-    // 7. Create tasks for transactions
+    // 6. Create tasks for transactions
     await createHamptonRoadsTasks();
     
-    // 8. Create enhanced communication logs
+    // 7. Create enhanced communication logs
     await createHamptonRoadsEnhancedCommunications(user.id);
     
-    // 9. Create document records
-    await createHamptonRoadsDocuments();
+    // 8. Create document records
+    await createHamptonRoadsDocuments(user.id);
     
-    // 10. Create notifications
-    await createHamptonRoadsNotifications();
+    // 9. Create notifications
+    await createHamptonRoadsNotifications(user.id);
 
     console.log("Hampton Roads mock data generation completed successfully!");
     return { success: true, message: "Hampton Roads demo data has been created successfully!" };
@@ -72,78 +69,13 @@ const clearExistingData = async () => {
     await supabase.from('email_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('profiles').delete().eq('role', 'agent');
-    await supabase.from('profiles').delete().eq('role', 'coordinator');
   } catch (error) {
     console.log("Note: Some data may not exist to clear, continuing...");
   }
 };
 
-const createHamptonRoadsProfessionals = async () => {
-  console.log("Creating Hampton Roads professionals...");
-  
-  const profiles = [];
-  
-  // Add coordinators
-  hamptonRoadsProfessionals.coordinators.forEach(coord => {
-    profiles.push({
-      id: crypto.randomUUID(),
-      first_name: coord.first_name,
-      last_name: coord.last_name,
-      email: coord.email,
-      phone_number: coord.phone,
-      brokerage: coord.brokerage,
-      license_number: coord.license_number,
-      years_experience: coord.years_experience,
-      specialties: coord.specialties,
-      bio: coord.bio,
-      role: 'coordinator' as const
-    });
-  });
-  
-  // Add agents
-  hamptonRoadsProfessionals.agents.forEach(agent => {
-    profiles.push({
-      id: crypto.randomUUID(),
-      first_name: agent.first_name,
-      last_name: agent.last_name,
-      email: agent.email,
-      phone_number: agent.phone,
-      brokerage: agent.brokerage,
-      license_number: agent.license_number,
-      years_experience: agent.years_experience,
-      specialties: agent.specialties,
-      bio: agent.bio,
-      role: 'agent' as const
-    });
-  });
-
-  const { error } = await supabase
-    .from('profiles')
-    .insert(profiles);
-
-  if (error) {
-    throw new Error(`Failed to create Hampton Roads professionals: ${error.message}`);
-  }
-
-  console.log(`Created ${profiles.length} Hampton Roads professionals`);
-  return profiles;
-};
-
-const createHamptonRoadsTransactions = async () => {
+const createHamptonRoadsTransactions = async (currentUserId: string) => {
   console.log("Creating Hampton Roads transactions...");
-  
-  // Get agents for assignment
-  const { data: agents } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'agent');
-
-  if (!agents || agents.length === 0) {
-    throw new Error("No agents found. Please create agent profiles first.");
-  }
-
-  const getAgentId = (index: number) => agents[index % agents.length].id;
   
   const transactions = [];
   
@@ -160,7 +92,7 @@ const createHamptonRoadsTransactions = async () => {
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 2.8 + (index * 0.1),
-      agent_id: getAgentId(index),
+      agent_id: currentUserId, // Use current user as agent for all transactions
       created_at: new Date(Date.now() - (60 - index * 10) * 24 * 60 * 60 * 1000).toISOString()
     });
   });
@@ -181,7 +113,7 @@ const createHamptonRoadsTransactions = async () => {
       transaction_type: transactionType as any,
       service_tier: serviceTier as any,
       commission_rate: transactionType === 'dual' ? 5.0 : 2.5,
-      agent_id: getAgentId(index + 2),
+      agent_id: currentUserId,
       created_at: new Date(Date.now() - (45 - index * 5) * 24 * 60 * 60 * 1000).toISOString()
     });
   });
@@ -202,7 +134,7 @@ const createHamptonRoadsTransactions = async () => {
       transaction_type: transactionType as any,
       service_tier: serviceTier as any,
       commission_rate: 2.0,
-      agent_id: getAgentId(index + 4),
+      agent_id: currentUserId,
       created_at: new Date(Date.now() - (30 - index * 3) * 24 * 60 * 60 * 1000).toISOString()
     });
   });
@@ -716,24 +648,18 @@ const createHamptonRoadsEnhancedCommunications = async (currentUserId: string) =
   console.log(`Created ${communications.length} enhanced Hampton Roads communication logs`);
 };
 
-const createHamptonRoadsDocuments = async () => {
+const createHamptonRoadsDocuments = async (currentUserId: string) => {
   console.log("Creating Hampton Roads document records...");
   
   const { data: transactions } = await supabase
     .from('transactions')
     .select('id, property_address, service_tier');
 
-  const { data: agents } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'agent');
-
-  if (!transactions || !agents) return;
+  if (!transactions) return;
 
   const documents = [];
   
   transactions.forEach((transaction) => {
-    const randomAgent = agents[Math.floor(Math.random() * agents.length)];
     const address = transaction.property_address.replace(/\s+/g, '_').replace(/,/g, '');
     
     // Hampton Roads specific documents
@@ -762,7 +688,7 @@ const createHamptonRoadsDocuments = async () => {
           transaction_id: transaction.id,
           file_name: docName,
           file_path: `/documents/${transaction.id}/${docName}`,
-          uploaded_by_id: randomAgent.id,
+          uploaded_by_id: currentUserId,
           is_agent_visible: Math.random() > 0.4,
           created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
         });
@@ -781,19 +707,14 @@ const createHamptonRoadsDocuments = async () => {
   console.log(`Created ${documents.length} Hampton Roads document records`);
 };
 
-const createHamptonRoadsNotifications = async () => {
+const createHamptonRoadsNotifications = async (currentUserId: string) => {
   console.log("Creating Hampton Roads notifications...");
   
-  const { data: agents } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'agent');
-
   const { data: transactions } = await supabase
     .from('transactions')
     .select('id, property_address');
 
-  if (!agents || !transactions) return;
+  if (!transactions) return;
 
   const notifications = [];
 
@@ -810,23 +731,21 @@ const createHamptonRoadsNotifications = async () => {
     'School district enrollment guide delivered for {address}'
   ];
 
-  agents.forEach((agent) => {
-    // Create 5-8 notifications per agent
-    const numNotifications = Math.floor(Math.random() * 4) + 5;
+  // Create notifications for current user only
+  const numNotifications = Math.floor(Math.random() * 4) + 8; // 8-12 notifications
+  
+  for (let i = 0; i < numNotifications; i++) {
+    const randomTransaction = transactions[Math.floor(Math.random() * transactions.length)];
+    const template = hamptonRoadsNotificationTemplates[Math.floor(Math.random() * hamptonRoadsNotificationTemplates.length)];
     
-    for (let i = 0; i < numNotifications; i++) {
-      const randomTransaction = transactions[Math.floor(Math.random() * transactions.length)];
-      const template = hamptonRoadsNotificationTemplates[Math.floor(Math.random() * hamptonRoadsNotificationTemplates.length)];
-      
-      notifications.push({
-        user_id: agent.id,
-        transaction_id: randomTransaction.id,
-        message: template.replace('{address}', randomTransaction.property_address.split(',')[0]),
-        is_read: Math.random() > 0.35, // 35% unread for realistic demo
-        created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
-      });
-    }
-  });
+    notifications.push({
+      user_id: currentUserId,
+      transaction_id: randomTransaction.id,
+      message: template.replace('{address}', randomTransaction.property_address.split(',')[0]),
+      is_read: Math.random() > 0.35, // 35% unread for realistic demo
+      created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+    });
+  }
 
   const { error } = await supabase
     .from('notifications')
