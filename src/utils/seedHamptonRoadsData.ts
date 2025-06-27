@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { hamptonRoadsLocations, hamptonRoadsProfessionals, hamptonRoadsClients, hamptonRoadsCommunications, hamptonRoadsDocuments } from "./hamptonRoadsData";
 import { hamptonRoadsEmailTemplates, hamptonRoadsWorkflowTemplates } from "./hamptonRoadsTemplates";
@@ -13,6 +12,9 @@ export const generateHamptonRoadsMockData = async () => {
       throw new Error("You must be logged in to generate mock data.");
     }
 
+    // Clear existing data first to avoid duplicates
+    await clearExistingData();
+    
     // 1. Create professional profiles
     await createHamptonRoadsProfessionals();
     
@@ -46,6 +48,27 @@ export const generateHamptonRoadsMockData = async () => {
   } catch (error) {
     console.error("Error generating Hampton Roads mock data:", error);
     return { success: false, message: `Error: ${error.message}` };
+  }
+};
+
+const clearExistingData = async () => {
+  console.log("Clearing existing demo data...");
+  
+  try {
+    // Clear in reverse dependency order
+    await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('communication_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('documents').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('template_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('workflow_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('email_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('clients').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('profiles').delete().eq('role', 'agent');
+    await supabase.from('profiles').delete().eq('role', 'coordinator');
+  } catch (error) {
+    console.log("Note: Some data may not exist to clear, continuing...");
   }
 };
 
@@ -90,7 +113,7 @@ const createHamptonRoadsProfessionals = async () => {
 
   const { error } = await supabase
     .from('profiles')
-    .upsert(profiles, { onConflict: 'email' });
+    .insert(profiles);
 
   if (error) {
     throw new Error(`Failed to create Hampton Roads professionals: ${error.message}`);
