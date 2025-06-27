@@ -636,7 +636,7 @@ const createTasks = async () => {
           transaction_id: transaction.id,
           title: 'Weekly Client Update',
           description: `Send weekly progress update for ${transaction.property_address}`,
-          priority: 'low' as const,
+          priority: 'medium' as const,
           due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           is_completed: Math.random() > 0.4,
           requires_agent_action: true,
