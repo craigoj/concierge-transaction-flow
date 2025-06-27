@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hamptonRoadsLocations, hamptonRoadsProfessionals, hamptonRoadsClients, hamptonRoadsCommunications, hamptonRoadsDocuments } from "./hamptonRoadsData";
 import { hamptonRoadsEmailTemplates, hamptonRoadsWorkflowTemplates } from "./hamptonRoadsTemplates";
+import { hamptonRoadsEnhancedClients, hamptonRoadsProfessionalContacts, hamptonRoadsEnhancedCommunications, hamptonRoadsAdvancedEmailTemplates, hamptonRoadsAdvancedWorkflowTemplates } from "./hamptonRoadsEnhancedData";
+import { hamptonRoadsAdvancedEmailTemplates as advancedTemplates } from "./hamptonRoadsAdvancedTemplates";
 
 export const generateHamptonRoadsMockData = async () => {
   console.log("Starting Hampton Roads mock data generation...");
@@ -21,25 +23,30 @@ export const generateHamptonRoadsMockData = async () => {
     // 2. Create realistic Hampton Roads transactions
     await createHamptonRoadsTransactions();
     
-    // 3. Create Hampton Roads specific clients
-    await createHamptonRoadsClients();
+    // 3. Create Hampton Roads specific clients (enhanced)
+    await createHamptonRoadsEnhancedClients();
     
-    // 4. Create email templates
+    // 4. Create professional contacts database
+    await createProfessionalContacts();
+    
+    // 5. Create email templates (standard + advanced)
     await createHamptonRoadsEmailTemplates();
+    await createAdvancedEmailTemplates();
     
-    // 5. Create workflow templates
+    // 6. Create workflow templates (standard + advanced)
     await createHamptonRoadsWorkflowTemplates();
+    await createAdvancedWorkflowTemplates();
     
-    // 6. Create tasks for transactions
+    // 7. Create tasks for transactions
     await createHamptonRoadsTasks();
     
-    // 7. Create communication logs
-    await createHamptonRoadsCommunications(user.id);
+    // 8. Create enhanced communication logs
+    await createHamptonRoadsEnhancedCommunications(user.id);
     
-    // 8. Create document records
+    // 9. Create document records
     await createHamptonRoadsDocuments();
     
-    // 9. Create notifications
+    // 10. Create notifications
     await createHamptonRoadsNotifications();
 
     console.log("Hampton Roads mock data generation completed successfully!");
@@ -211,8 +218,8 @@ const createHamptonRoadsTransactions = async () => {
   console.log(`Created ${transactions.length} Hampton Roads transactions`);
 };
 
-const createHamptonRoadsClients = async () => {
-  console.log("Creating Hampton Roads clients...");
+const createHamptonRoadsEnhancedClients = async () => {
+  console.log("Creating enhanced Hampton Roads clients...");
   
   const { data: transactions } = await supabase
     .from('transactions')
@@ -222,10 +229,11 @@ const createHamptonRoadsClients = async () => {
 
   const clients = [];
 
+  // Use enhanced client data
   transactions.forEach((transaction, index) => {
-    if (hamptonRoadsClients[index]) {
+    if (hamptonRoadsEnhancedClients[index]) {
       const client = {
-        ...hamptonRoadsClients[index],
+        ...hamptonRoadsEnhancedClients[index],
         transaction_id: transaction.id,
         address: `Currently residing near ${transaction.property_address.split(' ')[1]} area`
       };
@@ -239,7 +247,7 @@ const createHamptonRoadsClients = async () => {
           notes: client.notes + ' [Seller side of dual transaction]'
         });
         
-        const nextClient = hamptonRoadsClients[index + 1] || hamptonRoadsClients[0];
+        const nextClient = hamptonRoadsEnhancedClients[index + 1] || hamptonRoadsEnhancedClients[0];
         clients.push({
           ...nextClient,
           transaction_id: transaction.id,
@@ -259,10 +267,82 @@ const createHamptonRoadsClients = async () => {
     .insert(clients);
 
   if (error) {
-    throw new Error(`Failed to create Hampton Roads clients: ${error.message}`);
+    throw new Error(`Failed to create enhanced Hampton Roads clients: ${error.message}`);
   }
 
-  console.log(`Created ${clients.length} Hampton Roads clients`);
+  console.log(`Created ${clients.length} enhanced Hampton Roads clients`);
+};
+
+const createProfessionalContacts = async () => {
+  console.log("Creating professional contacts database...");
+  
+  // Get current user for RLS compliance
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const contacts = [];
+
+  // Add lenders
+  hamptonRoadsProfessionalContacts.lenders.forEach(lender => {
+    contacts.push({
+      full_name: lender.name,
+      email: lender.email,
+      phone: lender.phone,
+      company: lender.company,
+      category: 'Lender',
+      rating: lender.rating,
+      user_id: user.id
+    });
+  });
+
+  // Add inspectors
+  hamptonRoadsProfessionalContacts.inspectors.forEach(inspector => {
+    contacts.push({
+      full_name: inspector.name,
+      email: inspector.email,
+      phone: inspector.phone,
+      company: inspector.company,
+      category: 'Inspector',
+      rating: inspector.rating,
+      user_id: user.id
+    });
+  });
+
+  // Add attorneys
+  hamptonRoadsProfessionalContacts.attorneys.forEach(attorney => {
+    contacts.push({
+      full_name: attorney.name,
+      email: attorney.email,
+      phone: attorney.phone,
+      company: attorney.company,
+      category: 'Attorney',
+      rating: attorney.rating,
+      user_id: user.id
+    });
+  });
+
+  // Add contractors
+  hamptonRoadsProfessionalContacts.contractors.forEach(contractor => {
+    contacts.push({
+      full_name: contractor.contact,
+      email: contractor.email,
+      phone: contractor.phone,
+      company: contractor.name,
+      category: 'Contractor',
+      rating: contractor.rating,
+      user_id: user.id
+    });
+  });
+
+  const { error } = await supabase
+    .from('contacts')
+    .insert(contacts);
+
+  if (error) {
+    throw new Error(`Failed to create professional contacts: ${error.message}`);
+  }
+
+  console.log(`Created ${contacts.length} professional contacts`);
 };
 
 const createHamptonRoadsEmailTemplates = async () => {
@@ -289,6 +369,32 @@ const createHamptonRoadsEmailTemplates = async () => {
   }
 
   console.log(`Created ${templates.length} Hampton Roads email templates`);
+};
+
+const createAdvancedEmailTemplates = async () => {
+  console.log("Creating advanced Hampton Roads email templates...");
+  
+  // Get current user for creator assignment
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const templates = advancedTemplates.map(template => ({
+    name: template.name,
+    category: template.category,
+    subject: template.subject,
+    body_html: template.body_html,
+    created_by: user.id
+  }));
+
+  const { error } = await supabase
+    .from('email_templates')
+    .insert(templates);
+
+  if (error) {
+    throw new Error(`Failed to create advanced Hampton Roads email templates: ${error.message}`);
+  }
+
+  console.log(`Created ${templates.length} advanced Hampton Roads email templates`);
 };
 
 const createHamptonRoadsWorkflowTemplates = async () => {
@@ -347,6 +453,64 @@ const createHamptonRoadsWorkflowTemplates = async () => {
   }
 
   console.log(`Created ${templates.length} Hampton Roads workflow templates with ${templateTasks.length} tasks`);
+};
+
+const createAdvancedWorkflowTemplates = async () => {
+  console.log("Creating advanced Hampton Roads workflow templates...");
+  
+  // Get current user for creator assignment
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const templates = hamptonRoadsAdvancedWorkflowTemplates.map(template => ({
+    name: template.name,
+    type: template.type,
+    description: template.description,
+    created_by: user.id,
+    is_active: true
+  }));
+
+  const { data: createdTemplates, error } = await supabase
+    .from('workflow_templates')
+    .insert(templates)
+    .select();
+
+  if (error) {
+    throw new Error(`Failed to create advanced Hampton Roads workflow templates: ${error.message}`);
+  }
+
+  // Create template tasks for each workflow
+  const templateTasks = [];
+  createdTemplates.forEach((template, templateIndex) => {
+    const workflowTemplate = hamptonRoadsAdvancedWorkflowTemplates[templateIndex];
+    workflowTemplate.tasks.forEach((task, taskIndex) => {
+      templateTasks.push({
+        template_id: template.id,
+        subject: task.subject,
+        description_notes: task.description,
+        phase: task.phase,
+        sort_order: taskIndex,
+        due_date_rule: {
+          type: 'days_from_event',
+          event: 'ratified_date',
+          days: task.days_from_contract
+        },
+        is_agent_visible: true
+      });
+    });
+  });
+
+  if (templateTasks.length > 0) {
+    const { error: taskError } = await supabase
+      .from('template_tasks')
+      .insert(templateTasks);
+
+    if (taskError) {
+      throw new Error(`Failed to create advanced Hampton Roads template tasks: ${taskError.message}`);
+    }
+  }
+
+  console.log(`Created ${templates.length} advanced Hampton Roads workflow templates with ${templateTasks.length} tasks`);
 };
 
 const createHamptonRoadsTasks = async () => {
@@ -457,8 +621,8 @@ const createHamptonRoadsTasks = async () => {
   console.log(`Created ${tasks.length} Hampton Roads tasks`);
 };
 
-const createHamptonRoadsCommunications = async (currentUserId: string) => {
-  console.log("Creating Hampton Roads communication logs...");
+const createHamptonRoadsEnhancedCommunications = async (currentUserId: string) => {
+  console.log("Creating enhanced Hampton Roads communication logs...");
   
   const { data: transactions } = await supabase
     .from('transactions')
@@ -472,64 +636,72 @@ const createHamptonRoadsCommunications = async (currentUserId: string) => {
 
   const communications = [];
   
-  // Hampton Roads specific communication templates
-  const hamptonRoadsCommunicationTemplates = [
-    {
-      subject: 'Flood Zone Analysis - {{address}}',
-      content: 'I\'ve completed the flood zone analysis for {{address}}. The property is located in Zone {{zone}} which requires flood insurance. I\'ve attached the elevation certificate and contacted three insurance providers for quotes. The annual premium should range from $800-1,200 depending on coverage level.',
-      type: 'email',
-      direction: 'outbound'
-    },
-    {
-      subject: 'Hurricane Preparedness Features',
-      content: 'Great question about hurricane preparedness! The property at {{address}} includes impact-resistant windows rated for 150mph winds, a whole-house generator with 7-day fuel capacity, and elevation 3 feet above base flood elevation. The neighborhood has excellent drainage and established evacuation routes.',
-      type: 'email',
-      direction: 'outbound'
-    },
-    {
-      subject: 'Military Base Commute Analysis',
-      content: 'Here\'s the commute analysis you requested: Norfolk Naval Base - 12 minutes during normal traffic, 18 minutes during rush hour. Oceana Naval Air Station - 25 minutes via Shore Drive. Joint Base Langley-Eustis - 35 minutes via tunnel. All routes avoid major traffic bottlenecks.',
-      type: 'email',
-      direction: 'outbound'
-    },
-    {
-      subject: 'Waterfront Inspection Results',
-      content: 'Excellent news on the marine inspection! The dock is in excellent condition with recent piling replacement. The bulkhead shows normal wear but no structural concerns. Depth at dock is 6 feet at mean low tide - perfect for most recreational boats. No required repairs.',
-      type: 'email',
-      direction: 'outbound'
-    },
-    {
-      subject: 'School District Information',
-      content: 'I\'ve researched the school options for your children. The neighborhood feeds into highly-rated schools with strong military family support programs. Elementary: 9/10 rating, Middle: 8/10, High School: 9/10. All have established programs for military children including deployment support services.',
-      type: 'email',
-      direction: 'outbound'
-    }
-  ];
+  // Use enhanced communication data
+  hamptonRoadsEnhancedCommunications.emailThreads.forEach(thread => {
+    thread.messages.forEach(message => {
+      // Find matching transaction
+      const transaction = transactions.find(t => 
+        t.property_address.includes('Riverside') && thread.subject.includes('Riverside') ||
+        t.property_address.includes('Oceana') && thread.subject.includes('Oceana') ||
+        t.property_address.includes('Bayshore') && thread.subject.includes('Bayshore')
+      );
+      
+      if (transaction) {
+        const client = clients.find(c => c.transaction_id === transaction.id);
+        if (client) {
+          communications.push({
+            user_id: currentUserId,
+            contact_type: 'client',
+            contact_id: client.id,
+            transaction_id: transaction.id,
+            communication_type: 'email',
+            subject: thread.subject,
+            content: message.content,
+            direction: message.from.includes('@bhhstowne.com') || message.from.includes('@howardhanna.com') ? 'outbound' : 'inbound',
+            created_at: message.timestamp
+          });
+        }
+      }
+    });
+  });
 
+  // Add some additional standard communications
   transactions.forEach((transaction) => {
     const transactionClients = clients.filter(c => c.transaction_id === transaction.id);
     
-    // Create 3-5 communications per transaction
-    const numCommunications = Math.floor(Math.random() * 3) + 3;
-    
-    for (let i = 0; i < numCommunications; i++) {
-      const template = hamptonRoadsCommunicationTemplates[Math.floor(Math.random() * hamptonRoadsCommunicationTemplates.length)];
-      const client = transactionClients[Math.floor(Math.random() * transactionClients.length)];
+    if (transactionClients.length > 0) {
+      const client = transactionClients[0];
+      const address = transaction.property_address.split(',')[0];
       
-      if (client) {
-        const address = transaction.property_address.split(',')[0];
+      // Add a few standard communications per transaction
+      const standardCommunications = [
+        {
+          subject: `Property Update - ${address}`,
+          content: `Quick update on your property search/listing at ${address}. Market conditions remain favorable and we're seeing good activity. Let me know if you have any questions.`,
+          type: 'email',
+          direction: 'outbound'
+        },
+        {
+          subject: `Schedule Confirmation - ${address}`,
+          content: `This confirms our appointment tomorrow at 2:00 PM for ${address}. Looking forward to showing you this excellent property!`,
+          type: 'email',  
+          direction: 'outbound'
+        }
+      ];
+
+      standardCommunications.forEach(comm => {
         communications.push({
           user_id: currentUserId,
           contact_type: 'client',
           contact_id: client.id,
           transaction_id: transaction.id,
-          communication_type: template.type,
-          subject: template.subject.replace('{{address}}', address),
-          content: template.content.replace(/{{address}}/g, address).replace('{{zone}}', Math.random() > 0.5 ? 'AE' : 'VE'),
-          direction: template.direction,
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+          communication_type: comm.type,
+          subject: comm.subject,
+          content: comm.content,
+          direction: comm.direction,
+          created_at: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString()
         });
-      }
+      });
     }
   });
 
@@ -538,10 +710,10 @@ const createHamptonRoadsCommunications = async (currentUserId: string) => {
     .insert(communications);
 
   if (error) {
-    throw new Error(`Failed to create Hampton Roads communications: ${error.message}`);
+    throw new Error(`Failed to create enhanced Hampton Roads communications: ${error.message}`);
   }
 
-  console.log(`Created ${communications.length} Hampton Roads communication logs`);
+  console.log(`Created ${communications.length} enhanced Hampton Roads communication logs`);
 };
 
 const createHamptonRoadsDocuments = async () => {
