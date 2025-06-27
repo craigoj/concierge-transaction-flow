@@ -144,7 +144,7 @@ export const hamptonRoadsEmailTemplates = [
 export const hamptonRoadsWorkflowTemplates = [
   {
     name: 'White Glove Waterfront Listing Workflow',
-    type: 'listing',
+    type: 'Listing', // Changed from 'listing' to 'Listing'
     description: 'Comprehensive workflow for luxury waterfront properties requiring premium marketing and specialized disclosures',
     tasks: [
       {
@@ -187,7 +187,7 @@ export const hamptonRoadsWorkflowTemplates = [
   },
   {
     name: 'Military PCS Buyer Workflow',
-    type: 'buyer',
+    type: 'Buyer', // Changed from 'buyer' to 'Buyer'
     description: 'Streamlined workflow for military families with PCS timelines and VA loan requirements',
     tasks: [
       {
@@ -230,7 +230,7 @@ export const hamptonRoadsWorkflowTemplates = [
   },
   {
     name: 'Historic District Property Workflow',
-    type: 'listing',
+    type: 'Listing', // Changed from 'listing' to 'Listing'
     description: 'Specialized workflow for historic properties in Ghent and other preservation districts',
     tasks: [
       {
