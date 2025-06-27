@@ -161,12 +161,28 @@ const createHamptonRoadsEnhancedClients = async () => {
 
   const clients = [];
 
-  // Use enhanced client data
+  // Use enhanced client data but only use fields that exist in the database schema
   transactions.forEach((transaction, index) => {
     if (hamptonRoadsEnhancedClients[index]) {
+      const enhancedClient = hamptonRoadsEnhancedClients[index];
+      
+      // Create client record with only the fields that exist in the database
       const client = {
-        ...hamptonRoadsEnhancedClients[index],
         transaction_id: transaction.id,
+        full_name: enhancedClient.full_name,
+        email: enhancedClient.email,
+        phone: enhancedClient.phone,
+        type: enhancedClient.type,
+        preferred_contact_method: enhancedClient.preferred_contact_method,
+        referral_source: enhancedClient.referral_source,
+        // Combine all the enhanced information into the notes field
+        notes: enhancedClient.notes + 
+               (enhancedClient.military_branch ? ` | Military: ${enhancedClient.military_branch}` : '') +
+               (enhancedClient.base_assignment ? ` | Base: ${enhancedClient.base_assignment}` : '') +
+               (enhancedClient.security_clearance ? ` | Clearance: ${enhancedClient.security_clearance}` : '') +
+               (enhancedClient.va_loan_entitlement ? ` | VA Loan: $${enhancedClient.va_loan_entitlement}` : '') +
+               (enhancedClient.profession ? ` | Profession: ${enhancedClient.profession}` : '') +
+               (enhancedClient.timeline ? ` | Timeline: ${enhancedClient.timeline}` : ''),
         address: `Currently residing near ${transaction.property_address.split(' ')[1]} area`
       };
       
@@ -181,11 +197,17 @@ const createHamptonRoadsEnhancedClients = async () => {
         
         const nextClient = hamptonRoadsEnhancedClients[index + 1] || hamptonRoadsEnhancedClients[0];
         clients.push({
-          ...nextClient,
           transaction_id: transaction.id,
-          type: 'buyer' as const,
           full_name: nextClient.full_name + ' (Buyer)',
-          notes: nextClient.notes + ' [Buyer side of dual transaction]',
+          email: nextClient.email,
+          phone: nextClient.phone,
+          type: 'buyer' as const,
+          preferred_contact_method: nextClient.preferred_contact_method,
+          referral_source: nextClient.referral_source,
+          notes: nextClient.notes + 
+                 (nextClient.military_branch ? ` | Military: ${nextClient.military_branch}` : '') +
+                 (nextClient.base_assignment ? ` | Base: ${nextClient.base_assignment}` : '') +
+                 ' [Buyer side of dual transaction]',
           address: `Currently residing near ${transaction.property_address.split(' ')[1]} area`
         });
       } else {
