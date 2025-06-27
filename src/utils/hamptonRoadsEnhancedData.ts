@@ -1,4 +1,3 @@
-
 // Enhanced Hampton Roads data with comprehensive client profiles and professional contacts
 export const hamptonRoadsEnhancedClients = [
   // Military Buyers/Sellers with PCS Orders
@@ -386,3 +385,141 @@ export const hamptonRoadsEnhancedCommunications = {
     }
   ]
 };
+
+export const hamptonRoadsAdvancedWorkflowTemplates = [
+  {
+    name: "Military PCS White Glove Timeline",
+    type: "white_glove_listing",
+    description: "Comprehensive timeline for military families with PCS orders requiring luxury property coordination",
+    tasks: [
+      {
+        subject: "Military PCS Documentation Review",
+        description: "Review PCS orders, deployment schedules, and coordinate timeline with military requirements",
+        phase: "intake",
+        days_from_contract: -30
+      },
+      {
+        subject: "Hurricane Season Property Assessment",
+        description: "Evaluate hurricane preparedness features and create detailed property protection plan",
+        phase: "intake", 
+        days_from_contract: -25
+      },
+      {
+        subject: "Waterfront Professional Photography",
+        description: "Schedule drone and marine photography showcasing waterfront access and luxury features",
+        phase: "marketing",
+        days_from_contract: -20
+      },
+      {
+        subject: "Marina Access Documentation",
+        description: "Secure marina agreements, dock specifications, and waterfront rights documentation",
+        phase: "marketing",
+        days_from_contract: -18
+      },
+      {
+        subject: "Military Spouse Employment Coordination",
+        description: "Coordinate with spouse's career needs and potential remote work requirements",
+        phase: "active",
+        days_from_contract: -15
+      },
+      {
+        subject: "Base Proximity Analysis Report",
+        description: "Provide detailed commute analysis to all major Hampton Roads military installations",
+        phase: "active",
+        days_from_contract: -10
+      },
+      {
+        subject: "Hurricane Season Closing Contingency",
+        description: "Establish backup closing procedures for potential hurricane season disruptions",
+        phase: "closing",
+        days_from_contract: -7
+      }
+    ]
+  },
+  {
+    name: "Hampton Roads Elite Military Buyer",
+    type: "buyer_elite",  
+    description: "Enhanced buyer workflow for military families purchasing in Hampton Roads premium market",
+    tasks: [
+      {
+        subject: "VA Loan Military Specialist Coordination",
+        description: "Connect with Navy Federal or other military-focused lenders for optimal loan terms",
+        phase: "intake",
+        days_from_contract: -45
+      },
+      {
+        subject: "School District Military Family Analysis", 
+        description: "Research school districts with strong military family support and programs",
+        phase: "intake",
+        days_from_contract: -40
+      },
+      {
+        subject: "Flood Zone and Hurricane Prep Education",
+        description: "Educate buyers on Hampton Roads flood zones, insurance requirements, and hurricane preparedness",
+        phase: "searching",
+        days_from_contract: -35
+      },
+      {
+        subject: "Military Housing Allowance Optimization",
+        description: "Analyze BAH rates and optimize housing budget for maximum value and allowance usage",
+        phase: "searching", 
+        days_from_contract: -30
+      },
+      {
+        subject: "Base Commute and Traffic Pattern Analysis",
+        description: "Provide detailed analysis of commute times including bridge/tunnel considerations",
+        phase: "searching",
+        days_from_contract: -25
+      },
+      {
+        subject: "Deployment-Ready Home Features Review",
+        description: "Assess properties for security, maintenance, and spouse-friendly features during deployments",
+        phase: "active",
+        days_from_contract: -15
+      }
+    ]
+  },
+  {
+    name: "Waterfront Property Elite Listing",
+    type: "listing_elite",
+    description: "Premium marketing workflow for Hampton Roads waterfront properties",
+    tasks: [
+      {
+        subject: "Marine Survey and Dock Inspection",
+        description: "Professional marine survey of waterfront features, dock condition, and bulkhead assessment",
+        phase: "intake",
+        days_from_contract: -30
+      },
+      {
+        subject: "Tidal and Weather Photography Planning",
+        description: "Schedule photography sessions during optimal tidal conditions and weather for best waterfront presentation",
+        phase: "marketing",
+        days_from_contract: -25
+      },
+      {
+        subject: "Marina and Waterfront Amenities Documentation",
+        description: "Document all marina privileges, boat slip rights, and waterfront community amenities",
+        phase: "marketing", 
+        days_from_contract: -20
+      },
+      {
+        subject: "Hurricane Insurance and Mitigation Review",
+        description: "Review current hurricane insurance, mitigation features, and provide documentation for buyers",
+        phase: "marketing",
+        days_from_contract: -18
+      },
+      {
+        subject: "Waterfront Lifestyle Marketing Creation",
+        description: "Create lifestyle-focused marketing materials highlighting boating, fishing, and water recreation",
+        phase: "marketing",
+        days_from_contract: -15
+      },
+      {
+        subject: "Environmental and Flood Zone Documentation",
+        description: "Prepare comprehensive flood zone certificates and environmental compliance documentation",
+        phase: "active",
+        days_from_contract: -10
+      }
+    ]
+  }
+];

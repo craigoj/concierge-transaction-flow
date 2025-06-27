@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hamptonRoadsLocations, hamptonRoadsProfessionals, hamptonRoadsClients, hamptonRoadsCommunications, hamptonRoadsDocuments } from "./hamptonRoadsData";
 import { hamptonRoadsEmailTemplates, hamptonRoadsWorkflowTemplates } from "./hamptonRoadsTemplates";
-import { hamptonRoadsEnhancedClients, hamptonRoadsProfessionalContacts, hamptonRoadsEnhancedCommunications, hamptonRoadsAdvancedEmailTemplates, hamptonRoadsAdvancedWorkflowTemplates } from "./hamptonRoadsEnhancedData";
+import { hamptonRoadsEnhancedClients, hamptonRoadsProfessionalContacts, hamptonRoadsEnhancedCommunications, hamptonRoadsAdvancedWorkflowTemplates } from "./hamptonRoadsEnhancedData";
 import { hamptonRoadsAdvancedEmailTemplates as advancedTemplates } from "./hamptonRoadsAdvancedTemplates";
 
 export const generateHamptonRoadsMockData = async () => {
