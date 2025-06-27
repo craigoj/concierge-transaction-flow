@@ -112,7 +112,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '90212',
       purchase_price: 5200000,
       closing_date: '2024-07-05',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 3.0,
@@ -142,7 +142,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '37215',
       purchase_price: 950000,
       closing_date: '2024-08-10',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'seller' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 2.5,
@@ -184,7 +184,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '78746',
       purchase_price: 1125000,
       closing_date: '2024-08-05',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'dual' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 5.0,
@@ -214,7 +214,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '92602',
       purchase_price: 650000,
       closing_date: '2024-08-12',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'seller' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 2.0,
@@ -256,7 +256,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '85225',
       purchase_price: 395000,
       closing_date: '2024-08-08',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_core' as const,
       commission_rate: 2.0,
@@ -286,7 +286,7 @@ const createTransactions = async (coordinatorId: string) => {
       zip_code: '85016',
       purchase_price: 725000,
       closing_date: '2024-08-15',
-      status: 'contract' as const,
+      status: 'active' as const,
       transaction_type: 'dual' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 4.0,
@@ -571,7 +571,8 @@ const createTasks = async () => {
         priority: 'high' as const,
         due_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
         is_completed: Math.random() > 0.4,
-        requires_agent_action: false
+        requires_agent_action: false,
+        agent_action_prompt: null
       },
       {
         transaction_id: transaction.id,
@@ -615,7 +616,8 @@ const createTasks = async () => {
           priority: 'medium' as const,
           due_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           is_completed: Math.random() > 0.8,
-          requires_agent_action: false
+          requires_agent_action: false,
+          agent_action_prompt: null
         }
       );
     } else if (transaction.service_tier?.includes('elite')) {
@@ -627,7 +629,8 @@ const createTasks = async () => {
           priority: 'medium' as const,
           due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           is_completed: Math.random() > 0.5,
-          requires_agent_action: false
+          requires_agent_action: false,
+          agent_action_prompt: null
         },
         {
           transaction_id: transaction.id,
@@ -667,7 +670,8 @@ const createTasks = async () => {
             priority: 'high' as const,
             due_date: new Date(closingDate.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             is_completed: daysToClosing > 7 ? Math.random() > 0.3 : false,
-            requires_agent_action: false
+            requires_agent_action: false,
+            agent_action_prompt: null
           }
         );
       }
