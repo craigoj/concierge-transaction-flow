@@ -295,7 +295,7 @@ export const hamptonRoadsAdvancedEmailTemplates = [
 export const hamptonRoadsAdvancedWorkflowTemplates = [
   {
     name: 'White Glove Waterfront Listing - Complete',
-    type: 'Listing', // Changed from 'listing' to 'Listing'
+    type: 'Listing',
     description: 'Comprehensive 25-task workflow for luxury waterfront properties requiring premium marketing, specialized disclosures, and concierge-level service',
     tasks: [
       {
@@ -362,7 +362,7 @@ export const hamptonRoadsAdvancedWorkflowTemplates = [
   },
   {
     name: 'Military PCS Buyer - Expedited',
-    type: 'Buyer', // Changed from 'buyer' to 'Buyer'
+    type: 'Buyer',
     description: 'Streamlined 15-task workflow specifically designed for military families with tight PCS timelines, VA loan coordination, and base proximity requirements',
     tasks: [
       {
