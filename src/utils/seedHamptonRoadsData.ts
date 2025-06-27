@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { hamptonRoadsLocations, hamptonRoadsProfessionals, hamptonRoadsClients, hamptonRoadsCommunications, hamptonRoadsDocuments } from "./hamptonRoadsData";
 import { hamptonRoadsEmailTemplates, hamptonRoadsWorkflowTemplates } from "./hamptonRoadsTemplates";
@@ -234,6 +235,14 @@ const createProfessionalContacts = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
+  // Helper function to convert numeric rating to enum value
+  const convertRatingToEnum = (numericRating: number): 'A' | 'B' | 'C' | 'D' => {
+    if (numericRating >= 4.5) return 'A';
+    if (numericRating >= 3.5) return 'B';
+    if (numericRating >= 2.5) return 'C';
+    return 'D';
+  };
+
   const contacts = [];
 
   // Add lenders
@@ -244,7 +253,7 @@ const createProfessionalContacts = async () => {
       phone: lender.phone,
       company: lender.company,
       category: 'Lender',
-      rating: lender.rating,
+      rating: convertRatingToEnum(lender.rating),
       user_id: user.id
     });
   });
@@ -257,7 +266,7 @@ const createProfessionalContacts = async () => {
       phone: inspector.phone,
       company: inspector.company,
       category: 'Inspector',
-      rating: inspector.rating,
+      rating: convertRatingToEnum(inspector.rating),
       user_id: user.id
     });
   });
@@ -270,7 +279,7 @@ const createProfessionalContacts = async () => {
       phone: attorney.phone,
       company: attorney.company,
       category: 'Attorney',
-      rating: attorney.rating,
+      rating: convertRatingToEnum(attorney.rating),
       user_id: user.id
     });
   });
@@ -283,7 +292,7 @@ const createProfessionalContacts = async () => {
       phone: contractor.phone,
       company: contractor.name,
       category: 'Contractor',
-      rating: contractor.rating,
+      rating: convertRatingToEnum(contractor.rating),
       user_id: user.id
     });
   });
