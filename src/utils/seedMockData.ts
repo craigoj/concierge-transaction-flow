@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock data generators
@@ -61,6 +62,13 @@ const createTransactions = async (coordinatorId: string) => {
     throw new Error("No agents found. Please create agent profiles first.");
   }
 
+  console.log(`Found ${agents.length} agents for transaction assignment`);
+
+  // Helper function to get agent ID by cycling through available agents
+  const getAgentId = (index: number) => {
+    return agents[index % agents.length].id;
+  };
+
   const transactions = [
     // WHITE GLOVE LISTINGS
     {
@@ -74,7 +82,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 2.8,
-      agent_id: agents[0]?.id,
+      agent_id: getAgentId(0),
       created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -88,7 +96,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 3.0,
-      agent_id: agents[1]?.id,
+      agent_id: getAgentId(1),
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -102,7 +110,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 2.5,
-      agent_id: agents[0]?.id,
+      agent_id: getAgentId(0),
       created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -116,7 +124,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'white_glove_listing' as const,
       commission_rate: 3.0,
-      agent_id: agents[1]?.id,
+      agent_id: getAgentId(1),
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
     },
 
@@ -132,7 +140,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_elite' as const,
       commission_rate: 2.5,
-      agent_id: agents[2]?.id,
+      agent_id: getAgentId(2),
       created_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -146,7 +154,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 2.5,
-      agent_id: agents[3]?.id,
+      agent_id: getAgentId(3),
       created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -160,7 +168,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 2.5,
-      agent_id: agents[4]?.id,
+      agent_id: getAgentId(4),
       created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -174,7 +182,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_elite' as const,
       commission_rate: 2.5,
-      agent_id: agents[2]?.id,
+      agent_id: getAgentId(2),
       created_at: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -188,7 +196,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'dual' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 5.0,
-      agent_id: agents[3]?.id,
+      agent_id: getAgentId(3),
       created_at: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString()
     },
 
@@ -204,7 +212,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[5]?.id,
+      agent_id: getAgentId(5),
       created_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -218,7 +226,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[4]?.id,
+      agent_id: getAgentId(4),
       created_at: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -232,7 +240,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[5]?.id,
+      agent_id: getAgentId(5),
       created_at: new Date(Date.now() - 65 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -246,7 +254,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[6]?.id,
+      agent_id: getAgentId(6),
       created_at: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -260,7 +268,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'buyer' as const,
       service_tier: 'buyer_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[5]?.id,
+      agent_id: getAgentId(5),
       created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -274,7 +282,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'seller' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 2.0,
-      agent_id: agents[4]?.id,
+      agent_id: getAgentId(4),
       created_at: new Date(Date.now() - 48 * 24 * 60 * 60 * 1000).toISOString()
     },
 
@@ -290,7 +298,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'dual' as const,
       service_tier: 'listing_core' as const,
       commission_rate: 4.0,
-      agent_id: agents[6]?.id,
+      agent_id: getAgentId(6),
       created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
@@ -304,7 +312,7 @@ const createTransactions = async (coordinatorId: string) => {
       transaction_type: 'dual' as const,
       service_tier: 'listing_elite' as const,
       commission_rate: 5.0,
-      agent_id: agents[2]?.id,
+      agent_id: getAgentId(2),
       created_at: new Date(Date.now() - 38 * 24 * 60 * 60 * 1000).toISOString()
     }
   ];
