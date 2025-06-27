@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock data generators
@@ -6,6 +5,12 @@ export const generateMockData = async () => {
   console.log("Starting mock data generation...");
   
   try {
+    // Get current user for RLS compliance
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("You must be logged in to generate mock data.");
+    }
+
     // Get existing coordinators to use as creators
     const { data: coordinators } = await supabase
       .from('profiles')
@@ -29,7 +34,7 @@ export const generateMockData = async () => {
     await createTasks();
     
     // 4. Create communication logs
-    await createCommunications();
+    await createCommunications(user.id);
     
     // 5. Create document records
     await createDocuments();
@@ -713,14 +718,9 @@ const createTasks = async () => {
   console.log(`Created ${tasks.length} tasks`);
 };
 
-const createCommunications = async () => {
+const createCommunications = async (currentUserId: string) => {
   console.log("Creating communication logs...");
   
-  const { data: agents } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'agent');
-
   const { data: transactions } = await supabase
     .from('transactions')
     .select('id, property_address');
@@ -729,7 +729,7 @@ const createCommunications = async () => {
     .from('clients')
     .select('id, transaction_id, full_name');
 
-  if (!agents || !transactions || !clients) return;
+  if (!transactions || !clients) return;
 
   const communications = [];
   
@@ -775,7 +775,6 @@ const createCommunications = async () => {
 
   transactions.forEach((transaction) => {
     const transactionClients = clients.filter(c => c.transaction_id === transaction.id);
-    const randomAgent = agents[Math.floor(Math.random() * agents.length)];
     
     // Create 3-5 communications per transaction
     const numCommunications = Math.floor(Math.random() * 3) + 3;
@@ -786,7 +785,7 @@ const createCommunications = async () => {
       
       if (client) {
         communications.push({
-          user_id: randomAgent.id,
+          user_id: currentUserId, // Use current user's ID to satisfy RLS policy
           contact_type: 'client',
           contact_id: client.id,
           transaction_id: transaction.id,
@@ -970,7 +969,7 @@ const createNotifications = async () => {
   const notificationTemplates = [
     'New task assigned: Home inspection for {address}',
     'Document uploaded: Contract signed for {address}',
-    'Status update: {address} moved to contract status',
+    'Status update: {address} moved to active status',
     'Reminder: Final walk-through scheduled for {address}',
     'Alert: Closing date approaching for {address}',
     'Update: New showing request for {address}',
@@ -1021,9 +1020,9 @@ const createAutomationRules = async (coordinatorId: string) => {
 
   const automationRules = [
     {
-      name: 'Welcome Email on Contract Acceptance',
+      name: 'Welcome Email on Status Change',
       trigger_event: 'status_changed',
-      trigger_condition: { status: 'contract' },
+      trigger_condition: { status: 'active' },
       template_id: emailTemplates.find(t => t.name === 'Contract Acceptance Notification')?.id,
       is_active: true,
       created_by: coordinatorId
