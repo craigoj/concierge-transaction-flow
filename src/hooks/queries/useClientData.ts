@@ -17,8 +17,6 @@ export const clientKeys = {
 };
 
 export const useClientData = (id: string) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: clientKeys.detail(id),
     queryFn: async (): Promise<Client> => {
@@ -34,19 +32,10 @@ export const useClientData = (id: string) => {
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading client",
-        description: error.message,
-      });
-    },
   });
 };
 
 export const useClientsForTransaction = (transactionId: string) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: clientKeys.list(transactionId),
     queryFn: async (): Promise<Client[]> => {
@@ -62,13 +51,6 @@ export const useClientsForTransaction = (transactionId: string) => {
     enabled: !!transactionId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading clients",
-        description: error.message,
-      });
-    },
   });
 };
 

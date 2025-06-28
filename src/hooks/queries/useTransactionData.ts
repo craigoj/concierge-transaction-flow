@@ -21,8 +21,6 @@ export const transactionKeys = {
 };
 
 export const useTransactionData = (id: string) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: transactionKeys.detail(id),
     queryFn: async (): Promise<Transaction> => {
@@ -49,13 +47,6 @@ export const useTransactionData = (id: string) => {
         return false;
       }
       return failureCount < 3;
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading transaction",
-        description: error.message,
-      });
     },
   });
 };

@@ -17,8 +17,6 @@ export const documentKeys = {
 };
 
 export const useDocumentsList = (transactionId: string) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: documentKeys.list(transactionId),
     queryFn: async (): Promise<Document[]> => {
@@ -34,13 +32,6 @@ export const useDocumentsList = (transactionId: string) => {
     enabled: !!transactionId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading documents",
-        description: error.message,
-      });
-    },
   });
 };
 

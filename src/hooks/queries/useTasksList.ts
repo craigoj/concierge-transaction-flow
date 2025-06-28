@@ -17,8 +17,6 @@ export const taskKeys = {
 };
 
 export const useTasksList = (transactionId: string) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: taskKeys.list(transactionId),
     queryFn: async (): Promise<Task[]> => {
@@ -34,13 +32,6 @@ export const useTasksList = (transactionId: string) => {
     enabled: !!transactionId,
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 3 * 60 * 1000, // 3 minutes
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading tasks",
-        description: error.message,
-      });
-    },
   });
 };
 

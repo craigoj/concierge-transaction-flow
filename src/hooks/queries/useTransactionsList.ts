@@ -18,8 +18,6 @@ interface TransactionFilters {
 }
 
 export const useTransactionsList = (filters: TransactionFilters = {}) => {
-  const { toast } = useToast();
-
   return useQuery({
     queryKey: transactionKeys.list(filters),
     queryFn: async (): Promise<Transaction[]> => {
@@ -57,13 +55,6 @@ export const useTransactionsList = (filters: TransactionFilters = {}) => {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error loading transactions",
-        description: error.message,
-      });
-    },
   });
 };
 

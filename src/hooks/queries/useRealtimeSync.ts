@@ -4,6 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryInvalidation } from './useQueryInvalidation';
 
+// Define types for payload data
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new?: Record<string, any>;
+  old?: Record<string, any>;
+}
+
 // Real-time synchronization hook
 export const useRealtimeSync = () => {
   const queryClient = useQueryClient();
@@ -26,7 +33,7 @@ export const useRealtimeSync = () => {
           schema: 'public',
           table: 'transactions'
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Transaction change detected:', payload);
           
           if (payload.eventType === 'INSERT') {
@@ -51,7 +58,7 @@ export const useRealtimeSync = () => {
           schema: 'public',
           table: 'tasks'
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Task change detected:', payload);
           
           const transactionId = payload.old?.transaction_id || payload.new?.transaction_id;
@@ -72,7 +79,7 @@ export const useRealtimeSync = () => {
           schema: 'public',
           table: 'documents'
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Document change detected:', payload);
           
           const transactionId = payload.old?.transaction_id || payload.new?.transaction_id;
@@ -93,7 +100,7 @@ export const useRealtimeSync = () => {
           schema: 'public',
           table: 'clients'
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Client change detected:', payload);
           
           const transactionId = payload.old?.transaction_id || payload.new?.transaction_id;
@@ -111,7 +118,7 @@ export const useRealtimeSync = () => {
       supabase.removeChannel(documentChannel);
       supabase.removeChannel(clientChannel);
     };
-  }, []);
+  }, [invalidateTransaction, invalidateAllTransactions, invalidateTasksForTransaction, invalidateDocumentsForTransaction, invalidateClientsForTransaction]);
 
   return null; // This hook only sets up subscriptions
 };
