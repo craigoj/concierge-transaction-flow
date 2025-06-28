@@ -88,7 +88,7 @@ const Index = () => {
               }`}
             >
               {timeframe.label}
-            </div>
+            </button>
           ))}
         </div>
       </div>
