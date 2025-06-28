@@ -123,104 +123,102 @@ const AgentDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Active Transactions */}
-              <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-brand-heading tracking-wide text-brand-charcoal">
-                    <Building className="h-5 w-5" />
-                    Active Transactions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isLoading ? (
-                    <div className="space-y-3">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="h-16 bg-brand-taupe/10 rounded animate-pulse" />
-                      ))}
-                    </div>
-                  ) : activeTransactions.length > 0 ? (
-                    activeTransactions.slice(0, 3).map((transaction) => (
-                      <div key={transaction.id} className="p-4 border border-brand-taupe/20 rounded-lg hover:bg-brand-cream/30 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-brand-heading text-brand-charcoal font-medium">
-                              {transaction.property_address}
-                            </h4>
-                            <p className="text-sm text-brand-charcoal/60 font-brand-body">
-                              {transaction.clients?.[0]?.full_name || 'Client TBD'}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                            {transaction.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <Building className="h-12 w-12 mx-auto text-brand-taupe mb-3" />
-                      <p className="text-brand-charcoal/60 font-brand-body">No active transactions</p>
-                    </div>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4"
-                    onClick={() => navigate('/agent/transactions')}
-                  >
-                    View All Transactions
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Upcoming Tasks */}
-              <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-brand-heading tracking-wide text-brand-charcoal">
-                    <CheckCircle2 className="h-5 w-5" />
-                    Upcoming Tasks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isLoading ? (
-                    <div className="space-y-3">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="h-12 bg-brand-taupe/10 rounded animate-pulse" />
-                      ))}
-                    </div>
-                  ) : upcomingTasks.length > 0 ? (
-                    upcomingTasks.map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-3 border border-brand-taupe/20 rounded-lg">
+            {/* Active Transactions */}
+            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-brand-heading tracking-wide text-brand-charcoal">
+                  <Building className="h-5 w-5" />
+                  Active Transactions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-16 bg-brand-taupe/10 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : activeTransactions.length > 0 ? (
+                  activeTransactions.slice(0, 3).map((transaction) => (
+                    <div key={transaction.id} className="p-4 border border-brand-taupe/20 rounded-lg hover:bg-brand-cream/30 transition-colors">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-brand-body text-brand-charcoal font-medium text-sm">
-                            {task.title}
-                          </p>
-                          <p className="text-xs text-brand-charcoal/60">
-                            Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date set'}
+                          <h4 className="font-brand-heading text-brand-charcoal font-medium">
+                            {transaction.property_address}
+                          </h4>
+                          <p className="text-sm text-brand-charcoal/60 font-brand-body">
+                            {transaction.clients?.[0]?.full_name || 'Client TBD'}
                           </p>
                         </div>
-                        <div className={`w-3 h-3 rounded-full ${
-                          task.priority === 'high' ? 'bg-red-400' :
-                          task.priority === 'medium' ? 'bg-amber-400' : 'bg-green-400'
-                        }`} />
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {transaction.status}
+                        </Badge>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <CheckCircle2 className="h-12 w-12 mx-auto text-brand-taupe mb-3" />
-                      <p className="text-brand-charcoal/60 font-brand-body">No upcoming tasks</p>
                     </div>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4"
-                    onClick={() => navigate('/agent/tasks')}
-                  >
-                    View All Tasks
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Building className="h-12 w-12 mx-auto text-brand-taupe mb-3" />
+                    <p className="text-brand-charcoal/60 font-brand-body">No active transactions</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => navigate('/agent/transactions')}
+                >
+                  View All Transactions
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Tasks */}
+            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-brand-heading tracking-wide text-brand-charcoal">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Upcoming Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-12 bg-brand-taupe/10 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : upcomingTasks.length > 0 ? (
+                  upcomingTasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 border border-brand-taupe/20 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-brand-body text-brand-charcoal font-medium text-sm">
+                          {task.title}
+                        </p>
+                        <p className="text-xs text-brand-charcoal/60">
+                          Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date set'}
+                        </p>
+                      </div>
+                      <div className={`w-3 h-3 rounded-full ${
+                        task.priority === 'high' ? 'bg-red-400' :
+                        task.priority === 'medium' ? 'bg-amber-400' : 'bg-green-400'
+                      }`} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle2 className="h-12 w-12 mx-auto text-brand-taupe mb-3" />
+                    <p className="text-brand-charcoal/60 font-brand-body">No upcoming tasks</p>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => navigate('/agent/tasks')}
+                >
+                  View All Tasks
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Recent Clients */}
             <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
