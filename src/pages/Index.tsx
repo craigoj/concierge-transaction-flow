@@ -1,16 +1,19 @@
 
 import Breadcrumb from "@/components/navigation/Breadcrumb";
+import DashboardStats from "@/components/dashboard/DashboardStats";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Building, Calendar, Clock, DollarSign, TrendingUp, Users, Zap, AlertCircle } from "lucide-react";
+import { Building, Users, Calendar, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState("today");
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   // Fetch transactions for the main pane
   const { data: transactions, isLoading } = useQuery({
@@ -30,13 +33,25 @@ const Index = () => {
   });
 
   const activeTransactions = transactions?.filter(t => t.status === 'active') || [];
-  const pendingTransactions = transactions?.filter(t => t.status === 'intake') || [];
-  const closedThisMonth = transactions?.filter(t => 
-    t.status === 'closed' && 
-    new Date(t.closing_date || '').getMonth() === new Date().getMonth()
-  ) || [];
 
-  const totalVolume = closedThisMonth.reduce((sum, t) => sum + (t.purchase_price || 0), 0);
+  const handleDashboardAction = (action: string) => {
+    switch (action) {
+      case 'new-transaction':
+        navigate('/transactions');
+        break;
+      case 'schedule-inspection':
+        navigate('/calendar/new');
+        break;
+      case 'lockbox-setup':
+        // Handle lockbox setup
+        break;
+      case 'add-client':
+        navigate('/clients/new');
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
+  };
 
   return (
     <div className="p-8">
@@ -73,69 +88,18 @@ const Index = () => {
               }`}
             >
               {timeframe.label}
-            </button>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Premium Stats Grid with Better Spacing */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-        {[
-          {
-            icon: Zap,
-            label: "ACTIVE COORDINATION",
-            value: activeTransactions.length,
-            subtitle: "transactions in progress",
-            color: "text-blue-600",
-            bgColor: "bg-blue-50"
-          },
-          {
-            icon: Clock,
-            label: "PENDING INTAKE",
-            value: pendingTransactions.length,
-            subtitle: "awaiting coordination",
-            color: "text-amber-600",
-            bgColor: "bg-amber-50"
-          },
-          {
-            icon: TrendingUp,
-            label: "MONTHLY CLOSINGS",
-            value: closedThisMonth.length,
-            subtitle: "successful completions",
-            color: "text-emerald-600",
-            bgColor: "bg-emerald-50"
-          },
-          {
-            icon: DollarSign,
-            label: "VOLUME COORDINATED",
-            value: `$${(totalVolume / 1000000).toFixed(1)}M`,
-            subtitle: "this month",
-            color: "text-violet-600",
-            bgColor: "bg-violet-50"
-          }
-        ].map((stat, index) => (
-          <div key={index} className="group">
-            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20 shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-500 p-8 h-full">
-              <div className="flex items-start justify-between mb-6">
-                <div className={`p-4 rounded-2xl ${stat.bgColor} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
-                  <stat.icon className="h-7 w-7" />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <p className="text-xs font-brand-heading tracking-brand-wide text-brand-charcoal/60 uppercase">
-                  {stat.label}
-                </p>
-                <p className="text-4xl font-bold text-brand-charcoal">
-                  {stat.value}
-                </p>
-                <p className="text-sm font-brand-body text-brand-charcoal/70">
-                  {stat.subtitle}
-                </p>
-              </div>
-            </Card>
-          </div>
-        ))}
-      </div>
+      {/* Unified Dashboard Stats */}
+      <DashboardStats 
+        variant="premium" 
+        showQuickActions={true}
+        onActionClick={handleDashboardAction}
+        className="mb-16"
+      />
 
       {/* Main Dashboard Layout with Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
