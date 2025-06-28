@@ -26,13 +26,13 @@ export const useTransactionsList = (filters: TransactionFilters = {}) => {
         .select(`
           *,
           clients (*),
-          tasks (id, is_completed)
+          tasks (*)
         `)
         .order('created_at', { ascending: false });
 
       // Apply filters
       if (filters.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', filters.status as Tables<'transactions'>['status']);
       }
       
       if (filters.agentId) {
