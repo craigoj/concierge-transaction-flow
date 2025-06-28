@@ -1,5 +1,8 @@
 
 import React from 'react';
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/navigation/AppSidebar";
+import AppHeader from "@/components/AppHeader";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -7,11 +10,17 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children }: AppLayoutProps) => {
   return (
-    <div className="min-h-screen bg-brand-cream">
-      <main className="container mx-auto">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-brand-cream">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <AppHeader />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
