@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, User, FileText, CheckCircle, Building } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
+import MobileTransactionCard from './MobileTransactionCard';
 
 type Transaction = Tables<'transactions'> & {
   clients: Tables<'clients'>[];
@@ -19,6 +21,8 @@ interface TransactionListProps {
 }
 
 const TransactionList = ({ transactions, isLoading, onTransactionClick }: TransactionListProps) => {
+  const isMobile = useIsMobile();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'intake':
@@ -41,10 +45,10 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="h-80">
-            <CardHeader>
+          <Card key={i} className={isMobile ? "h-32" : "h-80"}>
+            <CardHeader className={isMobile ? "pb-2" : ""}>
               <Skeleton className="h-6 w-3/4" />
               <div className="flex gap-2">
                 <Skeleton className="h-6 w-16" />
@@ -55,7 +59,7 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
               <div className="space-y-4">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
+                {!isMobile && <Skeleton className="h-4 w-1/2" />}
               </div>
             </CardContent>
           </Card>
@@ -66,23 +70,39 @@ const TransactionList = ({ transactions, isLoading, onTransactionClick }: Transa
 
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-20">
-        <div className="max-w-md mx-auto">
-          <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
-            <Building className="h-12 w-12 text-brand-taupe" />
+      <div className="text-center py-12 md:py-20">
+        <div className="max-w-md mx-auto px-4">
+          <div className="w-16 md:w-24 h-16 md:h-24 bg-brand-taupe/20 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8">
+            <Building className="h-8 md:h-12 w-8 md:w-12 text-brand-taupe" />
           </div>
-          <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
+          <h3 className="text-xl md:text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-3 md:mb-4">
             No Transactions Found
           </h3>
-          <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
+          <p className="text-base md:text-lg font-brand-body text-brand-charcoal/60 mb-6 md:mb-8">
             Create your first transaction to begin coordinating with excellence
           </p>
-          <div className="w-16 h-px bg-brand-taupe mx-auto"></div>
+          <div className="w-12 md:w-16 h-px bg-brand-taupe mx-auto"></div>
         </div>
       </div>
     );
   }
 
+  // Mobile view - single column with compact cards
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {transactions.map((transaction) => (
+          <MobileTransactionCard
+            key={transaction.id}
+            transaction={transaction}
+            onTransactionClick={onTransactionClick}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop view - grid layout
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {transactions.map((transaction) => {
