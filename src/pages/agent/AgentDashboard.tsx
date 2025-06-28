@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -23,46 +24,99 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardStats from "@/components/dashboard/DashboardStats";
 
+interface AgentTransaction {
+  id: string;
+  property_address: string;
+  status: string;
+  purchase_price: number | null;
+  closing_date: string | null;
+  created_at: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  agent_first_name?: string;
+  agent_last_name?: string;
+}
+
+interface AgentTask {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  is_completed: boolean;
+  priority: string;
+  requires_agent_action: boolean;
+}
+
+interface AgentClient {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  type: string;
+  created_at: string;
+}
+
+interface AgentDashboardData {
+  transactions: AgentTransaction[];
+  tasks: AgentTask[];
+  clients: AgentClient[];
+}
+
 const AgentDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch agent-specific data
-  const { data: agentData, isLoading } = useQuery({
+  // Fetch agent-specific data with explicit typing
+  const { data: agentData, isLoading } = useQuery<AgentDashboardData>({
     queryKey: ['agentDashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<AgentDashboardData> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const [transactionsResult, tasksResult, clientsResult] = await Promise.all([
-        supabase
-          .from('transactions')
-          .select(`
-            *,
-            clients!clients_transaction_id_fkey(full_name, email, phone),
-            profiles!transactions_agent_id_fkey(first_name, last_name)
-          `)
-          .eq('agent_id', user.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('tasks')
-          .select('*')
-          .eq('agent_id', user.id)
-          .order('due_date', { ascending: true }),
-        supabase
-          .from('clients')
-          .select('*')
-          .eq('agent_id', user.id)
-      ]);
+      // Fetch transactions separately to avoid complex joins
+      const { data: transactions, error: transactionError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('agent_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (transactionsResult.error) throw transactionsResult.error;
-      if (tasksResult.error) throw tasksResult.error;
-      if (clientsResult.error) throw clientsResult.error;
+      if (transactionError) throw transactionError;
+
+      // Fetch clients separately
+      const { data: clients, error: clientError } = await supabase
+        .from('clients')
+        .select('id, full_name, email, phone, type, created_at')
+        .in('transaction_id', transactions?.map(t => t.id) || []);
+
+      if (clientError) throw clientError;
+
+      // Fetch tasks separately
+      const { data: tasks, error: taskError } = await supabase
+        .from('tasks')
+        .select('id, title, description, due_date, is_completed, priority, requires_agent_action')
+        .in('transaction_id', transactions?.map(t => t.id) || [])
+        .order('due_date', { ascending: true });
+
+      if (taskError) throw taskError;
+
+      // Transform data to match expected interface
+      const transformedTransactions: AgentTransaction[] = transactions?.map(t => ({
+        id: t.id,
+        property_address: t.property_address,
+        status: t.status,
+        purchase_price: t.purchase_price,
+        closing_date: t.closing_date,
+        created_at: t.created_at,
+        client_name: clients?.find(c => c.transaction_id === t.id)?.full_name,
+        client_email: clients?.find(c => c.transaction_id === t.id)?.email,
+        client_phone: clients?.find(c => c.transaction_id === t.id)?.phone
+      })) || [];
 
       return {
-        transactions: transactionsResult.data || [],
-        tasks: tasksResult.data || [],
-        clients: clientsResult.data || []
+        transactions: transformedTransactions,
+        tasks: tasks || [],
+        clients: clients || []
       };
     }
   });
@@ -147,7 +201,7 @@ const AgentDashboard = () => {
                             {transaction.property_address}
                           </h4>
                           <p className="text-sm text-brand-charcoal/60 font-brand-body">
-                            {transaction.clients?.[0]?.full_name || 'Client TBD'}
+                            {transaction.client_name || 'Client TBD'}
                           </p>
                         </div>
                         <Badge variant="secondary" className="bg-blue-100 text-blue-800">
