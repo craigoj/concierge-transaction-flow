@@ -7,7 +7,8 @@ import type {
   WorkflowExecution,
   AutomationAction,
   ActionType,
-  ExecutionStatus
+  ExecutionStatus,
+  TriggerEvent
 } from '@/types/automation';
 
 export class AutomationEngine {
@@ -38,7 +39,7 @@ export class AutomationEngine {
   }
 
   private async findMatchingRules(context: TriggerContext): Promise<AutomationRule[]> {
-    const { data: rules, error } = await supabase
+    const { data: rawRules, error } = await supabase
       .from('automation_rules')
       .select('*')
       .eq('is_active', true);
@@ -47,7 +48,16 @@ export class AutomationEngine {
 
     const matchingRules: AutomationRule[] = [];
 
-    for (const rule of rules || []) {
+    for (const rawRule of rawRules || []) {
+      // Transform database response to match TypeScript interface
+      const rule: AutomationRule = {
+        ...rawRule,
+        trigger_event: rawRule.trigger_event as TriggerEvent,
+        trigger_condition: typeof rawRule.trigger_condition === 'string' 
+          ? JSON.parse(rawRule.trigger_condition) 
+          : rawRule.trigger_condition || {}
+      };
+
       if (await this.evaluateTriggerCondition(rule.trigger_condition, context)) {
         matchingRules.push(rule);
       }
@@ -263,6 +273,7 @@ export class AutomationEngine {
         rule_id: rule.id,
         transaction_id: context.transaction_id,
         status: 'pending',
+        retry_count: 0,
         metadata: {
           rule_name: rule.name,
           trigger_context: context.trigger_data
@@ -272,7 +283,16 @@ export class AutomationEngine {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    // Transform to match our interface
+    return {
+      ...data,
+      status: data.status as ExecutionStatus,
+      retry_count: data.retry_count || 0,
+      metadata: typeof data.metadata === 'string' 
+        ? JSON.parse(data.metadata) 
+        : data.metadata || {}
+    };
   }
 
   private async updateExecutionStatus(
@@ -340,25 +360,44 @@ export class AutomationEngine {
 
   private async retryExecution(executionId: string): Promise<void> {
     try {
-      const { data: execution, error } = await supabase
+      const { data: rawExecution, error } = await supabase
         .from('workflow_executions')
         .select('*')
         .eq('id', executionId)
         .single();
 
-      if (error || !execution) {
+      if (error || !rawExecution) {
         throw new Error('Execution not found for retry');
       }
 
-      const { data: rule, error: ruleError } = await supabase
+      // Transform execution data
+      const execution: WorkflowExecution = {
+        ...rawExecution,
+        status: rawExecution.status as ExecutionStatus,
+        retry_count: rawExecution.retry_count || 0,
+        metadata: typeof rawExecution.metadata === 'string' 
+          ? JSON.parse(rawExecution.metadata) 
+          : rawExecution.metadata || {}
+      };
+
+      const { data: rawRule, error: ruleError } = await supabase
         .from('automation_rules')
         .select('*')
         .eq('id', execution.rule_id)
         .single();
 
-      if (ruleError || !rule) {
+      if (ruleError || !rawRule) {
         throw new Error('Rule not found for retry');
       }
+
+      // Transform rule data
+      const rule: AutomationRule = {
+        ...rawRule,
+        trigger_event: rawRule.trigger_event as TriggerEvent,
+        trigger_condition: typeof rawRule.trigger_condition === 'string' 
+          ? JSON.parse(rawRule.trigger_condition) 
+          : rawRule.trigger_condition || {}
+      };
 
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -373,14 +412,31 @@ export class AutomationEngine {
       const context: TriggerContext = {
         transaction_id: execution.transaction_id,
         transaction,
-        trigger_data: execution.metadata?.trigger_context || {}
+        trigger_data: (execution.metadata as any)?.trigger_context || {}
       };
 
       await this.executeRule(rule, context);
 
     } catch (error) {
       console.error('Error retrying execution:', error);
-      await this.handleExecutionError({ ...execution, retry_count: execution.retry_count + 1 } as WorkflowExecution, error as Error);
+      // Get the current execution data again for retry count
+      const { data: currentExecution } = await supabase
+        .from('workflow_executions')
+        .select('retry_count')
+        .eq('id', executionId)
+        .single();
+      
+      const executionForError: WorkflowExecution = {
+        id: executionId,
+        rule_id: '',
+        transaction_id: '',
+        status: 'failed',
+        executed_at: '',
+        retry_count: (currentExecution?.retry_count || 0) + 1,
+        metadata: {}
+      };
+      
+      await this.handleExecutionError(executionForError, error as Error);
     }
   }
 

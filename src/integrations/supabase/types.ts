@@ -101,6 +101,44 @@ export type Database = {
           },
         ]
       }
+      automation_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          error_message: string | null
+          execution_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          execution_id: string
+          id?: string
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          execution_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_audit_logs_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_rules: {
         Row: {
           created_at: string
@@ -1137,28 +1175,34 @@ export type Database = {
       }
       workflow_executions: {
         Row: {
+          completed_at: string | null
           error_message: string | null
           executed_at: string
           id: string
           metadata: Json | null
+          retry_count: number | null
           rule_id: string
           status: string
           transaction_id: string
         }
         Insert: {
+          completed_at?: string | null
           error_message?: string | null
           executed_at?: string
           id?: string
           metadata?: Json | null
+          retry_count?: number | null
           rule_id: string
           status?: string
           transaction_id: string
         }
         Update: {
+          completed_at?: string | null
           error_message?: string | null
           executed_at?: string
           id?: string
           metadata?: Json | null
+          retry_count?: number | null
           rule_id?: string
           status?: string
           transaction_id?: string

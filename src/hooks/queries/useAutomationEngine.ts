@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { AutomationRule, WorkflowExecution, TriggerContext } from '@/types/automation';
+import type { AutomationRule, WorkflowExecution, TriggerContext, TriggerEvent, ExecutionStatus } from '@/types/automation';
 
 // Query keys for automation-related data
 export const automationKeys = {
@@ -28,7 +28,15 @@ export const useAutomationRules = (filters: { isActive?: boolean } = {}) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform database response to match our TypeScript interface
+      return (data || []).map(rule => ({
+        ...rule,
+        trigger_event: rule.trigger_event as TriggerEvent,
+        trigger_condition: typeof rule.trigger_condition === 'string' 
+          ? JSON.parse(rule.trigger_condition) 
+          : rule.trigger_condition || {}
+      }));
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -50,7 +58,16 @@ export const useWorkflowExecutions = (transactionId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform database response to match our TypeScript interface
+      return (data || []).map(execution => ({
+        ...execution,
+        status: execution.status as ExecutionStatus,
+        retry_count: execution.retry_count || 0,
+        metadata: typeof execution.metadata === 'string' 
+          ? JSON.parse(execution.metadata) 
+          : execution.metadata || {}
+      }));
     },
     enabled: !!transactionId,
     staleTime: 1 * 60 * 1000, // 1 minute
