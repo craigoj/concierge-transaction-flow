@@ -55,6 +55,7 @@ interface AgentClient {
   phone: string | null;
   type: string;
   created_at: string;
+  transaction_id: string;
 }
 
 interface AgentDashboardData {
@@ -74,49 +75,73 @@ const AgentDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Fetch transactions separately to avoid complex joins
-      const { data: transactions, error: transactionError } = await supabase
+      // Fetch transactions with clients in a single query
+      const { data: transactionsWithClients, error: transactionError } = await supabase
         .from('transactions')
-        .select('*')
+        .select(`
+          *,
+          clients!clients_transaction_id_fkey(
+            id,
+            full_name,
+            email,
+            phone,
+            type,
+            created_at,
+            transaction_id
+          )
+        `)
         .eq('agent_id', user.id)
         .order('created_at', { ascending: false });
 
       if (transactionError) throw transactionError;
 
-      // Fetch clients separately
-      const { data: clients, error: clientError } = await supabase
-        .from('clients')
-        .select('id, full_name, email, phone, type, created_at')
-        .in('transaction_id', transactions?.map(t => t.id) || []);
-
-      if (clientError) throw clientError;
-
       // Fetch tasks separately
       const { data: tasks, error: taskError } = await supabase
         .from('tasks')
         .select('id, title, description, due_date, is_completed, priority, requires_agent_action')
-        .in('transaction_id', transactions?.map(t => t.id) || [])
+        .in('transaction_id', transactionsWithClients?.map(t => t.id) || [])
         .order('due_date', { ascending: true });
 
       if (taskError) throw taskError;
 
-      // Transform data to match expected interface
-      const transformedTransactions: AgentTransaction[] = transactions?.map(t => ({
-        id: t.id,
-        property_address: t.property_address,
-        status: t.status,
-        purchase_price: t.purchase_price,
-        closing_date: t.closing_date,
-        created_at: t.created_at,
-        client_name: clients?.find(c => c.transaction_id === t.id)?.full_name,
-        client_email: clients?.find(c => c.transaction_id === t.id)?.email,
-        client_phone: clients?.find(c => c.transaction_id === t.id)?.phone
-      })) || [];
+      // Transform transactions data
+      const transformedTransactions: AgentTransaction[] = transactionsWithClients?.map(t => {
+        const primaryClient = t.clients?.[0];
+        return {
+          id: t.id,
+          property_address: t.property_address,
+          status: t.status,
+          purchase_price: t.purchase_price,
+          closing_date: t.closing_date,
+          created_at: t.created_at,
+          client_name: primaryClient?.full_name,
+          client_email: primaryClient?.email,
+          client_phone: primaryClient?.phone
+        };
+      }) || [];
+
+      // Get all clients from transactions
+      const allClients: AgentClient[] = [];
+      transactionsWithClients?.forEach(t => {
+        if (t.clients && Array.isArray(t.clients)) {
+          t.clients.forEach(client => {
+            allClients.push({
+              id: client.id,
+              full_name: client.full_name,
+              email: client.email,
+              phone: client.phone,
+              type: client.type,
+              created_at: client.created_at,
+              transaction_id: t.id
+            });
+          });
+        }
+      });
 
       return {
         transactions: transformedTransactions,
         tasks: tasks || [],
-        clients: clients || []
+        clients: allClients
       };
     }
   });
