@@ -10,12 +10,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: Home,
   },
   {
@@ -43,11 +43,6 @@ const menuItems = [
     url: "/analytics",
     icon: BarChart3,
   },
-  {
-    title: "Calendar",
-    url: "/calendar",
-    icon: Calendar,
-  },
 ];
 
 const managementItems = [
@@ -67,6 +62,11 @@ const managementItems = [
     icon: FileText,
   },
   {
+    title: "Automation",
+    url: "/automation",
+    icon: Workflow,
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
@@ -82,6 +82,15 @@ const demoItems = [
 ];
 
 export function AppSidebar() {
+  const location = useLocation();
+
+  const isActive = (url: string) => {
+    if (url === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(url);
+  };
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -91,7 +100,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -108,7 +117,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -125,7 +134,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {demoItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

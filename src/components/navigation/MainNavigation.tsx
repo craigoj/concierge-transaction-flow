@@ -19,7 +19,7 @@ const MainNavigation = () => {
   const navigate = useNavigate();
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/transactions', label: 'Transactions', icon: FileText },
     { path: '/clients', label: 'Clients', icon: Users },
     { path: '/agents', label: 'Agents', icon: UserCheck },
@@ -31,8 +31,8 @@ const MainNavigation = () => {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
   };
