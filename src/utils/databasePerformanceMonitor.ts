@@ -20,27 +20,27 @@ export interface SlowQueryStats {
 
 export const DatabasePerformanceMonitor = {
   async getIndexUsageStats(): Promise<IndexUsageStats[]> {
-    const { data, error } = await supabase
-      .rpc('get_index_usage_stats');
-    
-    if (error) {
+    try {
+      // Since the RPC functions don't exist yet, we'll return empty arrays
+      // In a real implementation, you would create these RPC functions first
+      console.log('Index usage stats not available - RPC functions need to be created');
+      return [];
+    } catch (error) {
       console.error('Failed to fetch index usage stats:', error);
       return [];
     }
-    
-    return data || [];
   },
 
   async getSlowQueries(): Promise<SlowQueryStats[]> {
-    const { data, error } = await supabase
-      .rpc('get_slow_queries');
-    
-    if (error) {
+    try {
+      // Since the RPC functions don't exist yet, we'll return empty arrays
+      // In a real implementation, you would create these RPC functions first
+      console.log('Slow queries stats not available - RPC functions need to be created');
+      return [];
+    } catch (error) {
       console.error('Failed to fetch slow queries:', error);
       return [];
     }
-    
-    return data || [];
   },
 
   async analyzeQueryPerformance(tableName: string) {
@@ -49,34 +49,41 @@ export const DatabasePerformanceMonitor = {
     const startTime = performance.now();
     
     // Example performance test queries
-    switch (tableName) {
-      case 'transactions':
-        await supabase
-          .from('transactions')
-          .select('*')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(10);
-        break;
-        
-      case 'tasks':
-        await supabase
-          .from('tasks')
-          .select('*')
-          .eq('is_completed', false)
-          .not('due_date', 'is', null)
-          .order('due_date', { ascending: true })
-          .limit(10);
-        break;
-        
-      case 'documents':
-        await supabase
-          .from('documents')
-          .select('*')
-          .eq('is_agent_visible', true)
-          .order('created_at', { ascending: false })
-          .limit(10);
-        break;
+    try {
+      switch (tableName) {
+        case 'transactions':
+          await supabase
+            .from('transactions')
+            .select('*')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(10);
+          break;
+          
+        case 'tasks':
+          await supabase
+            .from('tasks')
+            .select('*')
+            .eq('is_completed', false)
+            .not('due_date', 'is', null)
+            .order('due_date', { ascending: true })
+            .limit(10);
+          break;
+          
+        case 'documents':
+          await supabase
+            .from('documents')
+            .select('*')
+            .eq('is_agent_visible', true)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          break;
+          
+        default:
+          console.log(`No performance test defined for table: ${tableName}`);
+      }
+    } catch (error) {
+      console.error(`Performance test failed for ${tableName}:`, error);
     }
     
     const endTime = performance.now();

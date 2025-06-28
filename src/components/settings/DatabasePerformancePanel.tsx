@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DatabasePerformanceMonitor } from '@/utils/databasePerformanceMonitor';
-import { Database, Activity, Clock, TrendingUp } from 'lucide-react';
+import { Database, Activity, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 
 const DatabasePerformancePanel = () => {
   const [benchmarkResults, setBenchmarkResults] = useState<Record<string, number> | null>(null);
@@ -84,13 +84,16 @@ const DatabasePerformancePanel = () => {
           </div>
         )}
 
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Manual Index Creation Required</h4>
-          <p className="text-sm text-blue-800 mb-3">
+        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+          <h4 className="font-medium text-amber-900 mb-2 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Manual Index Creation Required
+          </h4>
+          <p className="text-sm text-amber-800 mb-3">
             Due to transaction block limitations, indexes must be created manually. 
             Run these commands individually in your Supabase SQL editor:
           </p>
-          <div className="bg-white p-3 rounded border text-xs font-mono">
+          <div className="bg-white p-3 rounded border text-xs font-mono space-y-1">
             <div className="text-blue-600 mb-1">-- Core transaction indexes:</div>
             <div>CREATE INDEX CONCURRENTLY idx_transactions_agent_id ON transactions (agent_id);</div>
             <div>CREATE INDEX CONCURRENTLY idx_transactions_status ON transactions (status);</div>
