@@ -1,16 +1,25 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": process.env.NODE_ENV === 'production' ? "https://your-domain.com" : "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
-interface XMLImportRequest {
-  xmlContent: string;
-  filename: string;
-}
+// Rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 20; // Lower limit for XML imports due to intensive processing
+const RATE_WINDOW = 60 * 1000;
+
+// Input validation
+const XMLImportRequestSchema = z.object({
+  xmlContent: z.string().min(1),
+  filename: z.string().min(1).max(200),
+});
 
 interface TaskTemplateEntry {
   taskTemplateEntryId: string;
@@ -43,16 +52,55 @@ interface TaskTemplateEntry {
   };
 }
 
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (entry.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
+}
+
 const handler = async (req: Request): Promise<Response> => {
+  const startTime = Date.now();
+  const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  
+  console.log(`[${new Date().toISOString()}] ${req.method} request from IP: ${clientIP}`);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // Rate limiting
+    if (!checkRateLimit(clientIP)) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded for XML imports" }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing required environment variables');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -78,7 +126,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Only coordinators can import templates");
     }
 
-    const { xmlContent, filename }: XMLImportRequest = await req.json();
+    // Validate request body
+    const requestBody = await req.json();
+    const { xmlContent, filename } = XMLImportRequestSchema.parse(requestBody);
 
     console.log(`Starting XML import for file: ${filename}`);
 
@@ -105,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
     let emailsImported = 0;
 
     try {
-      // Parse XML content using HTML parser for better Deno compatibility
+      // Parse XML content
       console.log('Parsing XML content...');
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlContent, "text/html");
@@ -135,7 +185,7 @@ const handler = async (req: Request): Promise<Response> => {
             continue;
           }
 
-          // Enhanced template type mapping with better logic
+          // Enhanced template type mapping
           let mappedType = 'General';
           const nameLower = name.toLowerCase();
           const folderLower = folderName.toLowerCase();
@@ -185,7 +235,7 @@ const handler = async (req: Request): Promise<Response> => {
           templatesImported++;
           console.log(`Created template: ${name} (ID: ${workflowTemplate.id})`);
 
-          // Process template entries (tasks) with enhanced mapping
+          // Process template entries (tasks)
           const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
           console.log(`Processing ${templateEntries.length} tasks for template: ${name}`);
           
@@ -198,14 +248,13 @@ const handler = async (req: Request): Promise<Response> => {
                 continue;
               }
 
-              // Enhanced due date rule creation with better mapping
               const dueDateRule = createEnhancedDueDateRule(entry);
 
-              // Handle email template if present with enhanced processing
+              // Handle email template if present
               let emailTemplateId = null;
               if (entry.letterTemplate && entry.letterTemplate.name.trim()) {
                 try {
-                  // Check for existing email template to avoid duplicates
+                  // Check for existing email template
                   const { data: existingEmail } = await supabaseClient
                     .from('email_templates')
                     .select('id')
@@ -216,7 +265,6 @@ const handler = async (req: Request): Promise<Response> => {
                     emailTemplateId = existingEmail.id;
                     console.log(`Using existing email template: ${entry.letterTemplate.name}`);
                   } else {
-                    // Process HTML content to handle XML encoding
                     const processedHtmlText = processEmailHtmlContent(entry.letterTemplate.htmlText);
                     
                     const { data: emailTemplate, error: emailError } = await supabaseClient
@@ -234,7 +282,6 @@ const handler = async (req: Request): Promise<Response> => {
                     if (!emailError && emailTemplate) {
                       emailTemplateId = emailTemplate.id;
                       
-                      // Track imported email template with enhanced metadata
                       await supabaseClient
                         .from('imported_email_templates')
                         .insert({
@@ -260,7 +307,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
               }
 
-              // Create template task with enhanced property mapping
+              // Create template task
               const { error: taskError } = await supabaseClient
                 .from('template_tasks')
                 .insert({
@@ -293,14 +340,12 @@ const handler = async (req: Request): Promise<Response> => {
               console.log(`Created task: ${entry.subject}`);
             } catch (taskErr) {
               console.error(`Error processing task ${index + 1} in template "${name}":`, taskErr);
-              // Continue with other tasks instead of failing the entire import
             }
           }
 
           console.log(`Completed template: ${name} (${templateEntries.length} tasks processed)`);
         } catch (templateErr) {
           console.error(`Error processing template ${templateIndex + 1}:`, templateErr);
-          // Continue with other templates instead of failing the entire import
         }
       }
 
@@ -316,7 +361,8 @@ const handler = async (req: Request): Promise<Response> => {
         })
         .eq('id', importRecord.id);
 
-      console.log(`Import completed successfully: ${templatesImported} templates, ${tasksImported} tasks, ${emailsImported} emails`);
+      const duration = Date.now() - startTime;
+      console.log(`[${new Date().toISOString()}] Import completed successfully in ${duration}ms: ${templatesImported} templates, ${tasksImported} tasks, ${emailsImported} emails`);
 
       return new Response(
         JSON.stringify({
@@ -351,7 +397,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
   } catch (error: any) {
-    console.error("Error in xml-template-import function:", error);
+    const duration = Date.now() - startTime;
+    console.error(`[${new Date().toISOString()}] Error in xml-template-import function (${duration}ms):`, {
+      error: error.message,
+      stack: error.stack,
+      ip: clientIP
+    });
+    
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -361,7 +413,9 @@ const handler = async (req: Request): Promise<Response> => {
         emailsImported: 0
       }),
       {
-        status: 500,
+        status: error.message.includes("Rate limit") ? 429 : 
+               error.message.includes("not authenticated") ? 401 :
+               error.message.includes("Only coordinators") ? 403 : 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
@@ -388,14 +442,13 @@ function parseTemplateEntry(entryElement: Element): TaskTemplateEntry {
     milestone: getBool('milestone'),
     reminderSet: getBool('reminderSet'),
     reminderDelta: getNum('reminderDelta'),
-    reminderTimeMinutes: getNum('reminderTimeMinutes') || 540, // Default to 9:00 AM
+    reminderTimeMinutes: getNum('reminderTimeMinutes') || 540,
     xactionSideBuyer: getBool('xactionSideBuyer'),
     xactionSideSeller: getBool('xactionSideSeller'),
     xactionSideDual: getBool('xactionSideDual'),
     sort: getNum('sort')
   };
 
-  // Parse letter template if present
   const letterTemplate = entryElement.querySelector('letterTemplate');
   if (letterTemplate) {
     entry.letterTemplate = {
@@ -417,7 +470,6 @@ function createEnhancedDueDateRule(entry: TaskTemplateEntry) {
     return { type: 'no_due_date' };
   }
 
-  // Enhanced mapping of XML due date types to our system
   switch (entry.dueDateAdjustType) {
     case 'TEMPLATE_START_DATE':
     case 'CONTRACT_DATE':
@@ -453,7 +505,6 @@ function createEnhancedDueDateRule(entry: TaskTemplateEntry) {
         days: entry.dueDateAdjustDelta
       };
     default:
-      // Default to ratified date for unknown types
       console.warn(`Unknown due date adjust type: ${entry.dueDateAdjustType}, defaulting to ratified_date`);
       return {
         type: 'days_from_event',
@@ -464,7 +515,6 @@ function createEnhancedDueDateRule(entry: TaskTemplateEntry) {
 }
 
 function mapTaskType(xmlTaskType: string): string {
-  // Map XML task types to our system's task types
   const taskTypeMap: { [key: string]: string } = {
     'TODO': 'TODO',
     'CALL': 'CALL',
@@ -486,7 +536,6 @@ function mapTaskType(xmlTaskType: string): string {
 function processEmailHtmlContent(htmlText: string): string {
   if (!htmlText) return '';
   
-  // Since we're in Deno, we need to manually decode HTML entities
   let processedHtml = htmlText
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -496,7 +545,6 @@ function processEmailHtmlContent(htmlText: string): string {
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n');
   
-  // Ensure basic HTML structure if missing
   if (!processedHtml.includes('<html') && !processedHtml.includes('<body')) {
     processedHtml = `<html><body>${processedHtml}</body></html>`;
   }

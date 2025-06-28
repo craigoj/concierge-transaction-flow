@@ -1,20 +1,45 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin": process.env.NODE_ENV === 'production' ? "https://your-domain.com" : "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
-interface CreateAgentRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;
-  brokerage?: string;
-  isResend?: boolean;
+// Rate limiting storage
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 100; // requests per minute
+const RATE_WINDOW = 60 * 1000; // 1 minute in milliseconds
+
+// Input validation schemas
+const CreateAgentSchema = z.object({
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  email: z.string().email(),
+  phoneNumber: z.string().optional(),
+  brokerage: z.string().optional(),
+  isResend: z.boolean().optional().default(false),
+});
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (entry.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
 }
 
 const sendWelcomeEmail = async (email: string, firstName: string, lastName: string) => {
@@ -25,7 +50,7 @@ const sendWelcomeEmail = async (email: string, firstName: string, lastName: stri
   }
 
   try {
-    const portalUrl = 'https://0bfc22b0-8528-4f58-aca1-98f16c16dad6.lovableproject.com';
+    const portalUrl = Deno.env.get('FRONTEND_URL') || Deno.env.get('SUPABASE_URL');
     
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -65,35 +90,49 @@ const sendWelcomeEmail = async (email: string, firstName: string, lastName: stri
     return result;
   } catch (error) {
     console.error('Error sending welcome email:', error);
-    // Don't throw here - we don't want email failures to block agent creation
   }
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Request method:", req.method);
-  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+  const startTime = Date.now();
+  const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  
+  console.log(`[${new Date().toISOString()}] ${req.method} request from IP: ${clientIP}`);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // Rate limiting
+    if (!checkRateLimit(clientIP)) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate required environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing required environment variables");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
-    
     if (!authHeader) {
       throw new Error("Authorization header required");
     }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    console.log("User authenticated:", !!user, "Auth error:", authError);
     
     if (authError || !user) {
       throw new Error("Invalid authentication");
@@ -106,21 +145,17 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", user.id)
       .single();
 
-    console.log("User role:", coordinatorProfile?.role, "Profile error:", profileError);
-
     if (profileError || coordinatorProfile?.role !== "coordinator") {
       throw new Error("Unauthorized: Only coordinators can create agent invitations");
     }
 
+    // Validate request body
     const requestBody = await req.json();
-    console.log("Request body:", requestBody);
-    
-    const { firstName, lastName, email, phoneNumber, brokerage, isResend }: CreateAgentRequest = requestBody;
+    const validatedData = CreateAgentSchema.parse(requestBody);
+    const { firstName, lastName, email, phoneNumber, brokerage, isResend } = validatedData;
 
     if (isResend) {
-      // For resend, find existing agent and update invitation details
-      console.log("Resending invitation for email:", email);
-      
+      // Handle resend logic
       const { data: existingAgent, error: findError } = await supabase
         .from("profiles")
         .select("id")
@@ -132,10 +167,8 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Agent not found for resend");
       }
 
-      // Generate new invitation token
       const invitationToken = crypto.randomUUID();
       
-      // Update the profile with new invitation details
       const { error: updateProfileError } = await supabase
         .from("profiles")
         .update({
@@ -147,12 +180,11 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", existingAgent.id);
 
       if (updateProfileError) {
-        console.log("Failed to update profile for resend:", updateProfileError.message);
+        console.error("Failed to update profile for resend:", updateProfileError);
         throw new Error("Failed to update invitation details");
       }
 
-      // Update invitation record
-      const { error: invitationError } = await supabase
+      await supabase
         .from("agent_invitations")
         .update({
           invitation_token: invitationToken,
@@ -161,16 +193,10 @@ const handler = async (req: Request): Promise<Response> => {
         })
         .eq("agent_id", existingAgent.id);
 
-      if (invitationError) {
-        console.log("Failed to update invitation record:", invitationError.message);
-        // Don't throw here as the profile was updated successfully
-      }
-
-      // Send welcome email for resend
-      console.log("Sending welcome email for resend...");
       await sendWelcomeEmail(email, firstName, lastName);
 
-      console.log("Agent invitation resent successfully for agent ID:", existingAgent.id);
+      const duration = Date.now() - startTime;
+      console.log(`[${new Date().toISOString()}] Request completed successfully in ${duration}ms`);
 
       return new Response(
         JSON.stringify({ 
@@ -186,11 +212,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Original create logic for new agents
+    // Create new agent
     const invitationToken = crypto.randomUUID();
     const tempPassword = crypto.randomUUID();
-    
-    console.log("Creating user with email:", email);
     
     const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
       email,
@@ -205,13 +229,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    console.log("User creation result:", !!newUser.user, "Error:", createUserError);
-
     if (createUserError || !newUser.user) {
       throw new Error(`Failed to create user: ${createUserError?.message}`);
     }
 
-    // Update the profile with invitation details
     const { error: updateProfileError } = await supabase
       .from("profiles")
       .update({
@@ -222,13 +243,10 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq("id", newUser.user.id);
 
-    console.log("Profile update error:", updateProfileError);
-
     if (updateProfileError) {
-      console.log("Failed to update profile:", updateProfileError.message);
+      console.error("Failed to update profile:", updateProfileError);
     }
 
-    // Create invitation record
     const { error: invitationError } = await supabase
       .from("agent_invitations")
       .insert({
@@ -239,21 +257,14 @@ const handler = async (req: Request): Promise<Response> => {
         status: "sent"
       });
 
-    console.log("Invitation record error:", invitationError);
-
     if (invitationError) {
-      console.log("Failed to create invitation record:", invitationError.message);
+      console.error("Failed to create invitation record:", invitationError);
     }
 
-    // Send welcome email for new agent
-    console.log("Sending welcome email for new agent...");
     await sendWelcomeEmail(email, firstName, lastName);
 
-    console.log("Agent invitation created successfully:", {
-      agentId: newUser.user.id,
-      email,
-      invitationToken
-    });
+    const duration = Date.now() - startTime;
+    console.log(`[${new Date().toISOString()}] Request completed successfully in ${duration}ms`);
 
     return new Response(
       JSON.stringify({ 
@@ -268,14 +279,22 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in create-agent-invitation function:", error);
+    const duration = Date.now() - startTime;
+    console.error(`[${new Date().toISOString()}] Error in create-agent-invitation function (${duration}ms):`, {
+      error: error.message,
+      stack: error.stack,
+      ip: clientIP
+    });
+    
     return new Response(
       JSON.stringify({ 
         error: error.message,
         details: "Check function logs for more information"
       }),
       {
-        status: 500,
+        status: error.message.includes("Rate limit") ? 429 : 
+               error.message.includes("Unauthorized") ? 403 :
+               error.message.includes("Invalid authentication") ? 401 : 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
