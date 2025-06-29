@@ -1,8 +1,6 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import { useAuth } from '@/integrations/supabase/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { FormRateLimiter, CSRFTokenManager, FieldEncryption } from '@/lib/validation/securityUtils';
 
 interface ValidationCache {
@@ -168,27 +166,42 @@ export const useAdvancedFormValidation = (formId: string) => {
     }
   }, [validateFieldProgressive]);
 
-  // Smart validation suggestions based on user history
+  // Smart validation suggestions based on local storage (simplified)
   const getValidationSuggestions = useCallback(async (field: string, value: string) => {
     if (!user?.id || value.length < 2) return [];
 
     try {
-      // Get user's historical successful values for this field type
-      const { data, error } = await supabase
-        .from('form_analytics')
-        .select('field_value')
-        .eq('user_id', user.id)
-        .eq('field_name', field)
-        .eq('validation_success', true)
-        .ilike('field_value', `${value}%`)
-        .limit(5);
-
-      if (error) throw error;
-
-      return data?.map(item => item.field_value) || [];
+      // Use local storage for suggestions since form_analytics table doesn't exist
+      const storageKey = `validation_suggestions_${user.id}_${field}`;
+      const stored = localStorage.getItem(storageKey);
+      const suggestions = stored ? JSON.parse(stored) : [];
+      
+      return suggestions
+        .filter((s: string) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
+        .slice(0, 5);
     } catch (error) {
       console.error('Error getting validation suggestions:', error);
       return [];
+    }
+  }, [user?.id]);
+
+  // Store successful values for future suggestions
+  const storeSuccessfulValue = useCallback((field: string, value: string) => {
+    if (!user?.id || !value) return;
+
+    try {
+      const storageKey = `validation_suggestions_${user.id}_${field}`;
+      const stored = localStorage.getItem(storageKey);
+      const suggestions = stored ? JSON.parse(stored) : [];
+      
+      if (!suggestions.includes(value)) {
+        suggestions.push(value);
+        // Keep only last 10 suggestions
+        const limited = suggestions.slice(-10);
+        localStorage.setItem(storageKey, JSON.stringify(limited));
+      }
+    } catch (error) {
+      console.error('Error storing validation suggestion:', error);
     }
   }, [user?.id]);
 
@@ -247,6 +260,7 @@ export const useAdvancedFormValidation = (formId: string) => {
     getContextualValidation,
     getCSRFToken,
     validateCSRFToken,
+    storeSuccessfulValue,
     metrics,
     isRateLimited,
     remainingAttempts: FormRateLimiter.getRemainingAttempts(formId),

@@ -48,6 +48,7 @@ export const SmartValidatedInput = ({
     addToBatch,
     getValidationSuggestions,
     getContextualValidation,
+    storeSuccessfulValue,
     metrics
   } = useAdvancedFormValidation(formId);
 
@@ -82,6 +83,11 @@ export const SmartValidatedInput = ({
         const finalError = clientError || contextError;
         setError(finalError);
 
+        // Store successful validation for suggestions
+        if (!finalError) {
+          storeSuccessfulValue(name, value);
+        }
+
         // Track validation history for analytics
         setValidationHistory(prev => [...prev.slice(-4), finalError || 'success']);
         
@@ -95,7 +101,7 @@ export const SmartValidatedInput = ({
 
     const debounceTimer = setTimeout(validateAsync, 300);
     return () => clearTimeout(debounceTimer);
-  }, [value, name, schema, hasBeenTouched, enableProgressiveValidation, enableContextualValidation]);
+  }, [value, name, schema, hasBeenTouched, enableProgressiveValidation, enableContextualValidation, validateFieldProgressive, getContextualValidation, storeSuccessfulValue, securityLevel]);
 
   // Get smart suggestions
   useEffect(() => {
