@@ -46,28 +46,6 @@ export const fadeVariants = {
   }
 };
 
-export const shakeVariants = {
-  shake: {
-    x: [-10, 10, -10, 10, 0],
-    transition: {
-      duration: 0.5,
-      ease: "easeInOut"
-    }
-  }
-};
-
-export const celebrationVariants = {
-  initial: { scale: 1 },
-  celebrate: {
-    scale: [1, 1.2, 1],
-    rotate: [0, 10, -10, 0],
-    transition: {
-      duration: 0.6,
-      ease: "easeInOut"
-    }
-  }
-};
-
 // Step Transition Wrapper
 interface StepTransitionProps {
   children: React.ReactNode;
@@ -137,7 +115,13 @@ export const ErrorMessage = ({ message, isVisible }: ErrorMessageProps) => (
           opacity: 1, 
           height: "auto", 
           y: 0,
-          transition: { duration: 0.3, ease: "easeOut" }
+          x: [-10, 10, -10, 10, 0],
+          transition: { 
+            opacity: { duration: 0.3, ease: "easeOut" },
+            height: { duration: 0.3, ease: "easeOut" },
+            y: { duration: 0.3, ease: "easeOut" },
+            x: { duration: 0.5, ease: "easeInOut" }
+          }
         }}
         exit={{ 
           opacity: 0, 
@@ -145,8 +129,6 @@ export const ErrorMessage = ({ message, isVisible }: ErrorMessageProps) => (
           y: -10,
           transition: { duration: 0.2, ease: "easeIn" }
         }}
-        variants={shakeVariants}
-        animate={isVisible ? "shake" : ""}
         className="text-sm text-red-600 flex items-center gap-1 overflow-hidden"
       >
         <motion.span
@@ -175,9 +157,15 @@ export const SuccessMessage = ({ message, isVisible }: SuccessMessageProps) => (
         initial={{ opacity: 0, scale: 0.8, y: 10 }}
         animate={{ 
           opacity: 1, 
-          scale: 1, 
+          scale: [0.8, 1.2, 1], 
           y: 0,
-          transition: { duration: 0.4, ease: "easeOut" }
+          rotate: [0, 10, -10, 0],
+          transition: { 
+            opacity: { duration: 0.4, ease: "easeOut" },
+            scale: { duration: 0.6, ease: "easeInOut" },
+            y: { duration: 0.4, ease: "easeOut" },
+            rotate: { duration: 0.6, ease: "easeInOut" }
+          }
         }}
         exit={{ 
           opacity: 0, 
@@ -185,8 +173,6 @@ export const SuccessMessage = ({ message, isVisible }: SuccessMessageProps) => (
           y: 10,
           transition: { duration: 0.2 }
         }}
-        variants={celebrationVariants}
-        animate="celebrate"
         className="text-sm text-green-600 flex items-center gap-1"
       >
         <motion.span
