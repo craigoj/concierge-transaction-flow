@@ -28,6 +28,7 @@ const vendorTypes = [
 ];
 
 const vendorSchema = z.object({
+  id: z.string().optional(),
   company_name: z.string().min(1, 'Company name is required'),
   contact_name: z.string().optional(),
   email: z.string().email('Invalid email format').optional().or(z.literal('')),
