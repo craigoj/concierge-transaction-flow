@@ -16,6 +16,8 @@ import Settings from '@/pages/Settings';
 import Profile from '@/pages/Profile';
 import OfferDrafting from '@/pages/OfferDrafting';
 import ServiceTierSelection from '@/pages/ServiceTierSelection';
+import AgentDashboard from '@/pages/agent/AgentDashboard';
+import AgentTransactionDetail from '@/pages/agent/TransactionDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,27 +32,107 @@ function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <Routes>
-          {/* Auth page - not protected */}
+          {/* Public auth route */}
           <Route path="/auth" element={<Auth />} />
           
-          {/* All other routes - protected by AuthGuard */}
-          <Route path="/*" element={
+          {/* Protected coordinator routes */}
+          <Route path="/" element={
             <AuthGuard>
               <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/transactions/:transactionId" element={<TransactionDetail />} />
-                  <Route path="/transactions/:transactionId/service-tier" element={<ServiceTierSelection />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/clients" element={<Clients />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/offer-drafting" element={<OfferDrafting />} />
-                  <Route path="/transactions/:transactionId/offer-drafting" element={<OfferDrafting />} />
-                </Routes>
+                <Dashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/dashboard" element={
+            <AuthGuard>
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <Transactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId" element={
+            <AuthGuard>
+              <AppLayout>
+                <TransactionDetail />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId/service-tier" element={
+            <AuthGuard>
+              <AppLayout>
+                <ServiceTierSelection />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId/offer-drafting" element={
+            <AuthGuard>
+              <AppLayout>
+                <OfferDrafting />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/tasks" element={
+            <AuthGuard>
+              <AppLayout>
+                <Tasks />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/documents" element={
+            <AuthGuard>
+              <AppLayout>
+                <Documents />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/clients" element={
+            <AuthGuard>
+              <AppLayout>
+                <Clients />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/settings" element={
+            <AuthGuard>
+              <AppLayout>
+                <Settings />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/profile" element={
+            <AuthGuard>
+              <AppLayout>
+                <Profile />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/offer-drafting" element={
+            <AuthGuard>
+              <AppLayout>
+                <OfferDrafting />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Protected agent routes */}
+          <Route path="/agent/dashboard" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentDashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/transactions/:transactionId" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTransactionDetail />
               </AppLayout>
             </AuthGuard>
           } />
