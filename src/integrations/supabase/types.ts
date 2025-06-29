@@ -50,6 +50,57 @@ export type Database = {
           },
         ]
       }
+      agent_branding: {
+        Row: {
+          agent_id: string
+          birthday: string | null
+          canva_template_url: string | null
+          created_at: string
+          drinks_alcohol: boolean | null
+          drinks_coffee: boolean | null
+          favorite_color: string | null
+          has_branded_sign: string | null
+          has_canva_template: string | null
+          id: string
+          review_link: string
+          sign_notes: string | null
+          social_media_permission: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          birthday?: string | null
+          canva_template_url?: string | null
+          created_at?: string
+          drinks_alcohol?: boolean | null
+          drinks_coffee?: boolean | null
+          favorite_color?: string | null
+          has_branded_sign?: string | null
+          has_canva_template?: string | null
+          id?: string
+          review_link: string
+          sign_notes?: string | null
+          social_media_permission?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          birthday?: string | null
+          canva_template_url?: string | null
+          created_at?: string
+          drinks_alcohol?: boolean | null
+          drinks_coffee?: boolean | null
+          favorite_color?: string | null
+          has_branded_sign?: string | null
+          has_canva_template?: string | null
+          id?: string
+          review_link?: string
+          sign_notes?: string | null
+          social_media_permission?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_invitations: {
         Row: {
           accepted_at: string | null
