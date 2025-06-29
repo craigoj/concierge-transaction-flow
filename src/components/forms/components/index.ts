@@ -1,4 +1,3 @@
-
 // Form Components Export
 export { VendorCard } from './VendorCard';
 export { CurrencyInput } from './CurrencyInput';
@@ -49,3 +48,15 @@ export type {
   OfferRequest,
   ServiceTierType
 } from '../../../hooks/useFormState';
+
+// Navigation Integration Components
+export { FormNavigationIntegration } from '../../navigation/FormNavigationIntegration';
+
+// Enhanced Transaction Components
+export { EnhancedCreateTransactionDialog } from '../../transactions/EnhancedCreateTransactionDialog';
+
+// Workflow Integration
+export { FormWorkflowIntegration, useWorkflowIntegration } from '../../workflows/FormWorkflowIntegration';
+
+// Profile Sync Hook
+export { useProfileSync } from '../../../hooks/useProfileSync';
