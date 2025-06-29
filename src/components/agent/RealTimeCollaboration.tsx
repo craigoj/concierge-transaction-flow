@@ -39,7 +39,7 @@ interface ActivityUpdate {
 }
 
 const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) => {
-  const [presenceData, setPresenceData] = useState<Record<string, PresenceState>>({});
+  const [presenceData, setPresenceData] = useState<Record<string, PresenceState[]>>({});
   const [activityFeed, setActivityFeed] = useState<ActivityUpdate[]>([]);
   const [message, setMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -50,21 +50,36 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
       .channel(`transaction-${transactionId}`)
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        setPresenceData(state);
+        // Transform the presence state to match our interface
+        const transformedState: Record<string, PresenceState[]> = {};
+        for (const [key, presences] of Object.entries(state)) {
+          transformedState[key] = presences.map((presence: any) => ({
+            user_id: presence.user_id,
+            user_name: presence.user_name,
+            user_role: presence.user_role,
+            last_seen: presence.last_seen,
+            current_section: presence.current_section
+          }));
+        }
+        setPresenceData(transformedState);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        const user = newPresences[0] as PresenceState;
-        toast({
-          title: "User Joined",
-          description: `${user.user_name} is now viewing this transaction`,
-        });
+        const user = newPresences[0] as any;
+        if (user && user.user_name) {
+          toast({
+            title: "User Joined",
+            description: `${user.user_name} is now viewing this transaction`,
+          });
+        }
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        const user = leftPresences[0] as PresenceState;
-        toast({
-          title: "User Left",
-          description: `${user.user_name} has left the transaction`,
-        });
+        const user = leftPresences[0] as any;
+        if (user && user.user_name) {
+          toast({
+            title: "User Left",
+            description: `${user.user_name} has left the transaction`,
+          });
+        }
       })
       .on('broadcast', { event: 'activity' }, ({ payload }) => {
         setActivityFeed(prev => [payload as ActivityUpdate, ...prev.slice(0, 9)]);

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,7 +62,7 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
         .from('tasks')
         .select('*')
         .eq('transaction_id', transactionId)
-        .order('due_date', { ascending: true, nullsLast: true });
+        .order('due_date', { ascending: true, nullsFirst: false });
 
       const { data, error } = await query;
       if (error) throw error;
