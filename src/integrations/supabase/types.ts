@@ -101,6 +101,51 @@ export type Database = {
           },
         ]
       }
+      agent_vendors: {
+        Row: {
+          address: string | null
+          agent_id: string
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          vendor_type: string
+        }
+        Insert: {
+          address?: string | null
+          agent_id: string
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_type: string
+        }
+        Update: {
+          address?: string | null
+          agent_id?: string
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_type?: string
+        }
+        Relationships: []
+      }
       automation_audit_logs: {
         Row: {
           action: string

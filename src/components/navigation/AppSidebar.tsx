@@ -1,5 +1,5 @@
 
-import { Home, FileText, Users, MessageCircle, Settings, BarChart3, Calendar, Workflow, Database } from "lucide-react";
+import { Home, FileText, Users, MessageCircle, Settings, BarChart3, Calendar, Workflow, Database, UserPlus } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -50,6 +50,11 @@ const managementItems = [
     title: "Agents",
     url: "/agents",
     icon: Users,
+  },
+  {
+    title: "Agent Intake",
+    url: "/agent-intake",
+    icon: UserPlus,
   },
   {
     title: "Workflows",

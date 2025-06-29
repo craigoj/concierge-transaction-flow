@@ -26,6 +26,7 @@ import Profile from '@/pages/Profile';
 import Search from '@/pages/Search';
 import DemoSetup from '@/pages/DemoSetup';
 import AutomationDashboard from '@/pages/AutomationDashboard';
+import AgentIntake from '@/pages/AgentIntake';
 
 // Agent portal pages
 import AgentDashboard from '@/pages/agent/AgentDashboard';
@@ -111,6 +112,13 @@ function App() {
               <Route path="/agents/:id" element={
                 <AuthGuard>
                   <AgentDetail />
+                </AuthGuard>
+              } />
+              
+              {/* Agent Intake - protected */}
+              <Route path="/agent-intake" element={
+                <AuthGuard>
+                  <AgentIntake />
                 </AuthGuard>
               } />
               
