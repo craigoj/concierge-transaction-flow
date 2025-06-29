@@ -1323,6 +1323,47 @@ export type Database = {
           },
         ]
       }
+      transaction_service_details: {
+        Row: {
+          add_ons: Json | null
+          base_service_fee: number
+          created_at: string
+          id: string
+          selected_features: Json
+          total_service_cost: number
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          add_ons?: Json | null
+          base_service_fee?: number
+          created_at?: string
+          id?: string
+          selected_features?: Json
+          total_service_cost?: number
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          add_ons?: Json | null
+          base_service_fee?: number
+          created_at?: string
+          id?: string
+          selected_features?: Json
+          total_service_cost?: number
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_service_details_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           agent_id: string

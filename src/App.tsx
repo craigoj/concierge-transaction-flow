@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,6 +13,7 @@ import Clients from '@/pages/Clients';
 import Settings from '@/pages/Settings';
 import Profile from '@/pages/Profile';
 import OfferDrafting from '@/pages/OfferDrafting';
+import ServiceTierSelection from '@/pages/ServiceTierSelection';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +34,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/transactions/:transactionId" element={<TransactionDetail />} />
+              <Route path="/transactions/:transactionId/service-tier" element={<ServiceTierSelection />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/clients" element={<Clients />} />
@@ -43,7 +44,6 @@ function App() {
               {/* Add the new offer drafting route */}
               <Route path="/offer-drafting" element={<OfferDrafting />} />
               <Route path="/transactions/:transactionId/offer-drafting" element={<OfferDrafting />} />
-              
             </Routes>
           </AppLayout>
         </AuthGuard>
