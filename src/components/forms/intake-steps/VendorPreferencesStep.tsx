@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,19 +69,19 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   const { toast } = useToast();
   const [openSections, setOpenSections] = useState<string[]>(['lender']);
   const [isLoading, setIsLoading] = useState(false);
+  const [vendorsData, setVendorsData] = useState<VendorsData>(
+    vendorTypes.reduce((acc, type) => ({
+      ...acc,
+      [type.key]: initialData?.[type.key] || []
+    }), {} as VendorsData)
+  );
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      vendors: vendorTypes.reduce((acc, type) => ({
-        ...acc,
-        [type.key]: initialData?.[type.key] || []
-      }), {} as VendorsData)
+      vendors: vendorsData
     }
   });
-
-  const { watch, setValue, getValues } = form;
-  const watchedVendors = watch('vendors');
 
   // Load existing vendor data
   useEffect(() => {
@@ -115,7 +114,8 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
             return acc;
           }, {} as VendorsData);
 
-          setValue('vendors', { ...getValues('vendors'), ...groupedVendors });
+          setVendorsData({ ...vendorsData, ...groupedVendors });
+          form.reset({ vendors: { ...vendorsData, ...groupedVendors } });
         }
       } catch (error) {
         console.error('Error loading vendor data:', error);
@@ -128,7 +128,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
     };
 
     loadVendorData();
-  }, [user?.id, setValue, getValues, toast]);
+  }, [user?.id, toast]);
 
   const toggleSection = (sectionKey: string) => {
     setOpenSections(prev => 
@@ -139,7 +139,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   };
 
   const addVendor = (vendorType: string) => {
-    const currentVendors = watchedVendors[vendorType] || [];
+    const currentVendors = vendorsData[vendorType] || [];
     const newVendor: VendorFormData = {
       company_name: '',
       contact_name: '',
@@ -149,7 +149,12 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
       notes: '',
       is_primary: currentVendors.length === 0
     };
-    setValue(`vendors.${vendorType}`, [...currentVendors, newVendor]);
+    
+    const updatedVendors = [...currentVendors, newVendor];
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
     
     // Open the section if it's not already open
     if (!openSections.includes(vendorType)) {
@@ -158,7 +163,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   };
 
   const removeVendor = (vendorType: string, index: number) => {
-    const currentVendors = watchedVendors[vendorType] || [];
+    const currentVendors = vendorsData[vendorType] || [];
     const updatedVendors = currentVendors.filter((_, i) => i !== index);
     
     // If we're removing the primary vendor, make the first remaining vendor primary
@@ -166,23 +171,31 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
       updatedVendors[0].is_primary = true;
     }
     
-    setValue(`vendors.${vendorType}`, updatedVendors);
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
   };
 
   const setPrimaryVendor = (vendorType: string, index: number) => {
-    const currentVendors = watchedVendors[vendorType] || [];
+    const currentVendors = vendorsData[vendorType] || [];
     const updatedVendors = currentVendors.map((vendor, i) => ({
       ...vendor,
       is_primary: i === index
     }));
-    setValue(`vendors.${vendorType}`, updatedVendors);
+    
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
   };
 
   const updateVendorField = (vendorType: string, index: number, field: keyof VendorFormData, value: string | boolean) => {
-    const currentVendors = watchedVendors[vendorType] || [];
+    const currentVendors = vendorsData[vendorType] || [];
     const updatedVendors = [...currentVendors];
     updatedVendors[index] = { ...updatedVendors[index], [field]: value };
-    setValue(`vendors.${vendorType}`, updatedVendors);
+    
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
   };
 
   const handleSave = async (data: FormData) => {
@@ -250,6 +263,15 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
     }
   };
 
+  // Check if we have validation errors for required vendor types
+  const hasRequiredVendorErrors = () => {
+    const requiredTypes = vendorTypes.filter(t => t.required);
+    return requiredTypes.some(type => {
+      const vendors = vendorsData[type.key] || [];
+      return vendors.length === 0;
+    });
+  };
+
   return (
     <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
       <CardHeader>
@@ -262,193 +284,191 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
         </p>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
-            <div className="space-y-4">
-              {vendorTypes.map((vendorType) => {
-                const vendors = watchedVendors[vendorType.key] || [];
-                const isOpen = openSections.includes(vendorType.key);
-                const hasError = form.formState.errors.vendors && vendors.length === 0 && vendorType.required;
+        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
+          <div className="space-y-4">
+            {vendorTypes.map((vendorType) => {
+              const vendors = vendorsData[vendorType.key] || [];
+              const isOpen = openSections.includes(vendorType.key);
+              const hasError = vendors.length === 0 && vendorType.required;
 
-                return (
-                  <Collapsible key={vendorType.key} open={isOpen} onOpenChange={() => toggleSection(vendorType.key)}>
-                    <CollapsibleTrigger asChild>
-                      <div className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                        hasError 
-                          ? 'border-red-300 bg-red-50' 
-                          : isOpen 
-                          ? 'border-brand-charcoal bg-brand-charcoal text-brand-background' 
-                          : 'border-brand-taupe/30 bg-brand-background hover:border-brand-taupe hover:bg-brand-taupe/10'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <vendorType.icon className="h-5 w-5" />
-                          <div>
-                            <h4 className="font-brand-heading tracking-wide uppercase text-base">
-                              {vendorType.label}
-                              {vendorType.required && <span className="text-red-500 ml-1">*</span>}
-                            </h4>
-                            <p className="text-sm opacity-80">
-                              {vendors.length} vendor{vendors.length !== 1 ? 's' : ''} configured
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {hasError && <AlertCircle className="h-4 w-4 text-red-500" />}
-                          {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              return (
+                <Collapsible key={vendorType.key} open={isOpen} onOpenChange={() => toggleSection(vendorType.key)}>
+                  <CollapsibleTrigger asChild>
+                    <div className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                      hasError 
+                        ? 'border-red-300 bg-red-50' 
+                        : isOpen 
+                        ? 'border-brand-charcoal bg-brand-charcoal text-brand-background' 
+                        : 'border-brand-taupe/30 bg-brand-background hover:border-brand-taupe hover:bg-brand-taupe/10'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <vendorType.icon className="h-5 w-5" />
+                        <div>
+                          <h4 className="font-brand-heading tracking-wide uppercase text-base">
+                            {vendorType.label}
+                            {vendorType.required && <span className="text-red-500 ml-1">*</span>}
+                          </h4>
+                          <p className="text-sm opacity-80">
+                            {vendors.length} vendor{vendors.length !== 1 ? 's' : ''} configured
+                          </p>
                         </div>
                       </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-4">
-                      <div className="space-y-4 pl-4">
-                        {vendors.map((vendor, index) => (
-                          <div key={index} className="border border-brand-taupe/30 rounded-lg p-4 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h5 className="font-brand-heading text-sm tracking-wide uppercase text-brand-charcoal">
-                                Vendor #{index + 1}
-                              </h5>
-                              <div className="flex items-center gap-2">
-                                {vendors.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeVendor(vendorType.key, index)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
+                      <div className="flex items-center gap-2">
+                        {hasError && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <div className="space-y-4 pl-4">
+                      {vendors.map((vendor, index) => (
+                        <div key={index} className="border border-brand-taupe/30 rounded-lg p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-brand-heading text-sm tracking-wide uppercase text-brand-charcoal">
+                              Vendor #{index + 1}
+                            </h5>
+                            <div className="flex items-center gap-2">
+                              {vendors.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeVendor(vendorType.key, index)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
+                          </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                  Company Name <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                  value={vendor.company_name}
-                                  onChange={(e) => updateVendorField(vendorType.key, index, 'company_name', e.target.value)}
-                                  placeholder="Enter company name"
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                  Contact Name
-                                </Label>
-                                <Input
-                                  value={vendor.contact_name}
-                                  onChange={(e) => updateVendorField(vendorType.key, index, 'contact_name', e.target.value)}
-                                  placeholder="Enter contact name"
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                  Email
-                                </Label>
-                                <Input
-                                  type="email"
-                                  value={vendor.email}
-                                  onChange={(e) => updateVendorField(vendorType.key, index, 'email', e.target.value)}
-                                  placeholder="Enter email address"
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                  Phone
-                                </Label>
-                                <Input
-                                  type="tel"
-                                  value={vendor.phone}
-                                  onChange={(e) => updateVendorField(vendorType.key, index, 'phone', e.target.value)}
-                                  placeholder="Enter phone number"
-                                />
-                              </div>
-                            </div>
-
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Address
+                                Company Name <span className="text-red-500">*</span>
                               </Label>
                               <Input
-                                value={vendor.address}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'address', e.target.value)}
-                                placeholder="Enter full address"
+                                value={vendor.company_name}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'company_name', e.target.value)}
+                                placeholder="Enter company name"
                               />
                             </div>
 
                             <div className="space-y-2">
                               <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Notes
+                                Contact Name
                               </Label>
-                              <Textarea
-                                rows={2}
-                                value={vendor.notes}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'notes', e.target.value)}
-                                placeholder="Any additional notes..."
+                              <Input
+                                value={vendor.contact_name}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'contact_name', e.target.value)}
+                                placeholder="Enter contact name"
                               />
                             </div>
 
-                            {vendors.length > 1 && (
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  id={`primary-${vendorType.key}-${index}`}
-                                  name={`primary-${vendorType.key}`}
-                                  checked={vendor.is_primary}
-                                  onChange={() => setPrimaryVendor(vendorType.key, index)}
-                                  className="h-4 w-4 text-brand-charcoal"
-                                />
-                                <Label 
-                                  htmlFor={`primary-${vendorType.key}-${index}`}
-                                  className="font-brand-heading text-sm tracking-wide uppercase cursor-pointer"
-                                >
-                                  Primary Vendor
-                                </Label>
-                              </div>
-                            )}
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Email
+                              </Label>
+                              <Input
+                                type="email"
+                                value={vendor.email}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'email', e.target.value)}
+                                placeholder="Enter email address"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Phone
+                              </Label>
+                              <Input
+                                type="tel"
+                                value={vendor.phone}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'phone', e.target.value)}
+                                placeholder="Enter phone number"
+                              />
+                            </div>
                           </div>
-                        ))}
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => addVendor(vendorType.key)}
-                          className="w-full flex items-center gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add {vendorType.label}
-                        </Button>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })}
+                          <div className="space-y-2">
+                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                              Address
+                            </Label>
+                            <Input
+                              value={vendor.address}
+                              onChange={(e) => updateVendorField(vendorType.key, index, 'address', e.target.value)}
+                              placeholder="Enter full address"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                              Notes
+                            </Label>
+                            <Textarea
+                              rows={2}
+                              value={vendor.notes}
+                              onChange={(e) => updateVendorField(vendorType.key, index, 'notes', e.target.value)}
+                              placeholder="Any additional notes..."
+                            />
+                          </div>
+
+                          {vendors.length > 1 && (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id={`primary-${vendorType.key}-${index}`}
+                                name={`primary-${vendorType.key}`}
+                                checked={vendor.is_primary}
+                                onChange={() => setPrimaryVendor(vendorType.key, index)}
+                                className="h-4 w-4 text-brand-charcoal"
+                              />
+                              <Label 
+                                htmlFor={`primary-${vendorType.key}-${index}`}
+                                className="font-brand-heading text-sm tracking-wide uppercase cursor-pointer"
+                              >
+                                Primary Vendor
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => addVendor(vendorType.key)}
+                        className="w-full flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add {vendorType.label}
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+
+          {hasRequiredVendorErrors() && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <p className="text-sm text-red-600 font-brand-body">
+                Lender, Settlement Company, and Home Inspection are required
+              </p>
             </div>
+          )}
 
-            {form.formState.errors.vendors && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <p className="text-sm text-red-600 font-brand-body">
-                  {form.formState.errors.vendors.message}
-                </p>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-6">
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="min-w-32"
-              >
-                {isLoading ? 'Saving...' : 'Save & Continue'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+          <div className="flex justify-end pt-6">
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="min-w-32"
+            >
+              {isLoading ? 'Saving...' : 'Save & Continue'}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );
