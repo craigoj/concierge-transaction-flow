@@ -154,9 +154,36 @@ export const useFormState = (options: FormStateOptions = {}) => {
 
       setState(prev => ({
         ...prev,
-        vendorData: vendorData || [],
-        brandingData: brandingData || { review_link: '' },
-        intakeSession: intakeSession || { status: 'in_progress', completion_percentage: 0 },
+        vendorData: vendorData?.map(v => ({
+          id: v.id,
+          vendor_type: v.vendor_type,
+          company_name: v.company_name,
+          contact_name: v.contact_name || undefined,
+          email: v.email || undefined,
+          phone: v.phone || undefined,
+          address: v.address || undefined,
+          notes: v.notes || undefined,
+          is_primary: v.is_primary
+        })) || [],
+        brandingData: brandingData ? {
+          has_branded_sign: brandingData.has_branded_sign || undefined,
+          sign_notes: brandingData.sign_notes || undefined,
+          review_link: brandingData.review_link,
+          has_canva_template: brandingData.has_canva_template || undefined,
+          canva_template_url: brandingData.canva_template_url || undefined,
+          favorite_color: brandingData.favorite_color || undefined,
+          drinks_coffee: brandingData.drinks_coffee || undefined,
+          drinks_alcohol: brandingData.drinks_alcohol || undefined,
+          birthday: brandingData.birthday || undefined,
+          social_media_permission: brandingData.social_media_permission || undefined
+        } : { review_link: '' },
+        intakeSession: intakeSession ? {
+          id: intakeSession.id,
+          status: (intakeSession.status as 'in_progress' | 'completed') || 'in_progress',
+          completion_percentage: intakeSession.completion_percentage || 0,
+          vendor_data: intakeSession.vendor_data as Record<string, any> || undefined,
+          branding_data: intakeSession.branding_data as Record<string, any> || undefined
+        } : { status: 'in_progress', completion_percentage: 0 },
         offerRequest: offerRequests || {}
       }));
 
@@ -186,7 +213,7 @@ export const useFormState = (options: FormStateOptions = {}) => {
     try {
       // Save intake session
       if (currentState.intakeSession) {
-        await supabase
+        const { error } = await supabase
           .from('agent_intake_sessions')
           .upsert({
             agent_id: user.id,
@@ -196,17 +223,21 @@ export const useFormState = (options: FormStateOptions = {}) => {
             branding_data: currentState.brandingData,
             updated_at: new Date().toISOString()
           });
+
+        if (error) throw error;
       }
 
       // Save branding data if complete
       if (currentState.brandingData.review_link) {
-        await supabase
+        const { error } = await supabase
           .from('agent_branding')
           .upsert({
             agent_id: user.id,
             ...currentState.brandingData,
             updated_at: new Date().toISOString()
           });
+
+        if (error) throw error;
       }
 
       lastSavedStateRef.current = stateSnapshot;

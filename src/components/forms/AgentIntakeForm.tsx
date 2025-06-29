@@ -81,6 +81,34 @@ const AgentIntakeFormContent = ({ onComplete }: AgentIntakeFormProps) => {
     setCurrentStep(stepNumber);
   };
 
+  // Convert AgentVendor[] to the format expected by VendorPreferencesStep
+  const convertVendorsToStepFormat = (vendors: any[]) => {
+    const grouped: Record<string, any[]> = {};
+    vendors.forEach(vendor => {
+      if (!grouped[vendor.vendor_type]) {
+        grouped[vendor.vendor_type] = [];
+      }
+      grouped[vendor.vendor_type].push(vendor);
+    });
+    return grouped;
+  };
+
+  // Convert AgentBranding to the format expected by BrandingPreferencesStep
+  const convertBrandingToStepFormat = (branding: any) => {
+    return {
+      has_branded_sign: branding.has_branded_sign || 'no',
+      sign_notes: branding.sign_notes || '',
+      review_link: branding.review_link || '',
+      has_canva_template: branding.has_canva_template || 'no',
+      canva_template_url: branding.canva_template_url || '',
+      favorite_color: branding.favorite_color || '#3C3C3C',
+      drinks_coffee: branding.drinks_coffee || false,
+      drinks_alcohol: branding.drinks_alcohol || false,
+      birthday: branding.birthday || '',
+      social_media_permission: branding.social_media_permission || false
+    };
+  };
+
   const progress = (currentStep / 3) * 100;
   const direction = currentStep > previousStep ? 1 : -1;
 
@@ -174,7 +202,7 @@ const AgentIntakeFormContent = ({ onComplete }: AgentIntakeFormProps) => {
               <VendorPreferencesStep
                 onComplete={(data) => handleStepComplete(1, data)}
                 onNext={handleNext}
-                initialData={vendorData}
+                initialData={convertVendorsToStepFormat(vendorData)}
               />
             )}
             {currentStep === 2 && (
@@ -182,8 +210,8 @@ const AgentIntakeFormContent = ({ onComplete }: AgentIntakeFormProps) => {
                 onComplete={(data) => handleStepComplete(2, data)}
                 onNext={handleNext}
                 onPrevious={handlePrevious}
-                initialData={brandingData}
-                onFieldChange={(field, value) => {
+                initialData={convertBrandingToStepFormat(brandingData)}
+                onFieldChange={async (field: string, value: any) => {
                   setValidationErrors({ ...validationErrors, [field]: '' });
                 }}
                 errors={validationErrors}
@@ -191,8 +219,8 @@ const AgentIntakeFormContent = ({ onComplete }: AgentIntakeFormProps) => {
             )}
             {currentStep === 3 && (
               <ReviewAndSubmitStep
-                vendorData={vendorData}
-                brandingData={brandingData}
+                vendorData={convertVendorsToStepFormat(vendorData)}
+                brandingData={convertBrandingToStepFormat(brandingData)}
                 onPrevious={handlePrevious}
                 onComplete={onComplete}
                 onEditStep={handleEditStep}
