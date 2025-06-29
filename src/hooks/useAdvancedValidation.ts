@@ -5,7 +5,7 @@ import { useAuth } from '@/integrations/supabase/auth';
 import { z } from 'zod';
 import { sanitizeInput } from '@/lib/validation/validators';
 
-interface ValidationRule {
+export interface ValidationRule {
   field: string;
   schema: z.ZodSchema<any>;
   serverValidator?: (value: any, context?: Record<string, any>) => Promise<string | null>;
@@ -221,44 +221,5 @@ export const useAdvancedValidation = (options: ValidationOptions) => {
     hasErrors: Object.values(result.errors).some(Boolean),
     hasWarnings: Object.values(result.warnings).some(Boolean),
     isValidatingAny: Object.values(result.isValidating).some(Boolean)
-  };
-};
-
-// Server validation functions
-export const createUniqueValidation = (table: string, field: string) => {
-  return async (value: any, context?: Record<string, any>): Promise<string | null> => {
-    if (!value) return null;
-
-    try {
-      const { data, error } = await supabase
-        .from(table)
-        .select('id')
-        .eq(field, value)
-        .limit(1);
-
-      if (error) {
-        console.error('Unique validation error:', error);
-        return null; // Don't fail validation due to server errors
-      }
-
-      return data && data.length > 0 ? `This ${field} is already in use` : null;
-    } catch (error) {
-      console.error('Unique validation error:', error);
-      return null;
-    }
-  };
-};
-
-export const createBusinessRuleValidation = (
-  rule: (value: any, context?: Record<string, any>) => boolean,
-  errorMessage: string
-) => {
-  return async (value: any, context?: Record<string, any>): Promise<string | null> => {
-    try {
-      return rule(value, context) ? null : errorMessage;
-    } catch (error) {
-      console.error('Business rule validation error:', error);
-      return null;
-    }
   };
 };

@@ -1,6 +1,7 @@
 
 import { z } from 'zod';
 import DOMPurify from 'dompurify';
+import { supabase } from '@/integrations/supabase/client';
 
 // Enhanced validation schemas
 export const emailSchema = z.string()
@@ -135,4 +136,43 @@ export const validateRateLimit = (
   const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
   const recentSubmissions = submissions.filter(s => s.timestamp > cutoff);
   return recentSubmissions.length < maxSubmissions;
+};
+
+// Server validation functions
+export const createUniqueValidation = (table: string, field: string) => {
+  return async (value: any, context?: Record<string, any>): Promise<string | null> => {
+    if (!value) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from(table as any)
+        .select('id')
+        .eq(field, value)
+        .limit(1);
+
+      if (error) {
+        console.error('Unique validation error:', error);
+        return null; // Don't fail validation due to server errors
+      }
+
+      return data && data.length > 0 ? `This ${field} is already in use` : null;
+    } catch (error) {
+      console.error('Unique validation error:', error);
+      return null;
+    }
+  };
+};
+
+export const createBusinessRuleValidation = (
+  rule: (value: any, context?: Record<string, any>) => boolean,
+  errorMessage: string
+) => {
+  return async (value: any, context?: Record<string, any>): Promise<string | null> => {
+    try {
+      return rule(value, context) ? null : errorMessage;
+    } catch (error) {
+      console.error('Business rule validation error:', error);
+      return null;
+    }
+  };
 };
