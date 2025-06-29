@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/integrations/supabase/auth';
@@ -211,7 +210,7 @@ export const useFormState = (options: FormStateOptions = {}) => {
     setState(prev => ({ ...prev, autoSaveStatus: 'saving' }));
 
     try {
-      // Save intake session
+      // Save intake session - Fix: Pass single object, not array
       if (currentState.intakeSession) {
         const { error } = await supabase
           .from('agent_intake_sessions')
