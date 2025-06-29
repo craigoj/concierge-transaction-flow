@@ -16,8 +16,14 @@ import Settings from '@/pages/Settings';
 import Profile from '@/pages/Profile';
 import OfferDrafting from '@/pages/OfferDrafting';
 import ServiceTierSelection from '@/pages/ServiceTierSelection';
+import Agents from '@/pages/Agents';
+import AgentIntake from '@/pages/AgentIntake';
 import AgentDashboard from '@/pages/agent/AgentDashboard';
 import AgentTransactionDetail from '@/pages/agent/TransactionDetail';
+import AgentTransactions from '@/pages/agent/AgentTransactions';
+import AgentTasks from '@/pages/agent/AgentTasks';
+import AgentClients from '@/pages/agent/AgentClients';
+import AgentCalendar from '@/pages/agent/AgentCalendar';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -102,6 +108,20 @@ function App() {
               </AppLayout>
             </AuthGuard>
           } />
+          <Route path="/agents" element={
+            <AuthGuard>
+              <AppLayout>
+                <Agents />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent-intake" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentIntake />
+              </AppLayout>
+            </AuthGuard>
+          } />
           <Route path="/settings" element={
             <AuthGuard>
               <AppLayout>
@@ -132,10 +152,38 @@ function App() {
               </AppLayout>
             </AuthGuard>
           } />
-          <Route path="/agent/transactions/:transactionId" element={
+          <Route path="/agent/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTransactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/transactions/:id" element={
             <AuthGuard>
               <AppLayout>
                 <AgentTransactionDetail />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/tasks" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTasks />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/clients" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentClients />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/calendar" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentCalendar />
               </AppLayout>
             </AuthGuard>
           } />
