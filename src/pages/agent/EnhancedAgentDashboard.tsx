@@ -82,7 +82,17 @@ const EnhancedAgentDashboard = () => {
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-8">
+      {/* Mobile-optimized view for smaller screens */}
+      <div className="block md:hidden">
+        <MobileOptimizedDashboard 
+          transactions={transactions || []}
+          tasks={pendingTasks || []}
+          notifications={[]}
+        />
+      </div>
+
+      {/* Desktop view */}
+      <div className="hidden md:block p-4 md:p-8">
         <div className="mb-8">
           <Breadcrumb />
         </div>

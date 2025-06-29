@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,6 +25,8 @@ import { useAgentData } from '@/components/agent/SecureAgentDataProvider';
 import WorkflowAutomationPanel from '@/components/agent/WorkflowAutomationPanel';
 import RealTimeCollaboration from '@/components/agent/RealTimeCollaboration';
 import EnhancedTaskManager from '@/components/agent/EnhancedTaskManager';
+import ServiceTierManagement from '@/components/agent/ServiceTierManagement';
+import AdvancedAnalytics from '@/components/agent/AdvancedAnalytics';
 
 const AgentTransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -194,13 +195,14 @@ const AgentTransactionDetail = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-sm border border-brand-taupe/20">
+          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm border border-brand-taupe/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tasks">Enhanced Tasks</TabsTrigger>
             <TabsTrigger value="workflow">Automation</TabsTrigger>
             <TabsTrigger value="collaboration">Collaborate</TabsTrigger>
+            <TabsTrigger value="service">Service Tier</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="communication">Communication</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -286,6 +288,14 @@ const AgentTransactionDetail = () => {
             <RealTimeCollaboration transactionId={id!} />
           </TabsContent>
 
+          <TabsContent value="service">
+            <ServiceTierManagement transactionId={id!} />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AdvancedAnalytics />
+          </TabsContent>
+
           <TabsContent value="documents">
             <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
               <CardHeader>
@@ -295,20 +305,6 @@ const AgentTransactionDetail = () => {
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
                   <p className="text-brand-charcoal/60">Enhanced document management coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="communication">
-            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
-              <CardHeader>
-                <CardTitle>Communication History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
-                  <p className="text-brand-charcoal/60">Advanced communication features coming soon</p>
                 </div>
               </CardContent>
             </Card>
