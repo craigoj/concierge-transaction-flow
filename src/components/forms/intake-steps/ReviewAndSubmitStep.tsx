@@ -115,20 +115,14 @@ export const ReviewAndSubmitStep = ({
 
     setIsSubmitting(true);
     try {
-      // Start database transaction
-      const { error: sessionError } = await supabase
-        .rpc('begin_transaction');
-
-      if (sessionError) throw sessionError;
-
       // Create/update intake session
       const { data: sessionData, error: intakeError } = await supabase
         .from('agent_intake_sessions')
         .upsert({
           agent_id: user.id,
           status: 'completed',
-          vendor_data: vendorData,
-          branding_data: brandingData,
+          vendor_data: vendorData as any,
+          branding_data: brandingData as any,
           completion_percentage: 100,
           completed_at: new Date().toISOString()
         })
@@ -200,9 +194,6 @@ export const ReviewAndSubmitStep = ({
           // Don't fail the whole process for email issues
         }
       }
-
-      // Commit transaction
-      await supabase.rpc('commit_transaction');
       
       toast({
         title: 'Setup Complete! 🎉',
@@ -214,9 +205,6 @@ export const ReviewAndSubmitStep = ({
 
     } catch (error) {
       console.error('Error completing intake:', error);
-      
-      // Rollback transaction
-      await supabase.rpc('rollback_transaction');
       
       toast({
         title: 'Setup Error',
