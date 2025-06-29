@@ -913,6 +913,89 @@ export type Database = {
           },
         ]
       }
+      offer_requests: {
+        Row: {
+          agent_id: string
+          buyer_contacts: Json
+          buyer_names: string
+          closing_cost_assistance: string | null
+          created_at: string
+          emd_amount: number
+          exchange_fee: number
+          extras: string | null
+          fica_details: Json | null
+          id: string
+          lead_eifs_survey: string | null
+          lending_company: string
+          loan_type: string
+          occupancy_notes: string | null
+          projected_closing_date: string
+          property_address: string
+          purchase_price: number
+          settlement_company: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          wdi_inspection_details: Json | null
+        }
+        Insert: {
+          agent_id: string
+          buyer_contacts?: Json
+          buyer_names: string
+          closing_cost_assistance?: string | null
+          created_at?: string
+          emd_amount: number
+          exchange_fee: number
+          extras?: string | null
+          fica_details?: Json | null
+          id?: string
+          lead_eifs_survey?: string | null
+          lending_company: string
+          loan_type: string
+          occupancy_notes?: string | null
+          projected_closing_date: string
+          property_address: string
+          purchase_price: number
+          settlement_company: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          wdi_inspection_details?: Json | null
+        }
+        Update: {
+          agent_id?: string
+          buyer_contacts?: Json
+          buyer_names?: string
+          closing_cost_assistance?: string | null
+          created_at?: string
+          emd_amount?: number
+          exchange_fee?: number
+          extras?: string | null
+          fica_details?: Json | null
+          id?: string
+          lead_eifs_survey?: string | null
+          lending_company?: string
+          loan_type?: string
+          occupancy_notes?: string | null
+          projected_closing_date?: string
+          property_address?: string
+          purchase_price?: number
+          settlement_company?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          wdi_inspection_details?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_requests_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bio: string | null
