@@ -1,75 +1,41 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { VendorPreferencesStep } from './intake-steps/VendorPreferencesStep';
 import { BrandingPreferencesStep } from './intake-steps/BrandingPreferencesStep';
 import { ReviewAndSubmitStep } from './intake-steps/ReviewAndSubmitStep';
-import { CheckCircle, Circle, AlertCircle } from 'lucide-react';
-import { useFormAutoSave } from '@/hooks/useFormAutoSave';
-import { useLiveValidation, createEmailValidator } from '@/hooks/useLiveValidation';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   StepTransition, 
-  AutoSaveStatus, 
   AnimatedProgress,
-  FormLoadingOverlay 
+  FormLoadingOverlay,
+  FormStateProvider,
+  useFormStateContext,
+  NetworkStatusIndicator,
+  FormStatusBar
 } from './components';
 
 interface AgentIntakeFormProps {
   onComplete?: () => void;
 }
 
-export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [previousStep, setPreviousStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    vendors: {},
-    branding: {
-      has_branded_sign: '',
-      sign_notes: '',
-      review_link: '',
-      has_canva_template: '',
-      canva_template_url: '',
-      favorite_color: '#3C3C3C',
-      drinks_coffee: false,
-      drinks_alcohol: false,
-      birthday: '',
-      social_media_permission: false
-    },
-    review: {}
-  });
+const AgentIntakeFormContent = ({ onComplete }: AgentIntakeFormProps) => {
+  const {
+    state,
+    isLoading,
+    setCurrentStep,
+    setValidationErrors,
+    updateVendorData,
+    updateBrandingData,
+    hasUnsavedChanges,
+    forceSave
+  } = useFormStateContext();
 
-  const calculateProgress = () => {
-    return Math.round((completedSteps.length / 3) * 100);
-  };
-
-  // Auto-save functionality
-  const { saveStatus, hasChanges, forceSave } = useFormAutoSave({
-    table: 'agent_intake_sessions',
-    data: {
-      vendor_data: formData.vendors,
-      branding_data: formData.branding,
-      status: 'in_progress',
-      completion_percentage: calculateProgress()
-    },
-    interval: 30000,
-    enabled: currentStep < 3
-  });
-
-  // Live validation for branding step
-  const { errors, validateField } = useLiveValidation({
-    rules: [
-      {
-        field: 'review_link',
-        validator: createEmailValidator()
-      }
-    ]
-  });
+  const { currentStep, validationErrors, isSubmitting, vendorData, brandingData } = state;
+  const [previousStep, setPreviousStep] = React.useState(1);
+  const [completedSteps, setCompletedSteps] = React.useState<number[]>([]);
 
   const steps = [
     { number: 1, title: 'Vendor Preferences', description: 'Configure your preferred vendors' },
@@ -78,10 +44,11 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
   ];
 
   const handleStepComplete = (stepNumber: number, data: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [stepNumber === 1 ? 'vendors' : stepNumber === 2 ? 'branding' : 'review']: data
-    }));
+    if (stepNumber === 1) {
+      updateVendorData(data);
+    } else if (stepNumber === 2) {
+      updateBrandingData(data);
+    }
     
     if (!completedSteps.includes(stepNumber)) {
       setCompletedSteps(prev => [...prev, stepNumber]);
@@ -117,8 +84,15 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
   const progress = (currentStep / 3) * 100;
   const direction = currentStep > previousStep ? 1 : -1;
 
+  if (isLoading) {
+    return <FormLoadingOverlay isVisible={true} message="Loading your profile..." />;
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Network Status */}
+      <NetworkStatusIndicator />
+
       {/* Progress Header */}
       <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
         <CardHeader className="pb-4">
@@ -130,10 +104,6 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
               <p className="text-brand-charcoal/70 font-brand-body mt-1">
                 Complete your profile to get started
               </p>
-              {/* Auto-save status with animation */}
-              <div className="mt-2">
-                <AutoSaveStatus status={saveStatus} />
-              </div>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-brand-charcoal">
@@ -183,7 +153,7 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
       </Card>
 
       {/* Validation Errors Alert */}
-      {Object.keys(errors).some(key => errors[key]) && (
+      {Object.keys(validationErrors).some(key => validationErrors[key]) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -204,7 +174,7 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
               <VendorPreferencesStep
                 onComplete={(data) => handleStepComplete(1, data)}
                 onNext={handleNext}
-                initialData={formData.vendors}
+                initialData={vendorData}
               />
             )}
             {currentStep === 2 && (
@@ -212,15 +182,17 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
                 onComplete={(data) => handleStepComplete(2, data)}
                 onNext={handleNext}
                 onPrevious={handlePrevious}
-                initialData={formData.branding}
-                onFieldChange={(field, value) => validateField(field, value)}
-                errors={errors}
+                initialData={brandingData}
+                onFieldChange={(field, value) => {
+                  setValidationErrors({ ...validationErrors, [field]: '' });
+                }}
+                errors={validationErrors}
               />
             )}
             {currentStep === 3 && (
               <ReviewAndSubmitStep
-                vendorData={formData.vendors}
-                brandingData={formData.branding}
+                vendorData={vendorData}
+                brandingData={brandingData}
                 onPrevious={handlePrevious}
                 onComplete={onComplete}
                 onEditStep={handleEditStep}
@@ -230,6 +202,9 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
         </AnimatePresence>
       </div>
 
+      {/* Status Bar */}
+      <FormStatusBar />
+
       {/* Loading Overlay */}
       <FormLoadingOverlay 
         isVisible={isSubmitting}
@@ -237,5 +212,17 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
         progress={isSubmitting ? 75 : 0}
       />
     </div>
+  );
+};
+
+export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
+  return (
+    <FormStateProvider 
+      autoSaveInterval={30000}
+      enableOptimisticUpdates={true}
+      enableConflictResolution={true}
+    >
+      <AgentIntakeFormContent onComplete={onComplete} />
+    </FormStateProvider>
   );
 };
