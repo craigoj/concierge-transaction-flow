@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from '@/components/layout/AppLayout';
-import AuthGuard from '@/components/auth/AuthGuard';
-import Dashboard from '@/pages/Dashboard';
+import AuthGuard from '@/components/AuthGuard';
+import Dashboard from '@/pages/Index';
 import Transactions from '@/pages/Transactions';
 import TransactionDetail from '@/pages/TransactionDetail';
-import Tasks from '@/pages/Tasks';
+import Tasks from '@/pages/Workflows';
 import Documents from '@/pages/Documents';
 import Clients from '@/pages/Clients';
 import Settings from '@/pages/Settings';

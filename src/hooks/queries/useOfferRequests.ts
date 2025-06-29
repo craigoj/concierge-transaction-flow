@@ -78,7 +78,22 @@ export const useOfferRequests = (filters?: { status?: string; agent_id?: string 
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as OfferRequest[];
+      
+      // Transform the data to match our OfferRequest interface
+      return (data || []).map(item => ({
+        ...item,
+        buyer_contacts: item.buyer_contacts as { phones: string[]; emails: string[]; },
+        wdi_inspection_details: item.wdi_inspection_details as {
+          period?: number;
+          period_unit?: string;
+          provider?: string;
+          notes?: string;
+        },
+        fica_details: item.fica_details as {
+          required: boolean;
+          inspection_period?: number;
+        }
+      })) as OfferRequest[];
     },
     enabled: !!user,
   });
@@ -99,7 +114,22 @@ export const useOfferRequest = (id: string) => {
         .single();
 
       if (error) throw error;
-      return data as OfferRequest;
+      
+      // Transform the data to match our OfferRequest interface
+      return {
+        ...data,
+        buyer_contacts: data.buyer_contacts as { phones: string[]; emails: string[]; },
+        wdi_inspection_details: data.wdi_inspection_details as {
+          period?: number;
+          period_unit?: string;
+          provider?: string;
+          notes?: string;
+        },
+        fica_details: data.fica_details as {
+          required: boolean;
+          inspection_period?: number;
+        }
+      } as OfferRequest;
     },
     enabled: !!id,
   });
