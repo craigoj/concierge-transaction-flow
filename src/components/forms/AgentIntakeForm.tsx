@@ -1,15 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { VendorPreferencesStep } from './intake-steps/VendorPreferencesStep';
 import { BrandingPreferencesStep } from './intake-steps/BrandingPreferencesStep';
 import { ReviewAndSubmitStep } from './intake-steps/ReviewAndSubmitStep';
-import { CheckCircle, Circle, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { useFormAutoSave } from '@/hooks/useFormAutoSave';
 import { useLiveValidation, createEmailValidator } from '@/hooks/useLiveValidation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  StepTransition, 
+  AutoSaveStatus, 
+  AnimatedProgress,
+  FormLoadingOverlay 
+} from './components';
 
 interface AgentIntakeFormProps {
   onComplete?: () => void;
@@ -17,7 +24,9 @@ interface AgentIntakeFormProps {
 
 export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [previousStep, setPreviousStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     vendors: {},
     branding: {
@@ -48,8 +57,8 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
       status: 'in_progress',
       completion_percentage: calculateProgress()
     },
-    interval: 30000, // 30 seconds
-    enabled: currentStep < 3 // Don't auto-save on review step
+    interval: 30000,
+    enabled: currentStep < 3
   });
 
   // Live validation for branding step
@@ -78,65 +87,35 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
       setCompletedSteps(prev => [...prev, stepNumber]);
     }
 
-    // Force save when step is completed
     forceSave();
   };
 
   const handleNext = () => {
     if (currentStep < 3) {
+      setPreviousStep(currentStep);
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
+      setPreviousStep(currentStep);
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleStepClick = (stepNumber: number) => {
+    setPreviousStep(currentStep);
     setCurrentStep(stepNumber);
   };
 
   const handleEditStep = (stepNumber: number) => {
+    setPreviousStep(currentStep);
     setCurrentStep(stepNumber);
   };
 
   const progress = (currentStep / 3) * 100;
-
-  // Auto-save status indicator
-  const getAutoSaveIndicator = () => {
-    switch (saveStatus) {
-      case 'saving':
-        return (
-          <div className="flex items-center gap-2 text-yellow-600">
-            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-sm">Saving...</span>
-          </div>
-        );
-      case 'saved':
-        return (
-          <div className="flex items-center gap-2 text-green-600">
-            <Wifi className="h-4 w-4" />
-            <span className="text-sm">Auto-saved</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center gap-2 text-red-600">
-            <WifiOff className="h-4 w-4" />
-            <span className="text-sm">Save failed</span>
-          </div>
-        );
-      default:
-        return hasChanges ? (
-          <div className="flex items-center gap-2 text-gray-500">
-            <Circle className="h-4 w-4" />
-            <span className="text-sm">Unsaved changes</span>
-          </div>
-        ) : null;
-    }
-  };
+  const direction = currentStep > previousStep ? 1 : -1;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
@@ -151,9 +130,9 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
               <p className="text-brand-charcoal/70 font-brand-body mt-1">
                 Complete your profile to get started
               </p>
-              {/* Auto-save status */}
+              {/* Auto-save status with animation */}
               <div className="mt-2">
-                {getAutoSaveIndicator()}
+                <AutoSaveStatus status={saveStatus} />
               </div>
             </div>
             <div className="text-right">
@@ -166,7 +145,7 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
             </div>
           </div>
           
-          <Progress value={progress} className="h-2 mb-6" />
+          <AnimatedProgress progress={progress} className="mb-6" />
           
           {/* Step Navigation */}
           <div className="flex justify-between">
@@ -174,9 +153,9 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
               <button
                 key={step.number}
                 onClick={() => handleStepClick(step.number)}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 flex-1 mx-1 ${
+                className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 flex-1 mx-1 hover:scale-102 ${
                   currentStep === step.number
-                    ? 'bg-brand-charcoal text-brand-background'
+                    ? 'bg-brand-charcoal text-brand-background shadow-brand-elevation'
                     : completedSteps.includes(step.number)
                     ? 'bg-green-50 text-green-700 hover:bg-green-100'
                     : 'bg-brand-taupe/10 text-brand-charcoal/70 hover:bg-brand-taupe/20'
@@ -213,35 +192,50 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
         </Alert>
       )}
 
-      {/* Step Content */}
-      <div className="min-h-[600px]">
-        {currentStep === 1 && (
-          <VendorPreferencesStep
-            onComplete={(data) => handleStepComplete(1, data)}
-            onNext={handleNext}
-            initialData={formData.vendors}
-          />
-        )}
-        {currentStep === 2 && (
-          <BrandingPreferencesStep
-            onComplete={(data) => handleStepComplete(2, data)}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            initialData={formData.branding}
-            onFieldChange={(field, value) => validateField(field, value)}
-            errors={errors}
-          />
-        )}
-        {currentStep === 3 && (
-          <ReviewAndSubmitStep
-            vendorData={formData.vendors}
-            brandingData={formData.branding}
-            onPrevious={handlePrevious}
-            onComplete={onComplete}
-            onEditStep={handleEditStep}
-          />
-        )}
+      {/* Step Content with Transitions */}
+      <div className="min-h-[600px] relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <StepTransition 
+            key={currentStep}
+            currentStep={currentStep} 
+            direction={direction}
+          >
+            {currentStep === 1 && (
+              <VendorPreferencesStep
+                onComplete={(data) => handleStepComplete(1, data)}
+                onNext={handleNext}
+                initialData={formData.vendors}
+              />
+            )}
+            {currentStep === 2 && (
+              <BrandingPreferencesStep
+                onComplete={(data) => handleStepComplete(2, data)}
+                onNext={handleNext}
+                onPrevious={handlePrevious}
+                initialData={formData.branding}
+                onFieldChange={(field, value) => validateField(field, value)}
+                errors={errors}
+              />
+            )}
+            {currentStep === 3 && (
+              <ReviewAndSubmitStep
+                vendorData={formData.vendors}
+                brandingData={formData.branding}
+                onPrevious={handlePrevious}
+                onComplete={onComplete}
+                onEditStep={handleEditStep}
+              />
+            )}
+          </StepTransition>
+        </AnimatePresence>
       </div>
+
+      {/* Loading Overlay */}
+      <FormLoadingOverlay 
+        isVisible={isSubmitting}
+        message="Setting up your profile..."
+        progress={isSubmitting ? 75 : 0}
+      />
     </div>
   );
 };
