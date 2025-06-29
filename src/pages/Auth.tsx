@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,80 +12,87 @@ import { User, Session } from '@supabase/supabase-js';
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [brokerage, setBrokerage] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
+    const checkInitialAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (mounted && session?.user && !error) {
+          // User is already authenticated, redirect them
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (mounted) {
+            if (profile?.role === 'agent') {
+              navigate('/agent/dashboard', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
+        if (mounted) {
+          setCheckingAuth(false);
+        }
+      }
+    };
+
+    checkInitialAuth();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (!mounted) return;
         
-        // Redirect authenticated users to their appropriate dashboard
-        if (session?.user) {
-          setTimeout(async () => {
-            try {
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (!error && profile) {
-                if (profile.role === 'agent') {
-                  navigate('/agent/dashboard');
-                } else {
-                  navigate('/dashboard');
-                }
+        console.log('Auth state change:', event, session?.user?.email);
+        
+        // Only redirect on successful sign in, not on initial session
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (mounted) {
+              if (profile?.role === 'agent') {
+                navigate('/agent/dashboard', { replace: true });
               } else {
-                navigate('/dashboard');
+                navigate('/dashboard', { replace: true });
               }
-            } catch (error) {
-              console.error('Error fetching user role:', error);
-              navigate('/dashboard');
             }
-          }, 0);
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+            if (mounted) {
+              navigate('/dashboard', { replace: true });
+            }
+          }
         }
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Fetch user role for existing session
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile, error }) => {
-            if (!error && profile) {
-              if (profile.role === 'agent') {
-                navigate('/agent/dashboard');
-              } else {
-                navigate('/dashboard');
-              }
-            } else {
-              navigate('/dashboard');
-            }
-          });
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -159,6 +167,18 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth status
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-charcoal mx-auto mb-4"></div>
+          <p className="text-brand-charcoal/60 font-brand-body">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-background flex items-center justify-center p-6">
