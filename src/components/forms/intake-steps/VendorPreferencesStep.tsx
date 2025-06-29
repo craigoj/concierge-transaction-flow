@@ -37,8 +37,14 @@ const vendorSchema = z.object({
   is_primary: z.boolean().default(false)
 });
 
+type VendorFormData = z.infer<typeof vendorSchema>;
+
+interface VendorsData {
+  [key: string]: VendorFormData[];
+}
+
 const formSchema = z.object({
-  vendors: z.record(z.array(vendorSchema))
+  vendors: z.record(z.string(), z.array(vendorSchema))
 }).refine((data) => {
   // Check required vendor types have at least one vendor
   const requiredTypes = vendorTypes.filter(t => t.required).map(t => t.key);
@@ -50,10 +56,12 @@ const formSchema = z.object({
   path: ['vendors']
 });
 
+type FormData = z.infer<typeof formSchema>;
+
 interface VendorPreferencesStepProps {
-  onComplete: (data: any) => void;
+  onComplete: (data: VendorsData) => void;
   onNext: () => void;
-  initialData?: any;
+  initialData?: VendorsData;
 }
 
 export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: VendorPreferencesStepProps) => {
@@ -62,13 +70,13 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   const [openSections, setOpenSections] = useState<string[]>(['lender']);
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       vendors: vendorTypes.reduce((acc, type) => ({
         ...acc,
         [type.key]: initialData?.[type.key] || []
-      }), {})
+      }), {} as VendorsData)
     }
   });
 
@@ -89,7 +97,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const groupedVendors = data.reduce((acc, vendor) => {
+          const groupedVendors: VendorsData = data.reduce((acc, vendor) => {
             if (!acc[vendor.vendor_type]) {
               acc[vendor.vendor_type] = [];
             }
@@ -104,7 +112,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
               is_primary: vendor.is_primary
             });
             return acc;
-          }, {});
+          }, {} as VendorsData);
 
           setValue('vendors', { ...getValues('vendors'), ...groupedVendors });
         }
@@ -130,8 +138,8 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   };
 
   const addVendor = (vendorType: string) => {
-    const currentVendors = getValues(`vendors.${vendorType}`) || [];
-    const newVendor = {
+    const currentVendors = watchedVendors[vendorType] || [];
+    const newVendor: VendorFormData = {
       company_name: '',
       contact_name: '',
       email: '',
@@ -149,7 +157,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   };
 
   const removeVendor = (vendorType: string, index: number) => {
-    const currentVendors = getValues(`vendors.${vendorType}`) || [];
+    const currentVendors = watchedVendors[vendorType] || [];
     const updatedVendors = currentVendors.filter((_, i) => i !== index);
     
     // If we're removing the primary vendor, make the first remaining vendor primary
@@ -161,7 +169,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
   };
 
   const setPrimaryVendor = (vendorType: string, index: number) => {
-    const currentVendors = getValues(`vendors.${vendorType}`) || [];
+    const currentVendors = watchedVendors[vendorType] || [];
     const updatedVendors = currentVendors.map((vendor, i) => ({
       ...vendor,
       is_primary: i === index
@@ -169,7 +177,14 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
     setValue(`vendors.${vendorType}`, updatedVendors);
   };
 
-  const handleSave = async (data: any) => {
+  const updateVendorField = (vendorType: string, index: number, field: keyof VendorFormData, value: string | boolean) => {
+    const currentVendors = watchedVendors[vendorType] || [];
+    const updatedVendors = [...currentVendors];
+    updatedVendors[index] = { ...updatedVendors[index], [field]: value };
+    setValue(`vendors.${vendorType}`, updatedVendors);
+  };
+
+  const handleSave = async (data: FormData) => {
     if (!user?.id) {
       toast({
         title: 'Error',
@@ -189,7 +204,7 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
 
       // Insert new vendor data
       const vendorInserts = [];
-      Object.entries(data.vendors).forEach(([vendorType, vendors]: [string, any[]]) => {
+      Object.entries(data.vendors).forEach(([vendorType, vendors]) => {
         vendors.forEach(vendor => {
           if (vendor.company_name.trim()) {
             vendorInserts.push({
@@ -306,102 +321,75 @@ export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: Vendo
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name={`vendors.${vendorType.key}.${index}.company_name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                      Company Name <span className="text-red-500">*</span>
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} placeholder="Enter company name" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              <div className="space-y-2">
+                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                  Company Name <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  value={vendor.company_name}
+                                  onChange={(e) => updateVendorField(vendorType.key, index, 'company_name', e.target.value)}
+                                  placeholder="Enter company name"
+                                />
+                              </div>
 
-                              <FormField
-                                control={form.control}
-                                name={`vendors.${vendorType.key}.${index}.contact_name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                      Contact Name
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} placeholder="Enter contact name" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              <div className="space-y-2">
+                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                  Contact Name
+                                </Label>
+                                <Input
+                                  value={vendor.contact_name}
+                                  onChange={(e) => updateVendorField(vendorType.key, index, 'contact_name', e.target.value)}
+                                  placeholder="Enter contact name"
+                                />
+                              </div>
 
-                              <FormField
-                                control={form.control}
-                                name={`vendors.${vendorType.key}.${index}.email`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                      Email
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} type="email" placeholder="Enter email address" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              <div className="space-y-2">
+                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                  Email
+                                </Label>
+                                <Input
+                                  type="email"
+                                  value={vendor.email}
+                                  onChange={(e) => updateVendorField(vendorType.key, index, 'email', e.target.value)}
+                                  placeholder="Enter email address"
+                                />
+                              </div>
 
-                              <FormField
-                                control={form.control}
-                                name={`vendors.${vendorType.key}.${index}.phone`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                      Phone
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} type="tel" placeholder="Enter phone number" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
+                              <div className="space-y-2">
+                                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                  Phone
+                                </Label>
+                                <Input
+                                  type="tel"
+                                  value={vendor.phone}
+                                  onChange={(e) => updateVendorField(vendorType.key, index, 'phone', e.target.value)}
+                                  placeholder="Enter phone number"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Address
+                              </Label>
+                              <Input
+                                value={vendor.address}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'address', e.target.value)}
+                                placeholder="Enter full address"
                               />
                             </div>
 
-                            <FormField
-                              control={form.control}
-                              name={`vendors.${vendorType.key}.${index}.address`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                    Address
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input {...field} placeholder="Enter full address" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name={`vendors.${vendorType.key}.${index}.notes`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="font-brand-heading text-sm tracking-wide uppercase">
-                                    Notes
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Textarea {...field} rows={2} placeholder="Any additional notes..." />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Notes
+                              </Label>
+                              <Textarea
+                                rows={2}
+                                value={vendor.notes}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'notes', e.target.value)}
+                                placeholder="Any additional notes..."
+                              />
+                            </div>
 
                             {vendors.length > 1 && (
                               <div className="flex items-center space-x-2">
