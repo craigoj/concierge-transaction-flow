@@ -1,6 +1,6 @@
 
 import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -65,5 +65,6 @@ export const mockOfferRequest = {
   projected_closing_date: new Date('2024-06-01'),
 };
 
+// Export all testing library functions
 export * from '@testing-library/react';
-export { customRender as render };
+export { customRender as render, screen, fireEvent, waitFor };

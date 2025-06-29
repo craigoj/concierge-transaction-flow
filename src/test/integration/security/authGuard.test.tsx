@@ -16,20 +16,22 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock Supabase auth
+const mockSupabase = {
+  auth: {
+    onAuthStateChange: vi.fn(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } }
+    })),
+    getSession: vi.fn()
+  },
+  from: vi.fn(() => ({
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn()
+  }))
+};
+
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } }
-      })),
-      getSession: vi.fn()
-    },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn()
-    }))
-  }
+  supabase: mockSupabase
 }));
 
 describe('AuthGuard Security Integration', () => {
@@ -41,7 +43,7 @@ describe('AuthGuard Security Integration', () => {
 
   it('should show loading state initially', () => {
     // Mock loading state
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.auth.getSession.mockResolvedValue({
+    mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null }
     });
 
@@ -58,7 +60,7 @@ describe('AuthGuard Security Integration', () => {
 
   it('should redirect to auth when not authenticated', async () => {
     // Mock no session
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.auth.getSession.mockResolvedValue({
+    mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null }
     });
 
@@ -82,11 +84,11 @@ describe('AuthGuard Security Integration', () => {
     };
     
     // Mock authenticated session
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.auth.getSession.mockResolvedValue({
+    mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: mockSession }
     });
     
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.from().select().eq().single.mockResolvedValue({
+    mockSupabase.from().select().eq().single.mockResolvedValue({
       data: { role: 'agent' },
       error: null
     });
@@ -110,11 +112,11 @@ describe('AuthGuard Security Integration', () => {
       access_token: 'mock-token'
     };
     
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.auth.getSession.mockResolvedValue({
+    mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: mockSession }
     });
     
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.from().select().eq().single.mockResolvedValue({
+    mockSupabase.from().select().eq().single.mockResolvedValue({
       data: { role: 'agent' },
       error: null
     });
@@ -138,11 +140,11 @@ describe('AuthGuard Security Integration', () => {
       access_token: 'mock-token'
     };
     
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.auth.getSession.mockResolvedValue({
+    mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: mockSession }
     });
     
-    vi.mocked(vi.importMock('@/integrations/supabase/client')).supabase.from().select().eq().single.mockResolvedValue({
+    mockSupabase.from().select().eq().single.mockResolvedValue({
       data: { role: 'coordinator' },
       error: null
     });
