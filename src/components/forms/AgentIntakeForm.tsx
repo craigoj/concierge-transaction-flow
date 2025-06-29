@@ -17,7 +17,18 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [formData, setFormData] = useState({
     vendors: {},
-    branding: {},
+    branding: {
+      has_branded_sign: '',
+      sign_notes: '',
+      review_link: '',
+      has_canva_template: '',
+      canva_template_url: '',
+      favorite_color: '#3C3C3C',
+      drinks_coffee: false,
+      drinks_alcohol: false,
+      birthday: '',
+      social_media_permission: false
+    },
     review: {}
   });
 
