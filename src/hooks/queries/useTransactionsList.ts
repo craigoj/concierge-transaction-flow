@@ -1,6 +1,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { transactionKeys } from './useTransactionData';
+
+type TransactionStatus = 'intake' | 'active' | 'closed' | 'cancelled';
+type ServiceTier = 'buyer_core' | 'buyer_elite' | 'white_glove_buyer' | 'listing_core' | 'listing_elite' | 'white_glove_listing';
 
 export const useAgentTransactions = () => {
   return useQuery({
@@ -30,7 +34,7 @@ export const useTransactionsList = (filters?: {
   search?: string;
 }) => {
   return useQuery({
-    queryKey: ['transactions-list', filters],
+    queryKey: transactionKeys.list(filters),
     queryFn: async () => {
       let query = supabase
         .from('transactions')
@@ -40,12 +44,13 @@ export const useTransactionsList = (filters?: {
         `)
         .order('created_at', { ascending: false });
 
+      // Apply filters with proper type casting
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', filters.status as TransactionStatus);
       }
 
       if (filters?.serviceTier) {
-        query = query.eq('service_tier', filters.serviceTier);
+        query = query.eq('service_tier', filters.serviceTier as ServiceTier);
       }
 
       const { data, error } = await query;

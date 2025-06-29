@@ -2,9 +2,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Query key factory
+export const transactionKeys = {
+  all: ['transactions'] as const,
+  lists: () => [...transactionKeys.all, 'list'] as const,
+  list: (filters?: any) => [...transactionKeys.lists(), filters] as const,
+  details: () => [...transactionKeys.all, 'detail'] as const,
+  detail: (id: string) => [...transactionKeys.details(), id] as const,
+  stats: () => [...transactionKeys.all, 'stats'] as const,
+};
+
 export const useTransactionData = (transactionId: string) => {
   return useQuery({
-    queryKey: ['transaction', transactionId],
+    queryKey: transactionKeys.detail(transactionId),
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
