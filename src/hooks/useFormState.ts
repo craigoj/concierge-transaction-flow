@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/integrations/supabase/auth';
@@ -211,14 +212,14 @@ export const useFormState = (options: FormStateOptions = {}) => {
     setState(prev => ({ ...prev, autoSaveStatus: 'saving' }));
 
     try {
-      // Save intake session - Fix: Use correct field structure
+      // Save intake session - Fix: Convert objects to proper JSON format
       if (currentState.intakeSession) {
         const sessionData = {
           agent_id: user.id,
           status: currentState.intakeSession.status,
           completion_percentage: currentState.intakeSession.completion_percentage,
-          vendor_data: currentState.vendorData,
-          branding_data: currentState.brandingData,
+          vendor_data: JSON.parse(JSON.stringify(currentState.vendorData)) as any,
+          branding_data: JSON.parse(JSON.stringify(currentState.brandingData)) as any,
           updated_at: new Date().toISOString()
         };
 
@@ -391,3 +392,4 @@ export const useFormState = (options: FormStateOptions = {}) => {
     isOnline: !networkError
   };
 };
+
