@@ -68,4 +68,4 @@ export const mockOfferRequest = {
 
 // Export all testing library functions
 export * from '@testing-library/react';
-export { customRender as render, screen, fireEvent, waitFor };
+export { screen, fireEvent, waitFor };
