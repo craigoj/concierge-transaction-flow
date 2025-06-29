@@ -344,7 +344,7 @@ export const EnhancedCreateTransactionDialog = ({
                 <ServiceTierComparison
                   tiers={serviceTiers}
                   selectedTierId={selectedTier}
-                  onSelect={(tierId) => setSelectedTier(tierId)}
+                  onSelect={(tierId) => setSelectedTier(tierId as ServiceTierType)}
                 />
               </div>
 

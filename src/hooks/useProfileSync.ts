@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/integrations/supabase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { ServiceTierType } from '@/types/serviceTiers';
 
 export const useProfileSync = () => {
   const { user } = useAuth();
@@ -60,7 +61,7 @@ export const useProfileSync = () => {
       metadata 
     }: { 
       transactionId: string; 
-      status: string; 
+      status: 'intake' | 'active' | 'closed' | 'cancelled'; 
       metadata?: any 
     }) => {
       const { error } = await supabase
@@ -131,7 +132,7 @@ export const useProfileSync = () => {
       serviceTier 
     }: { 
       transactionId: string; 
-      serviceTier: string 
+      serviceTier: ServiceTierType 
     }) => {
       // Update transaction service tier
       const { error: transactionError } = await supabase
