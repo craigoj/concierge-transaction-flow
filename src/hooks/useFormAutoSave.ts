@@ -5,7 +5,7 @@ import { useAuth } from '@/integrations/supabase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 interface AutoSaveOptions {
-  table: string;
+  table: 'agent_intake_sessions' | 'offer_requests' | 'agent_branding' | 'agent_vendors';
   data: Record<string, any>;
   interval?: number; // milliseconds
   enabled?: boolean;
@@ -34,15 +34,50 @@ export const useFormAutoSave = ({
 
     setSaveStatus('saving');
     try {
-      const { error } = await supabase
-        .from(table)
-        .upsert({
-          ...data,
-          agent_id: user.id,
-          updated_at: new Date().toISOString()
-        });
+      let saveResult;
+      
+      switch (table) {
+        case 'agent_intake_sessions':
+          saveResult = await supabase
+            .from('agent_intake_sessions')
+            .upsert({
+              ...data,
+              agent_id: user.id,
+              updated_at: new Date().toISOString()
+            });
+          break;
+        case 'offer_requests':
+          saveResult = await supabase
+            .from('offer_requests')
+            .upsert({
+              ...data,
+              agent_id: user.id,
+              updated_at: new Date().toISOString()
+            });
+          break;
+        case 'agent_branding':
+          saveResult = await supabase
+            .from('agent_branding')
+            .upsert({
+              ...data,
+              agent_id: user.id,
+              updated_at: new Date().toISOString()
+            });
+          break;
+        case 'agent_vendors':
+          saveResult = await supabase
+            .from('agent_vendors')
+            .upsert({
+              ...data,
+              agent_id: user.id,
+              updated_at: new Date().toISOString()
+            });
+          break;
+        default:
+          throw new Error(`Unsupported table: ${table}`);
+      }
 
-      if (error) throw error;
+      if (saveResult.error) throw saveResult.error;
 
       lastSavedData.current = JSON.stringify(data);
       setSaveStatus('saved');

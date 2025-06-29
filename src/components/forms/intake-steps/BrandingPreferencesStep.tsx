@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,13 +29,25 @@ interface BrandingPreferencesStepProps {
   onNext: () => void;
   onPrevious: () => void;
   initialData?: BrandingFormData;
+  onFieldChange?: (field: string, value: any) => Promise<void>;
+  errors?: Record<string, string>;
 }
 
-export const BrandingPreferencesStep = ({ onComplete, onNext, onPrevious, initialData }: BrandingPreferencesStepProps) => {
+export const BrandingPreferencesStep = ({ 
+  onComplete, 
+  onNext, 
+  onPrevious, 
+  initialData,
+  onFieldChange,
+  errors = {}
+}: BrandingPreferencesStepProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+  
+  // Use external errors if provided, otherwise use local errors
+  const displayErrors = Object.keys(errors).length > 0 ? errors : localErrors;
   
   const [formData, setFormData] = useState<BrandingFormData>({
     has_branded_sign: initialData?.has_branded_sign || '',
@@ -117,7 +128,7 @@ export const BrandingPreferencesStep = ({ onComplete, onNext, onPrevious, initia
       }
     }
 
-    setErrors(newErrors);
+    setLocalErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -179,11 +190,17 @@ export const BrandingPreferencesStep = ({ onComplete, onNext, onPrevious, initia
     }
   };
 
-  const updateField = (field: keyof BrandingFormData, value: string | boolean) => {
+  const updateField = async (field: keyof BrandingFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
     // Clear error when field is updated
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+    if (displayErrors[field]) {
+      setLocalErrors(prev => ({ ...prev, [field]: '' }));
+    }
+
+    // Call external field change handler if provided
+    if (onFieldChange) {
+      await onFieldChange(field, value);
     }
   };
 
@@ -271,10 +288,10 @@ export const BrandingPreferencesStep = ({ onComplete, onNext, onPrevious, initia
                 value={formData.review_link}
                 onChange={(e) => updateField('review_link', e.target.value)}
                 placeholder="https://example.com/reviews"
-                className={errors.review_link ? 'border-red-300' : ''}
+                className={displayErrors.review_link ? 'border-red-300' : ''}
               />
-              {errors.review_link && (
-                <p className="text-sm text-red-600">{errors.review_link}</p>
+              {displayErrors.review_link && (
+                <p className="text-sm text-red-600">{displayErrors.review_link}</p>
               )}
               <p className="text-sm text-brand-charcoal/60">
                 Link to your Google Reviews, Zillow profile, or other review platform
@@ -331,10 +348,10 @@ export const BrandingPreferencesStep = ({ onComplete, onNext, onPrevious, initia
                   value={formData.canva_template_url}
                   onChange={(e) => updateField('canva_template_url', e.target.value)}
                   placeholder="https://canva.com/design/..."
-                  className={errors.canva_template_url ? 'border-red-300' : ''}
+                  className={displayErrors.canva_template_url ? 'border-red-300' : ''}
                 />
-                {errors.canva_template_url && (
-                  <p className="text-sm text-red-600">{errors.canva_template_url}</p>
+                {displayErrors.canva_template_url && (
+                  <p className="text-sm text-red-600">{displayErrors.canva_template_url}</p>
                 )}
               </div>
             )}
