@@ -101,6 +101,42 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_intake_sessions: {
+        Row: {
+          agent_id: string
+          branding_data: Json | null
+          completed_at: string | null
+          completion_percentage: number | null
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          vendor_data: Json | null
+        }
+        Insert: {
+          agent_id: string
+          branding_data?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          vendor_data?: Json | null
+        }
+        Update: {
+          agent_id?: string
+          branding_data?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          vendor_data?: Json | null
+        }
+        Relationships: []
+      }
       agent_invitations: {
         Row: {
           accepted_at: string | null

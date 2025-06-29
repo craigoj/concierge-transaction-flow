@@ -65,6 +65,10 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
     setCurrentStep(stepNumber);
   };
 
+  const handleEditStep = (stepNumber: number) => {
+    setCurrentStep(stepNumber);
+  };
+
   const progress = (currentStep / 3) * 100;
 
   return (
@@ -151,6 +155,7 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
             brandingData={formData.branding}
             onPrevious={handlePrevious}
             onComplete={onComplete}
+            onEditStep={handleEditStep}
           />
         )}
       </div>
