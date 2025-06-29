@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { User, Session } from '@supabase/supabase-js';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -27,20 +26,28 @@ const Auth = () => {
 
     const checkInitialAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (mounted && session?.user && !error) {
+        if (mounted && session?.user) {
           // User is already authenticated, redirect them
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (mounted) {
-            if (profile?.role === 'agent') {
-              navigate('/agent/dashboard', { replace: true });
-            } else {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (mounted) {
+              const role = profile?.role || 'agent';
+              if (role === 'agent') {
+                navigate('/agent/dashboard', { replace: true });
+              } else {
+                navigate('/dashboard', { replace: true });
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+            if (mounted) {
               navigate('/dashboard', { replace: true });
             }
           }
@@ -56,42 +63,8 @@ const Auth = () => {
 
     checkInitialAuth();
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Auth state change:', event, session?.user?.email);
-        
-        // Only redirect on successful sign in, not on initial session
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (mounted) {
-              if (profile?.role === 'agent') {
-                navigate('/agent/dashboard', { replace: true });
-              } else {
-                navigate('/dashboard', { replace: true });
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching user role:', error);
-            if (mounted) {
-              navigate('/dashboard', { replace: true });
-            }
-          }
-        }
-      }
-    );
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, [navigate]);
 
@@ -112,6 +85,7 @@ const Auth = () => {
           description: error.message,
         });
       }
+      // Navigation will be handled by AuthGuard after sign in
     } catch (error) {
       toast({
         variant: "destructive",

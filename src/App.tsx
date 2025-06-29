@@ -18,11 +18,14 @@ import OfferDrafting from '@/pages/OfferDrafting';
 import ServiceTierSelection from '@/pages/ServiceTierSelection';
 import AgentDashboard from '@/pages/agent/AgentDashboard';
 import AgentTransactionDetail from '@/pages/agent/TransactionDetail';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -136,6 +139,9 @@ function App() {
               </AppLayout>
             </AuthGuard>
           } />
+          
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
       </QueryClientProvider>
