@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/integrations/supabase/auth';
@@ -210,18 +211,20 @@ export const useFormState = (options: FormStateOptions = {}) => {
     setState(prev => ({ ...prev, autoSaveStatus: 'saving' }));
 
     try {
-      // Save intake session - Fix: Pass single object, not array
+      // Save intake session - Fix: Use correct field structure
       if (currentState.intakeSession) {
+        const sessionData = {
+          agent_id: user.id,
+          status: currentState.intakeSession.status,
+          completion_percentage: currentState.intakeSession.completion_percentage,
+          vendor_data: currentState.vendorData,
+          branding_data: currentState.brandingData,
+          updated_at: new Date().toISOString()
+        };
+
         const { error } = await supabase
           .from('agent_intake_sessions')
-          .upsert({
-            agent_id: user.id,
-            status: currentState.intakeSession.status,
-            completion_percentage: currentState.intakeSession.completion_percentage,
-            vendor_data: currentState.vendorData,
-            branding_data: currentState.brandingData,
-            updated_at: new Date().toISOString()
-          });
+          .upsert(sessionData);
 
         if (error) throw error;
       }
