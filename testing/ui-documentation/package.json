@@ -1,0 +1,23 @@
+{
+  "name": "concierge-ui-testing",
+  "version": "1.0.0",
+  "description": "UI/UX Documentation and Testing Suite for Concierge Transaction Flow",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "screenshots": "playwright test --grep=@screenshot",
+    "test:mobile": "playwright test --grep=@mobile",
+    "test:desktop": "playwright test --grep=@desktop",
+    "report": "playwright show-report",
+    "install": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.1",
+    "sharp": "^0.32.6"
+  }
+}
