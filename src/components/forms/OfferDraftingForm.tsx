@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,13 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, Trash2, DollarSign, FileText, Home, CreditCard, Building } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, DollarSign, FileText, Home, CreditCard, Building, Wifi, WifiOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/integrations/supabase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useFormAutoSave } from '@/hooks/useFormAutoSave';
+import { useLiveValidation, createEmailValidator, createPhoneValidator, createTransactionConflictValidator } from '@/hooks/useLiveValidation';
+import { useRealtimeOfferUpdates } from '@/hooks/useRealtimeOfferUpdates';
 
 // Form validation schema
 const offerRequestSchema = z.object({
@@ -67,7 +69,9 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+
+  // Enable real-time offer updates
+  useRealtimeOfferUpdates();
 
   const form = useForm<OfferRequestFormData>({
     resolver: zodResolver(offerRequestSchema),
@@ -92,32 +96,70 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
     },
   });
 
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const formData = form.getValues();
-      // Only auto-save if form has meaningful data
-      if (formData.property_address || formData.buyer_names) {
-        handleAutoSave(formData);
+  const formData = form.watch();
+
+  // Auto-save functionality (disabled - this is for draft offers)
+  const { saveStatus, hasChanges } = useFormAutoSave({
+    table: 'offer_requests',
+    data: {
+      transaction_id: transactionId || null,
+      property_address: formData.property_address || '',
+      buyer_names: formData.buyer_names || '',
+      status: 'draft'
+    },
+    interval: 30000,
+    enabled: false // Disable auto-save for now to avoid partial submissions
+  });
+
+  // Live validation
+  const { errors, validateField, isValidating } = useLiveValidation({
+    rules: [
+      {
+        field: 'emails',
+        validator: async (emails: string[]) => {
+          if (!emails?.length) return 'At least one email is required';
+          
+          const emailValidator = createEmailValidator();
+          for (const email of emails) {
+            if (email.trim()) {
+              const error = await emailValidator(email);
+              if (error) return `Invalid email: ${email}`;
+            }
+          }
+          return null;
+        }
+      },
+      {
+        field: 'phones',
+        validator: async (phones: string[]) => {
+          if (!phones?.length) return 'At least one phone is required';
+          
+          const phoneValidator = createPhoneValidator();
+          for (const phone of phones) {
+            if (phone.trim()) {
+              const error = await phoneValidator(phone);
+              if (error) return `Invalid phone: ${phone}`;
+            }
+          }
+          return null;
+        }
+      },
+      {
+        field: 'property_address',
+        validator: createTransactionConflictValidator(user?.id || '')
       }
-    }, 30000);
+    ]
+  });
 
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleAutoSave = async (formData: Partial<OfferRequestFormData>) => {
-    if (!user?.id) return;
-
-    setAutoSaveStatus('saving');
-    try {
-      // This would save as draft - implementation depends on requirements
-      console.log('Auto-saving offer request:', formData);
-      setAutoSaveStatus('saved');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      setAutoSaveStatus('error');
-    }
-  };
+  // Validate fields on change
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name && value[name as keyof typeof value] !== undefined) {
+        validateField(name, value[name as keyof typeof value], value);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, validateField]);
 
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/[^\d]/g, '');
@@ -215,6 +257,35 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
     }
   };
 
+  // Auto-save status indicator
+  const getAutoSaveIndicator = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return (
+          <div className="flex items-center gap-2 text-yellow-600">
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+            <span className="text-sm">Saving...</span>
+          </div>
+        );
+      case 'saved':
+        return (
+          <div className="flex items-center gap-2 text-green-600">
+            <Wifi className="h-4 w-4" />
+            <span className="text-sm">Auto-saved</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center gap-2 text-red-600">
+            <WifiOff className="h-4 w-4" />
+            <span className="text-sm">Save failed</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="mb-8">
@@ -224,18 +295,14 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
         <p className="text-lg font-brand-body text-brand-charcoal/70">
           Complete this form to request a professional offer draft for your transaction
         </p>
-        <div className="flex items-center gap-2 mt-2">
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            autoSaveStatus === 'saved' && "bg-green-500",
-            autoSaveStatus === 'saving' && "bg-yellow-500 animate-pulse",
-            autoSaveStatus === 'error' && "bg-red-500"
-          )} />
-          <span className="text-sm text-brand-charcoal/60">
-            {autoSaveStatus === 'saved' && 'Auto-saved'}
-            {autoSaveStatus === 'saving' && 'Saving...'}
-            {autoSaveStatus === 'error' && 'Save failed'}
-          </span>
+        <div className="flex items-center gap-4 mt-2">
+          {getAutoSaveIndicator()}
+          {Object.keys(isValidating).some(key => isValidating[key]) && (
+            <div className="flex items-center gap-2 text-blue-600">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-sm">Validating...</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -266,6 +333,9 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                       />
                     </FormControl>
                     <FormMessage />
+                    {errors.property_address && (
+                      <p className="text-sm text-red-600">{errors.property_address}</p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -290,7 +360,7 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                 )}
               />
 
-              {/* Phone Numbers */}
+              {/* Phone Numbers with live validation */}
               <div className="space-y-3">
                 <Label className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
                   Phone Numbers *
@@ -324,6 +394,9 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                     </Button>
                   </div>
                 ))}
+                {errors.phones && (
+                  <p className="text-sm text-red-600">{errors.phones}</p>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -336,7 +409,7 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                 </Button>
               </div>
 
-              {/* Email Addresses */}
+              {/* Email Addresses with live validation */}
               <div className="space-y-3">
                 <Label className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
                   Email Addresses *
@@ -371,6 +444,9 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                     </Button>
                   </div>
                 ))}
+                {errors.emails && (
+                  <p className="text-sm text-red-600">{errors.emails}</p>
+                )}
                 <Button
                   type="button"
                   variant="outline"

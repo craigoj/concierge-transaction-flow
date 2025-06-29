@@ -1,12 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { VendorPreferencesStep } from './intake-steps/VendorPreferencesStep';
 import { BrandingPreferencesStep } from './intake-steps/BrandingPreferencesStep';
 import { ReviewAndSubmitStep } from './intake-steps/ReviewAndSubmitStep';
-import { CheckCircle, Circle } from 'lucide-react';
+import { CheckCircle, Circle, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { useFormAutoSave } from '@/hooks/useFormAutoSave';
+import { useLiveValidation, createEmailValidator } from '@/hooks/useLiveValidation';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AgentIntakeFormProps {
   onComplete?: () => void;
@@ -32,6 +35,33 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
     review: {}
   });
 
+  const calculateProgress = () => {
+    return Math.round((completedSteps.length / 3) * 100);
+  };
+
+  // Auto-save functionality
+  const { saveStatus, hasChanges, forceSave } = useFormAutoSave({
+    table: 'agent_intake_sessions',
+    data: {
+      vendor_data: formData.vendors,
+      branding_data: formData.branding,
+      status: 'in_progress',
+      completion_percentage: calculateProgress()
+    },
+    interval: 30000, // 30 seconds
+    enabled: currentStep < 3 // Don't auto-save on review step
+  });
+
+  // Live validation for branding step
+  const { errors, validateField } = useLiveValidation({
+    rules: [
+      {
+        field: 'review_link',
+        validator: createEmailValidator()
+      }
+    ]
+  });
+
   const steps = [
     { number: 1, title: 'Vendor Preferences', description: 'Configure your preferred vendors' },
     { number: 2, title: 'Branding Preferences', description: 'Set up your branding preferences' },
@@ -47,6 +77,9 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
     if (!completedSteps.includes(stepNumber)) {
       setCompletedSteps(prev => [...prev, stepNumber]);
     }
+
+    // Force save when step is completed
+    forceSave();
   };
 
   const handleNext = () => {
@@ -71,6 +104,40 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
 
   const progress = (currentStep / 3) * 100;
 
+  // Auto-save status indicator
+  const getAutoSaveIndicator = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return (
+          <div className="flex items-center gap-2 text-yellow-600">
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+            <span className="text-sm">Saving...</span>
+          </div>
+        );
+      case 'saved':
+        return (
+          <div className="flex items-center gap-2 text-green-600">
+            <Wifi className="h-4 w-4" />
+            <span className="text-sm">Auto-saved</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center gap-2 text-red-600">
+            <WifiOff className="h-4 w-4" />
+            <span className="text-sm">Save failed</span>
+          </div>
+        );
+      default:
+        return hasChanges ? (
+          <div className="flex items-center gap-2 text-gray-500">
+            <Circle className="h-4 w-4" />
+            <span className="text-sm">Unsaved changes</span>
+          </div>
+        ) : null;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Progress Header */}
@@ -84,6 +151,10 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
               <p className="text-brand-charcoal/70 font-brand-body mt-1">
                 Complete your profile to get started
               </p>
+              {/* Auto-save status */}
+              <div className="mt-2">
+                {getAutoSaveIndicator()}
+              </div>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-brand-charcoal">
@@ -132,6 +203,16 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
         </CardHeader>
       </Card>
 
+      {/* Validation Errors Alert */}
+      {Object.keys(errors).some(key => errors[key]) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please fix the validation errors before proceeding.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Step Content */}
       <div className="min-h-[600px]">
         {currentStep === 1 && (
@@ -147,6 +228,8 @@ export const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
             onNext={handleNext}
             onPrevious={handlePrevious}
             initialData={formData.branding}
+            onFieldChange={(field, value) => validateField(field, value)}
+            errors={errors}
           />
         )}
         {currentStep === 3 && (
