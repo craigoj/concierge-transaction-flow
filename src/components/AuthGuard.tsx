@@ -26,29 +26,20 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role
-          setTimeout(async () => {
-            try {
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (!error && profile) {
-                setUserRole(profile.role);
-                
-                // Role-based routing
-                if (profile.role === 'agent' && !location.pathname.startsWith('/agent/')) {
-                  navigate('/agent/dashboard');
-                } else if (profile.role === 'coordinator' && location.pathname.startsWith('/agent/')) {
-                  navigate('/dashboard');
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching user role:', error);
+          // Fetch user role and handle navigation in a separate effect
+          try {
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (!error && profile) {
+              setUserRole(profile.role);
             }
-          }, 0);
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+          }
         } else {
           setUserRole(null);
         }
@@ -72,13 +63,6 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           .then(({ data: profile, error }) => {
             if (!error && profile) {
               setUserRole(profile.role);
-              
-              // Role-based routing for existing session
-              if (profile.role === 'agent' && !location.pathname.startsWith('/agent/')) {
-                navigate('/agent/dashboard');
-              } else if (profile.role === 'coordinator' && location.pathname.startsWith('/agent/')) {
-                navigate('/dashboard');
-              }
             }
             setLoading(false);
           });
@@ -88,7 +72,26 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]);
+  }, []);
+
+  // Handle navigation in a separate effect to avoid render-time navigation
+  useEffect(() => {
+    if (!loading && user && userRole) {
+      // Role-based routing
+      if (userRole === 'agent' && !location.pathname.startsWith('/agent/')) {
+        navigate('/agent/dashboard');
+      } else if (userRole === 'coordinator' && location.pathname.startsWith('/agent/')) {
+        navigate('/dashboard');
+      }
+    }
+  }, [userRole, loading, user, location.pathname, navigate]);
+
+  // Handle redirect to auth page in a separate effect
+  useEffect(() => {
+    if (!loading && (!user || !session)) {
+      navigate('/auth');
+    }
+  }, [loading, user, session, navigate]);
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -102,9 +105,8 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
-  // Redirect to auth if not authenticated
+  // Don't render children if not authenticated
   if (!user || !session) {
-    navigate('/auth');
     return null;
   }
 
