@@ -75,7 +75,14 @@ const ServiceTierSelection = () => {
     { label: 'Service Tier', isCurrentPage: true }
   ];
 
-  const transactionType = transaction.transaction_type === 'purchase' ? 'buyer' : 'seller';
+  // Map transaction_type to the type expected by ServiceTierSelector
+  const getTransactionType = (transactionType: string | null): 'buyer' | 'seller' => {
+    if (transactionType === 'seller') return 'seller';
+    // Default to buyer for 'buyer', 'dual', or null cases
+    return 'buyer';
+  };
+
+  const transactionType = getTransactionType(transaction.transaction_type);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-background to-brand-taupe/10">

@@ -2,8 +2,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ServiceTierType, TransactionServiceDetails } from '@/types/serviceTiers';
+import { ServiceTierType } from '@/types/serviceTiers';
 import { getFeaturesByTier, getTierPricing, calculateTotalCost } from '@/data/serviceTierConfig';
+
+// Define the interface for the raw Supabase response
+interface RawTransactionServiceDetails {
+  id: string;
+  transaction_id: string;
+  selected_features: any; // Json type from Supabase
+  base_service_fee: number;
+  total_service_cost: number;
+  add_ons: any; // Json type from Supabase
+  created_at: string;
+  updated_at: string;
+}
+
+// Define the processed interface for our application
+interface TransactionServiceDetails {
+  id: string;
+  transaction_id: string;
+  selected_features: string[];
+  base_service_fee: number;
+  total_service_cost: number;
+  add_ons: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 export const useServiceTierSelection = (transactionId: string) => {
   const queryClient = useQueryClient();
@@ -19,7 +43,15 @@ export const useServiceTierSelection = (transactionId: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      
+      if (!data) return null;
+
+      // Transform the raw data to match our interface
+      return {
+        ...data,
+        selected_features: Array.isArray(data.selected_features) ? data.selected_features : [],
+        add_ons: Array.isArray(data.add_ons) ? data.add_ons : []
+      } as TransactionServiceDetails;
     },
     enabled: !!transactionId,
   });
