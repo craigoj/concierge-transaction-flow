@@ -15,11 +15,17 @@ import {
   FileText,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Workflow,
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import { useTransactionData } from '@/hooks/queries/useTransactionData';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useAgentData } from '@/components/agent/SecureAgentDataProvider';
+import WorkflowAutomationPanel from '@/components/agent/WorkflowAutomationPanel';
+import RealTimeCollaboration from '@/components/agent/RealTimeCollaboration';
+import EnhancedTaskManager from '@/components/agent/EnhancedTaskManager';
 
 const AgentTransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -121,7 +127,7 @@ const AgentTransactionDetail = () => {
                 Transaction Details
               </h1>
               <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Manage your transaction progress and details
+                Comprehensive transaction management and collaboration
               </p>
             </div>
             <Badge className={getStatusColor(transaction.status)}>
@@ -188,9 +194,11 @@ const AgentTransactionDetail = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-brand-taupe/20">
+          <TabsList className="grid w-full grid-cols-6 bg-white/80 backdrop-blur-sm border border-brand-taupe/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="tasks">Enhanced Tasks</TabsTrigger>
+            <TabsTrigger value="workflow">Automation</TabsTrigger>
+            <TabsTrigger value="collaboration">Collaborate</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="communication">Communication</TabsTrigger>
           </TabsList>
@@ -267,50 +275,15 @@ const AgentTransactionDetail = () => {
           </TabsContent>
 
           <TabsContent value="tasks">
-            <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
-              <CardHeader>
-                <CardTitle>Transaction Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {transaction.tasks && transaction.tasks.length > 0 ? (
-                  <div className="space-y-3">
-                    {transaction.tasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-3 p-3 border border-brand-taupe/20 rounded-lg">
-                        <div className={`w-4 h-4 rounded-full ${
-                          task.is_completed ? 'bg-green-500' : 'bg-gray-300'
-                        }`} />
-                        <div className="flex-1">
-                          <h4 className={`font-medium ${
-                            task.is_completed ? 'text-gray-500 line-through' : 'text-brand-charcoal'
-                          }`}>
-                            {task.title}
-                          </h4>
-                          {task.due_date && (
-                            <p className="text-sm text-brand-charcoal/60">
-                              Due: {new Date(task.due_date).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                        {task.priority && (
-                          <Badge variant="outline" className={
-                            task.priority === 'high' ? 'border-red-300 text-red-700' :
-                            task.priority === 'medium' ? 'border-amber-300 text-amber-700' :
-                            'border-green-300 text-green-700'
-                          }>
-                            {task.priority}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
-                    <p className="text-brand-charcoal/60">No tasks assigned yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <EnhancedTaskManager transactionId={id!} />
+          </TabsContent>
+
+          <TabsContent value="workflow">
+            <WorkflowAutomationPanel transactionId={id!} />
+          </TabsContent>
+
+          <TabsContent value="collaboration">
+            <RealTimeCollaboration transactionId={id!} />
           </TabsContent>
 
           <TabsContent value="documents">
@@ -321,7 +294,7 @@ const AgentTransactionDetail = () => {
               <CardContent>
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
-                  <p className="text-brand-charcoal/60">Document management coming soon</p>
+                  <p className="text-brand-charcoal/60">Enhanced document management coming soon</p>
                 </div>
               </CardContent>
             </Card>
@@ -334,8 +307,8 @@ const AgentTransactionDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
-                  <p className="text-brand-charcoal/60">Communication history coming soon</p>
+                  <MessageSquare className="h-12 w-12 text-brand-taupe/40 mx-auto mb-3" />
+                  <p className="text-brand-charcoal/60">Advanced communication features coming soon</p>
                 </div>
               </CardContent>
             </Card>
