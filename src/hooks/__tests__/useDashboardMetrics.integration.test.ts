@@ -105,13 +105,13 @@ const createWrapper = () => {
     },
   });
 
-  const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
-
-  return TestWrapper;
+  return function TestWrapper(props: { children: React.ReactNode }) {
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      props.children
+    );
+  };
 };
 
 describe('useDashboardMetrics Integration Tests', () => {
