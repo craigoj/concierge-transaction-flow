@@ -3,29 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import type { TransactionData, AgentData } from '@/types';
-
-// Mock Supabase client with proper interface
-const mockSupabaseResponse = {
-  data: [] as any[],
-  error: null,
-  count: 0
-};
-
-// Create a proper mock that handles the method chaining
-const createMockSupabaseClient = () => {
-  const mockEq = vi.fn(() => Promise.resolve(mockSupabaseResponse));
-  const mockSelect = vi.fn(() => ({ eq: mockEq }));
-  const mockFrom = vi.fn(() => ({ select: mockSelect }));
-  
-  return { from: mockFrom };
-};
-
-const mockSupabase = createMockSupabaseClient();
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase
-}));
+import type { TransactionData } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock dashboard metrics hook
 interface DashboardMetrics {
@@ -53,10 +32,10 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
     try {
       setMetrics(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Simulate API calls - the mocks will handle the arguments properly
-      const transactionsResult = await mockSupabase.from('transactions').select('*').eq('agent_id', agentId);
-      const clientsResult = await mockSupabase.from('clients').select('*').eq('dummy', 'value');
-      const tasksResult = await mockSupabase.from('tasks').select('*').eq('is_completed', false);
+      // Use the mocked supabase client - it will return the mocked data
+      const transactionsResult = await supabase.from('transactions').select('*').eq('agent_id', agentId);
+      const clientsResult = await supabase.from('clients').select('*').eq('dummy', 'value');
+      const tasksResult = await supabase.from('tasks').select('*').eq('is_completed', false);
 
       if (transactionsResult.error || clientsResult.error || tasksResult.error) {
         throw new Error('Data fetching failed');
@@ -113,8 +92,6 @@ const createWrapper = () => {
 describe('useDashboardMetrics Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSupabaseResponse.data = [];
-    mockSupabaseResponse.error = null;
   });
 
   it('should fetch dashboard metrics successfully', async () => {
@@ -132,8 +109,17 @@ describe('useDashboardMetrics Integration Tests', () => {
       }
     ];
 
-    mockSupabaseResponse.data = mockTransactions;
-    mockSupabaseResponse.error = null;
+    // Mock the return data for this specific test
+    const mockFromResult = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: mockTransactions,
+          error: null
+        }))
+      }))
+    };
+
+    (supabase.from as any).mockReturnValue(mockFromResult);
 
     const { result } = renderHook(
       () => useDashboardMetrics('agent-1'),
@@ -149,8 +135,17 @@ describe('useDashboardMetrics Integration Tests', () => {
   });
 
   it('should handle data fetching failures', async () => {
-    mockSupabaseResponse.data = null;
-    mockSupabaseResponse.error = { message: 'Database connection failed' };
+    // Mock error response
+    const mockFromResult = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: null,
+          error: { message: 'Database connection failed' }
+        }))
+      }))
+    };
+
+    (supabase.from as any).mockReturnValue(mockFromResult);
 
     const { result } = renderHook(
       () => useDashboardMetrics('agent-1'),
