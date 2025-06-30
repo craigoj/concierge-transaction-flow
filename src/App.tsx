@@ -10,6 +10,9 @@ import Dashboard from '@/pages/Index';
 import Transactions from '@/pages/Transactions';
 import TransactionDetail from '@/pages/TransactionDetail';
 import Tasks from '@/pages/Workflows';
+import Workflows from '@/pages/Workflows';
+import AutomationDashboard from '@/pages/AutomationDashboard';
+import Templates from '@/pages/Templates';
 import Documents from '@/pages/Documents';
 import Clients from '@/pages/Clients';
 import Settings from '@/pages/Settings';
@@ -84,6 +87,27 @@ function App() {
             <AuthGuard>
               <AppLayout>
                 <OfferDrafting />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/workflows" element={
+            <AuthGuard>
+              <AppLayout>
+                <Workflows />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/automation" element={
+            <AuthGuard>
+              <AppLayout>
+                <AutomationDashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/templates" element={
+            <AuthGuard>
+              <AppLayout>
+                <Templates />
               </AppLayout>
             </AuthGuard>
           } />
