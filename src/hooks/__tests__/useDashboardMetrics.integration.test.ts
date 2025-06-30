@@ -203,7 +203,7 @@ describe('useDashboardMetrics Integration Tests', () => {
     expect(result.current.error).toBeNull();
 
     // Resolve the promise
-    resolvePromise!({ data: [], error: null });
+    resolvePromise({ data: [], error: null });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
