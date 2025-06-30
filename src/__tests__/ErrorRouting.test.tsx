@@ -7,8 +7,6 @@ import { ErrorBoundary } from 'react-error-boundary';
 // Mock components for testing
 const TestComponent = () => <div>Test Component</div>;
 const NotFoundComponent = () => <div>404 Not Found</div>;
-
-// Error fallback component with proper typing
 const ErrorFallback = ({ error }: { error: Error }) => (
   <div>Error: {error.message}</div>
 );
@@ -35,7 +33,7 @@ describe('Error Routing Tests', () => {
   const renderWithRouter = (initialRoute: string) => {
     return render(
       <BrowserRouter>
-        <ErrorBoundary fallbackRender={ErrorFallback}>
+        <ErrorBoundary fallback={ErrorFallback}>
           <Routes>
             <Route
               path="/clients/:id"

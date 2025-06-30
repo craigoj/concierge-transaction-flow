@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,11 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import type { AgentData, AgentListError } from '@/types';
 
-interface AgentsListProps {
-  refreshTrigger?: number;
-}
-
-export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
+export const AgentsList = () => {
   const [agents, setAgents] = useState<AgentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<AgentListError | null>(null);
@@ -45,16 +42,16 @@ export const AgentsList = ({ refreshTrigger }: AgentsListProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // No dependencies needed for this callback
 
   useEffect(() => {
     fetchAgents();
-  }, [fetchAgents, refreshTrigger]);
+  }, [fetchAgents]); // Added fetchAgents to dependencies
 
   const handleAgentCreated = useCallback(() => {
     setShowCreateDialog(false);
     fetchAgents();
-  }, [fetchAgents]);
+  }, [fetchAgents]); // Added fetchAgents to dependencies
 
   const getInitials = (firstName?: string, lastName?: string): string => {
     const first = firstName?.charAt(0)?.toUpperCase() || '';

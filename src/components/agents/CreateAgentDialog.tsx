@@ -1,58 +1,86 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+const createAgentSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
+  phoneNumber: z.string().optional(),
+  brokerage: z.string().optional(),
+});
 
-export interface CreateAgentDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+type CreateAgentForm = z.infer<typeof createAgentSchema>;
+
+interface CreateAgentDialogProps {
   onAgentCreated: () => void;
 }
 
-export const CreateAgentDialog = ({ open, onOpenChange, onAgentCreated }: CreateAgentDialogProps) => {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: ''
-  });
+export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) => {
+  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<CreateAgentForm>({
+    resolver: zodResolver(createAgentSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      brokerage: "",
+    },
+  });
+
+  const onSubmit = async (data: CreateAgentForm) => {
     setIsLoading(true);
-
     try {
-      // Create agent invitation
-      const { error } = await supabase.functions.invoke('create-agent-invitation', {
-        body: {
-          email: formData.email,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone
-        }
+      console.log("Starting agent creation with data:", data);
+
+      const { data: response, error } = await supabase.functions.invoke('create-agent-invitation', {
+        body: data,
       });
 
-      if (error) throw error;
+      console.log("Function response:", response, "Error:", error);
+
+      if (error) {
+        console.error("Function invocation error:", error);
+        throw new Error(error.message || "Failed to create agent invitation");
+      }
+
+      if (!response || !response.success) {
+        console.error("No success response:", response);
+        throw new Error(response?.error || "Failed to create agent invitation");
+      }
 
       toast({
-        title: 'Agent invitation sent',
-        description: `An invitation has been sent to ${formData.email}`,
+        title: "Agent Invitation Sent",
+        description: `Welcome email sent to ${data.email}. The agent can now set up their account.`,
       });
 
+      form.reset();
+      setOpen(false);
       onAgentCreated();
-      setFormData({ firstName: '', lastName: '', email: '', phone: '' });
-    } catch (error) {
-      console.error('Error creating agent:', error);
+    } catch (error: any) {
+      console.error("Error creating agent:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to create agent invitation',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create agent invitation",
       });
     } finally {
       setIsLoading(false);
@@ -60,57 +88,114 @@ export const CreateAgentDialog = ({ open, onOpenChange, onAgentCreated }: Create
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="rounded-xl shadow-brand-subtle font-brand-heading font-medium tracking-wide">
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Agent
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] bg-white border-brand-taupe/20">
         <DialogHeader>
-          <DialogTitle>Add New Agent</DialogTitle>
+          <DialogTitle className="text-xl font-brand-heading text-brand-charcoal">
+            Create New Agent Account
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName">First Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="firstName" className="font-brand-body text-brand-charcoal">
+                First Name *
+              </Label>
               <Input
                 id="firstName"
-                value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                required
+                {...form.register("firstName")}
+                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                disabled={isLoading}
               />
+              {form.formState.errors.firstName && (
+                <p className="text-sm text-red-500">{form.formState.errors.firstName.message}</p>
+              )}
             </div>
-            <div>
-              <Label htmlFor="lastName">Last Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="lastName" className="font-brand-body text-brand-charcoal">
+                Last Name *
+              </Label>
               <Input
                 id="lastName"
-                value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                required
+                {...form.register("lastName")}
+                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                disabled={isLoading}
               />
+              {form.formState.errors.lastName && (
+                <p className="text-sm text-red-500">{form.formState.errors.lastName.message}</p>
+              )}
             </div>
           </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="font-brand-body text-brand-charcoal">
+              Email Address *
+            </Label>
             <Input
               id="email"
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              required
+              {...form.register("email")}
+              className="border-brand-taupe/30 focus:border-brand-charcoal"
+              disabled={isLoading}
             />
+            {form.formState.errors.email && (
+              <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+            )}
           </div>
-          <div>
-            <Label htmlFor="phone">Phone</Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber" className="font-brand-body text-brand-charcoal">
+              Phone Number
+            </Label>
             <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              id="phoneNumber"
+              {...form.register("phoneNumber")}
+              className="border-brand-taupe/30 focus:border-brand-charcoal"
+              disabled={isLoading}
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+
+          <div className="space-y-2">
+            <Label htmlFor="brokerage" className="font-brand-body text-brand-charcoal">
+              Brokerage
+            </Label>
+            <Input
+              id="brokerage"
+              {...form.register("brokerage")}
+              className="border-brand-taupe/30 focus:border-brand-charcoal"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isLoading}
+              className="border-brand-taupe/30 text-brand-charcoal hover:bg-brand-taupe/10"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Sending...' : 'Send Invitation'}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-brand-charcoal hover:bg-brand-charcoal/90 text-white rounded-xl font-brand-heading font-medium"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Agent Account"
+              )}
             </Button>
           </div>
         </form>

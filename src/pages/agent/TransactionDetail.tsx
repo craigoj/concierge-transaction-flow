@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useTransactionData } from '@/hooks/queries/useTransactionData';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { useAgentData } from '@/components/agent/SecureAgentDataProvider';
 import WorkflowAutomationPanel from '@/components/agent/WorkflowAutomationPanel';
 import RealTimeCollaboration from '@/components/agent/RealTimeCollaboration';
 import EnhancedTaskManager from '@/components/agent/EnhancedTaskManager';
@@ -30,12 +31,8 @@ import AdvancedAnalytics from '@/components/agent/AdvancedAnalytics';
 const AgentTransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasAccess } = useAgentData();
   const { data: transaction, isLoading } = useTransactionData(id!);
-
-  // Simple access check - you can enhance this later
-  const hasAccess = (transactionId: string) => {
-    return true; // For now, allow access to all transactions
-  };
 
   // Security check - ensure agent has access to this transaction
   if (!isLoading && id && !hasAccess(id)) {
