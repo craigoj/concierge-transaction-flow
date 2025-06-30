@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, User, MapPin, Home, Edit, Zap, Menu } from 'lucide-react';
+import { Calendar, DollarSign, User, MapPin, Home, Edit, Zap, Menu, Star } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import ApplyWorkflowDialog from '@/components/workflows/ApplyWorkflowDialog';
 import WorkflowHistory from '@/components/workflows/WorkflowHistory';
@@ -147,6 +146,15 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
                   >
                     <Zap className="h-4 w-4 mr-2" />
                     Apply Workflow
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full sm:w-auto"
+                    onClick={() => window.location.href = `/transactions/${transaction.id}/service-tier`}
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    Service Tier
                   </Button>
                   <Button variant="outline" size="sm" className="w-full sm:w-auto">
                     <Edit className="h-4 w-4 mr-2" />

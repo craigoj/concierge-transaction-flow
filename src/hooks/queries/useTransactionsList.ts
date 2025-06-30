@@ -1,134 +1,73 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
 import { transactionKeys } from './useTransactionData';
 
-type Transaction = Tables<'transactions'> & {
-  clients?: Tables<'clients'>[];
-  tasks?: Tables<'tasks'>[];
-};
+type TransactionStatus = 'intake' | 'active' | 'closed' | 'cancelled';
+type ServiceTier = 'buyer_core' | 'buyer_elite' | 'white_glove_buyer' | 'listing_core' | 'listing_elite' | 'white_glove_listing';
 
-interface TransactionFilters {
-  status?: string;
-  agentId?: string;
-  dateRange?: { from: Date; to: Date };
-  search?: string;
-}
-
-export const useTransactionsList = (filters: TransactionFilters = {}) => {
+export const useAgentTransactions = () => {
   return useQuery({
-    queryKey: transactionKeys.list(filters),
-    queryFn: async (): Promise<Transaction[]> => {
-      let query = supabase
+    queryKey: ['agent-transactions'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
         .from('transactions')
         .select(`
           *,
-          clients (*),
-          tasks (*)
+          clients (*)
         `)
+        .eq('agent_id', user.id)
         .order('created_at', { ascending: false });
-
-      // Apply filters
-      if (filters.status) {
-        query = query.eq('status', filters.status as Tables<'transactions'>['status']);
-      }
-      
-      if (filters.agentId) {
-        query = query.eq('agent_id', filters.agentId);
-      }
-
-      if (filters.dateRange) {
-        query = query
-          .gte('created_at', filters.dateRange.from.toISOString())
-          .lte('created_at', filters.dateRange.to.toISOString());
-      }
-
-      if (filters.search) {
-        query = query.or(`property_address.ilike.%${filters.search}%,city.ilike.%${filters.search}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-export const useCreateTransaction = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (newTransaction: Omit<Tables<'transactions'>, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert(newTransaction)
-        .select()
-        .single();
 
       if (error) throw error;
       return data;
     },
-    onMutate: async (newTransaction) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: transactionKeys.lists() });
+  });
+};
 
-      // Optimistically add to all relevant lists
-      const optimisticTransaction = {
-        ...newTransaction,
-        id: `temp-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        clients: [],
-        tasks: [],
-      };
+export const useTransactionsList = (filters?: {
+  status?: string;
+  serviceTier?: string;
+  search?: string;
+}) => {
+  return useQuery({
+    queryKey: transactionKeys.list(filters),
+    queryFn: async () => {
+      let query = supabase
+        .from('transactions')
+        .select(`
+          *,
+          clients (*)
+        `)
+        .order('created_at', { ascending: false });
 
-      // Update all matching list queries
-      queryClient.setQueriesData(
-        { queryKey: transactionKeys.lists() },
-        (old: Transaction[] | undefined) => 
-          old ? [optimisticTransaction, ...old] : [optimisticTransaction]
-      );
-
-      return { optimisticTransaction };
-    },
-    onError: (error: any, variables, context) => {
-      // Remove optimistic update on error
-      if (context?.optimisticTransaction) {
-        queryClient.setQueriesData(
-          { queryKey: transactionKeys.lists() },
-          (old: Transaction[] | undefined) =>
-            old?.filter(t => t.id !== context.optimisticTransaction.id) || []
-        );
-      }
-      toast({
-        variant: "destructive",
-        title: "Error creating transaction",
-        description: error.message,
-      });
-    },
-    onSuccess: (data, variables, context) => {
-      // Replace optimistic update with real data
-      if (context?.optimisticTransaction) {
-        queryClient.setQueriesData(
-          { queryKey: transactionKeys.lists() },
-          (old: Transaction[] | undefined) =>
-            old?.map(t => t.id === context.optimisticTransaction.id ? data : t) || []
-        );
+      // Apply filters with proper type casting
+      if (filters?.status) {
+        query = query.eq('status', filters.status as TransactionStatus);
       }
 
-      // Invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: transactionKeys.stats() });
-      
-      toast({
-        title: "Success",
-        description: "Transaction created successfully",
-      });
+      if (filters?.serviceTier) {
+        query = query.eq('service_tier', filters.serviceTier as ServiceTier);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Apply search filter client-side for simplicity
+      if (filters?.search) {
+        return data?.filter(transaction => 
+          transaction.property_address?.toLowerCase().includes(filters.search!.toLowerCase()) ||
+          transaction.clients?.some(client => 
+            client.full_name?.toLowerCase().includes(filters.search!.toLowerCase())
+          )
+        ) || [];
+      }
+
+      return data || [];
     },
   });
 };

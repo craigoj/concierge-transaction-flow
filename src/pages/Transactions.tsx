@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus } from 'lucide-react';
-import TransactionList from '@/components/transactions/TransactionList';
+import { Plus, Settings } from 'lucide-react';
+import { TransactionListWithBulk } from '@/components/transactions/TransactionListWithBulk';
+import { TransactionTemplateManager } from '@/components/transactions/TransactionTemplateManager';
 import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const Transactions = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -81,17 +83,46 @@ const Transactions = () => {
               Manage all your real estate transactions with precision and elegance
             </p>
           </div>
-          <Button 
-            onClick={() => setCreateDialogOpen(true)} 
-            className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3"
-            size="lg"
-          >
-            <Plus className="h-5 w-5" />
-            NEW TRANSACTION
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={() => setTemplateManagerOpen(true)}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Templates
+            </Button>
+            <Button 
+              onClick={() => setCreateDialogOpen(true)} 
+              className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3"
+              size="lg"
+            >
+              <Plus className="h-5 w-5" />
+              NEW TRANSACTION
+            </Button>
+          </div>
         </div>
         <div className="w-24 h-px bg-brand-taupe"></div>
       </div>
+
+      {/* Template Manager Modal */}
+      {templateManagerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-brand-glass max-w-7xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-brand-heading text-brand-charcoal">Transaction Templates</h2>
+                <Button variant="ghost" onClick={() => setTemplateManagerOpen(false)}>
+                  ×
+                </Button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <TransactionTemplateManager />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Premium Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -125,10 +156,11 @@ const Transactions = () => {
         </div>
 
         <TabsContent value={activeTab} className="space-y-6">
-          <TransactionList 
+          <TransactionListWithBulk 
             transactions={filteredTransactions} 
             isLoading={isLoading}
             onTransactionClick={(id) => navigate(`/transactions/${id}`)}
+            enableBulkActions={true}
           />
         </TabsContent>
       </Tabs>

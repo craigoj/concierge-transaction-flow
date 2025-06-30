@@ -1,557 +1,485 @@
-import React from 'react'
-import { useFormContext } from 'react-hook-form'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { 
-  Palette,
-  Star,
-  Coffee,
-  Wine,
-  Calendar,
-  Link,
-  Image,
-  MessageSquare,
-  Clock,
-  FileText,
-  AlertCircle,
-  Info
-} from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/integrations/supabase/auth';
+import { Palette, Link, Image, Coffee, Wine, Calendar, Share2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// =============================================================================
-// CONFIGURATION CONSTANTS
-// =============================================================================
-
-const COMMUNICATION_TIMES = [
-  { value: 'morning', label: 'Morning (8AM - 12PM)', icon: '🌅' },
-  { value: 'afternoon', label: 'Afternoon (12PM - 5PM)', icon: '☀️' },
-  { value: 'evening', label: 'Evening (5PM - 8PM)', icon: '🌆' },
-  { value: 'anytime', label: 'Anytime', icon: '⏰' }
-]
-
-const COMMUNICATION_STYLES = [
-  { value: 'formal', label: 'Formal', description: 'Professional and structured communication' },
-  { value: 'casual', label: 'Casual', description: 'Relaxed and friendly tone' },
-  { value: 'detailed', label: 'Detailed', description: 'Comprehensive information and updates' },
-  { value: 'brief', label: 'Brief', description: 'Concise and to-the-point messaging' }
-]
-
-const PREDEFINED_COLORS = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
-  '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
-  '#F97316', '#6366F1', '#14B8A6', '#EAB308'
-]
-
-// =============================================================================
-// PREFERENCE SECTION COMPONENTS
-// =============================================================================
-
-const SignPreferencesSection: React.FC = () => {
-  const { register, watch, setValue, formState: { errors } } = useFormContext()
-  const hasBrandedSign = watch('branding.has_branded_sign')
-
-  return (
-    <Card className="bg-blue-50 border-blue-200">
-      <CardHeader>
-        <CardTitle className="flex items-center text-blue-900">
-          <Star className="w-5 h-5 mr-2" />
-          For Sale Sign Preferences
-        </CardTitle>
-        <CardDescription className="text-blue-700">
-          Let us know about your branded signage preferences for listings
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label className="text-base font-medium text-blue-900">
-            Do you have branded for sale signs?
-          </Label>
-          <RadioGroup
-            value={hasBrandedSign?.toString() || ''}
-            onValueChange={(value) => setValue('branding.has_branded_sign', value === 'true')}
-            className="mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="true" id="sign-yes" />
-              <Label htmlFor="sign-yes">Yes, I have branded signs</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="false" id="sign-no" />
-              <Label htmlFor="sign-no">No, but I can get my own</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {(hasBrandedSign === true || hasBrandedSign === false) && (
-          <div>
-            <Label htmlFor="branding.sign_notes">
-              Sign Details & Notes
-            </Label>
-            <Textarea
-              {...register('branding.sign_notes')}
-              placeholder="Any specific requirements, installation instructions, or notes about your signage..."
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+interface BrandingFormData {
+  has_branded_sign: string;
+  sign_notes: string;
+  review_link: string;
+  has_canva_template: string;
+  canva_template_url: string;
+  favorite_color: string;
+  drinks_coffee: boolean;
+  drinks_alcohol: boolean;
+  birthday: string;
+  social_media_permission: boolean;
 }
 
-const ReviewLinkSection: React.FC = () => {
-  const { register, formState: { errors } } = useFormContext()
-
-  return (
-    <Card className="bg-green-50 border-green-200">
-      <CardHeader>
-        <CardTitle className="flex items-center text-green-900">
-          <Link className="w-5 h-5 mr-2" />
-          Review Link
-          <span className="text-red-500 ml-1">*</span>
-        </CardTitle>
-        <CardDescription className="text-green-700">
-          Your review link for client feedback and testimonials
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div>
-          <Label htmlFor="branding.review_link">
-            Review Link URL
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            {...register('branding.review_link', { 
-              required: 'Review link is required',
-              pattern: {
-                value: /^https?:\/\/.+/,
-                message: 'Please enter a valid URL starting with http:// or https://'
-              }
-            })}
-            placeholder="https://www.google.com/maps/place/your-business"
-            className="mt-1"
-          />
-          {errors.branding?.review_link && (
-            <p className="text-red-500 text-sm mt-1 flex items-center">
-              <AlertCircle className="w-4 h-4 mr-1" />
-              {errors.branding.review_link.message}
-            </p>
-          )}
-          <p className="text-sm text-green-600 mt-1">
-            This will be used for automated review requests after successful transactions
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
+interface BrandingPreferencesStepProps {
+  onComplete: (data: BrandingFormData) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  initialData?: BrandingFormData;
+  onFieldChange?: (field: string, value: any) => Promise<void>;
+  errors?: Record<string, string>;
 }
 
-const CanvaTemplateSection: React.FC = () => {
-  const { register, watch, setValue, formState: { errors } } = useFormContext()
-  const hasCanvaTemplate = watch('branding.has_canva_template')
+export const BrandingPreferencesStep = ({ 
+  onComplete, 
+  onNext, 
+  onPrevious, 
+  initialData,
+  onFieldChange,
+  errors = {}
+}: BrandingPreferencesStepProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+  
+  // Use external errors if provided, otherwise use local errors
+  const displayErrors = Object.keys(errors).length > 0 ? errors : localErrors;
+  
+  const [formData, setFormData] = useState<BrandingFormData>({
+    has_branded_sign: initialData?.has_branded_sign || '',
+    sign_notes: initialData?.sign_notes || '',
+    review_link: initialData?.review_link || '',
+    has_canva_template: initialData?.has_canva_template || '',
+    canva_template_url: initialData?.canva_template_url || '',
+    favorite_color: initialData?.favorite_color || '#3C3C3C',
+    drinks_coffee: initialData?.drinks_coffee || false,
+    drinks_alcohol: initialData?.drinks_alcohol || false,
+    birthday: initialData?.birthday || '',
+    social_media_permission: initialData?.social_media_permission || false
+  });
+
+  // Load existing branding data
+  useEffect(() => {
+    const loadBrandingData = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('agent_branding')
+          .select('*')
+          .eq('agent_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setFormData({
+            has_branded_sign: data.has_branded_sign || '',
+            sign_notes: data.sign_notes || '',
+            review_link: data.review_link || '',
+            has_canva_template: data.has_canva_template || '',
+            canva_template_url: data.canva_template_url || '',
+            favorite_color: data.favorite_color || '#3C3C3C',
+            drinks_coffee: data.drinks_coffee || false,
+            drinks_alcohol: data.drinks_alcohol || false,
+            birthday: data.birthday || '',
+            social_media_permission: data.social_media_permission || false
+          });
+        }
+      } catch (error) {
+        console.error('Error loading branding data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load existing branding data',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    loadBrandingData();
+  }, [user?.id, toast]);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Review link is required and must be valid URL
+    if (!formData.review_link.trim()) {
+      newErrors.review_link = 'Review link is required';
+    } else {
+      try {
+        new URL(formData.review_link);
+      } catch {
+        newErrors.review_link = 'Please enter a valid URL';
+      }
+    }
+
+    // Canva template URL required if 'yes_will_share' selected
+    if (formData.has_canva_template === 'yes_will_share' && !formData.canva_template_url.trim()) {
+      newErrors.canva_template_url = 'Canva template URL is required when sharing template';
+    } else if (formData.canva_template_url.trim()) {
+      try {
+        new URL(formData.canva_template_url);
+      } catch {
+        newErrors.canva_template_url = 'Please enter a valid URL';
+      }
+    }
+
+    setLocalErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to save branding preferences',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!validateForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before continuing',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('agent_branding')
+        .upsert({
+          agent_id: user.id,
+          has_branded_sign: formData.has_branded_sign || null,
+          sign_notes: formData.sign_notes || null,
+          review_link: formData.review_link,
+          has_canva_template: formData.has_canva_template || null,
+          canva_template_url: formData.canva_template_url || null,
+          favorite_color: formData.favorite_color,
+          drinks_coffee: formData.drinks_coffee,
+          drinks_alcohol: formData.drinks_alcohol,
+          birthday: formData.birthday || null,
+          social_media_permission: formData.social_media_permission
+        });
+
+      if (error) throw error;
+
+      onComplete(formData);
+      onNext();
+      
+      toast({
+        title: 'Success',
+        description: 'Branding preferences saved successfully',
+      });
+    } catch (error) {
+      console.error('Error saving branding data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save branding preferences',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateField = async (field: keyof BrandingFormData, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when field is updated
+    if (displayErrors[field]) {
+      setLocalErrors(prev => ({ ...prev, [field]: '' }));
+    }
+
+    // Call external field change handler if provided
+    if (onFieldChange) {
+      await onFieldChange(field, value);
+    }
+  };
 
   return (
-    <Card className="bg-purple-50 border-purple-200">
+    <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
       <CardHeader>
-        <CardTitle className="flex items-center text-purple-900">
-          <Image className="w-5 h-5 mr-2" />
-          Canva Template Preferences
+        <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
+          <Palette className="h-6 w-6" />
+          Branding Preferences
         </CardTitle>
-        <CardDescription className="text-purple-700">
-          Social media and marketing template configuration
-        </CardDescription>
+        <p className="text-brand-charcoal/70 font-brand-body">
+          Configure your branding and personalization settings to enhance your service delivery.
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label className="text-base font-medium text-purple-900">
-            Canva Template Setup
-          </Label>
-          <RadioGroup
-            value={hasCanvaTemplate?.toString() || ''}
-            onValueChange={(value) => setValue('branding.has_canva_template', value === 'true')}
-            className="mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="true" id="canva-yes" />
-              <Label htmlFor="canva-yes">Yes, I'll share my Canva template</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="false" id="canva-no" />
-              <Label htmlFor="canva-no">No, please prepare one for me</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {hasCanvaTemplate === true && (
-          <div>
-            <Label htmlFor="branding.canva_template_url">
-              Canva Template URL
-            </Label>
-            <Input
-              {...register('branding.canva_template_url', {
-                pattern: {
-                  value: /^https?:\/\/.+/,
-                  message: 'Please enter a valid URL'
-                }
-              })}
-              placeholder="https://www.canva.com/design/your-template"
-              className="mt-1"
-            />
-            {errors.branding?.canva_template_url && (
-              <p className="text-red-500 text-sm mt-1 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                {errors.branding.canva_template_url.message}
-              </p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-const PersonalizationSection: React.FC = () => {
-  const { register, watch, setValue } = useFormContext()
-  const favoriteColor = watch('branding.favorite_color')
-  const drinksCoffee = watch('branding.drinks_coffee')
-  const drinksAlcohol = watch('branding.drinks_alcohol')
-
-  return (
-    <Card className="bg-amber-50 border-amber-200">
-      <CardHeader>
-        <CardTitle className="flex items-center text-amber-900">
-          <Palette className="w-5 h-5 mr-2" />
-          Personal Preferences
-        </CardTitle>
-        <CardDescription className="text-amber-700">
-          Help us personalize your service experience and client gifts
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Favorite Color */}
-        <div>
-          <Label className="text-base font-medium text-amber-900 mb-3 block">
-            Favorite Color
-          </Label>
-          <div className="space-y-3">
-            <div className="grid grid-cols-6 gap-2">
-              {PREDEFINED_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`w-10 h-10 rounded-full border-2 transition-all ${
-                    favoriteColor === color 
-                      ? 'border-gray-800 scale-110' 
-                      : 'border-gray-300 hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setValue('branding.favorite_color', color)}
-                />
-              ))}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="custom-color" className="text-sm">Or enter custom color:</Label>
-              <Input
-                {...register('branding.favorite_color')}
-                type="color"
-                className="w-20 h-8 border-none p-0"
-              />
-              <Input
-                {...register('branding.favorite_color')}
-                placeholder="#3B82F6"
-                className="flex-1"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Beverage Preferences */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label className="text-base font-medium text-amber-900 mb-3 block">
-              Coffee Preference
-            </Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="drinks-coffee"
-                  checked={drinksCoffee === true}
-                  onCheckedChange={(checked) => 
-                    setValue('branding.drinks_coffee', checked ? true : null)
-                  }
-                />
-                <Label htmlFor="drinks-coffee" className="flex items-center">
-                  <Coffee className="w-4 h-4 mr-1" />
-                  I enjoy coffee
-                </Label>
-              </div>
-              <p className="text-sm text-amber-600">
-                Helps us choose appropriate client gifts and meeting preferences
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-base font-medium text-amber-900 mb-3 block">
-              Alcohol Preference
-            </Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="drinks-alcohol"
-                  checked={drinksAlcohol === true}
-                  onCheckedChange={(checked) => 
-                    setValue('branding.drinks_alcohol', checked ? true : null)
-                  }
-                />
-                <Label htmlFor="drinks-alcohol" className="flex items-center">
-                  <Wine className="w-4 h-4 mr-1" />
-                  I enjoy wine/alcohol
-                </Label>
-              </div>
-              <p className="text-sm text-amber-600">
-                Helps us select appropriate celebration gifts
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Birthday */}
-        <div>
-          <Label htmlFor="branding.birthday" className="text-base font-medium text-amber-900">
-            Birthday (Optional)
-          </Label>
-          <div className="flex items-center space-x-2 mt-2">
-            <Calendar className="w-4 h-4 text-amber-600" />
-            <Input
-              {...register('branding.birthday')}
-              type="date"
-              className="w-auto"
-            />
-            <span className="text-sm text-amber-600">
-              For personalized greetings and recognition
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-const CommunicationSection: React.FC = () => {
-  const { watch, setValue } = useFormContext()
-  const preferredTime = watch('branding.preferred_communication_time')
-  const communicationStyle = watch('branding.communication_style')
-
-  return (
-    <Card className="bg-cyan-50 border-cyan-200">
-      <CardHeader>
-        <CardTitle className="flex items-center text-cyan-900">
-          <MessageSquare className="w-5 h-5 mr-2" />
-          Communication Preferences
-        </CardTitle>
-        <CardDescription className="text-cyan-700">
-          Help us communicate with you in your preferred style and timing
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Preferred Communication Time */}
-        <div>
-          <Label className="text-base font-medium text-cyan-900 mb-3 block">
-            Preferred Communication Time
-          </Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {COMMUNICATION_TIMES.map((time) => (
-              <button
-                key={time.value}
-                type="button"
-                onClick={() => setValue('branding.preferred_communication_time', time.value)}
-                className={`p-3 rounded-lg border-2 transition-all text-left ${
-                  preferredTime === time.value
-                    ? 'border-cyan-500 bg-cyan-100'
-                    : 'border-gray-200 hover:border-cyan-300'
-                }`}
+      <CardContent className="space-y-8">
+        {/* Branded Sign Section */}
+        <Card className="border-brand-taupe/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-brand-heading tracking-wide uppercase text-brand-charcoal flex items-center gap-2">
+              <Image className="h-5 w-5" />
+              Branded Signage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                Do you have a branded sign for listings?
+              </Label>
+              <RadioGroup
+                value={formData.has_branded_sign}
+                onValueChange={(value) => updateField('has_branded_sign', value)}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="text-lg">{time.icon}</span>
-                  <div>
-                    <div className="font-medium text-cyan-900">{time.label}</div>
-                  </div>
+                  <RadioGroupItem value="yes" id="sign-yes" />
+                  <Label htmlFor="sign-yes" className="font-brand-body cursor-pointer">
+                    Yes, I have a branded sign
+                  </Label>
                 </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Communication Style */}
-        <div>
-          <Label className="text-base font-medium text-cyan-900 mb-3 block">
-            Communication Style
-          </Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {COMMUNICATION_STYLES.map((style) => (
-              <button
-                key={style.value}
-                type="button"
-                onClick={() => setValue('branding.communication_style', style.value)}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  communicationStyle === style.value
-                    ? 'border-cyan-500 bg-cyan-100'
-                    : 'border-gray-200 hover:border-cyan-300'
-                }`}
-              >
-                <div className="font-medium text-cyan-900 mb-1">{style.label}</div>
-                <div className="text-sm text-cyan-700">{style.description}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-const SocialMediaSection: React.FC = () => {
-  const { watch, setValue } = useFormContext()
-  const socialMediaPermission = watch('branding.social_media_permission')
-
-  return (
-    <Card className="bg-indigo-50 border-indigo-200">
-      <CardHeader>
-        <CardTitle className="flex items-center text-indigo-900">
-          <Image className="w-5 h-5 mr-2" />
-          Social Media Permissions
-        </CardTitle>
-        <CardDescription className="text-indigo-700">
-          Marketing and social media usage permissions
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="bg-indigo-100 border border-indigo-200 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <Info className="w-5 h-5 text-indigo-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-indigo-900 mb-2">Social Media Usage</h4>
-                <p className="text-sm text-indigo-800 mb-3">
-                  By granting permission, you allow us to:
-                </p>
-                <ul className="text-sm text-indigo-800 space-y-1">
-                  <li>• Create branded social media posts for your listings</li>
-                  <li>• Share transaction success stories (with client permission)</li>
-                  <li>• Feature your properties in our marketing materials</li>
-                  <li>• Tag your social media accounts in relevant posts</li>
-                </ul>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="sign-no" />
+                  <Label htmlFor="sign-no" className="font-brand-body cursor-pointer">
+                    No, I don't have one
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="will_get_own" id="sign-will-get" />
+                  <Label htmlFor="sign-will-get" className="font-brand-body cursor-pointer">
+                    No, but I will get my own
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-3">
-            <Checkbox
-              id="social-media-permission"
-              checked={socialMediaPermission || false}
-              onCheckedChange={(checked) => 
-                setValue('branding.social_media_permission', checked || false)
-              }
-            />
-            <Label htmlFor="social-media-permission" className="text-base font-medium">
-              I grant permission for social media marketing usage
-            </Label>
-          </div>
-          
-          {socialMediaPermission && (
-            <div className="bg-green-100 border border-green-200 rounded-lg p-3">
-              <p className="text-sm text-green-800 flex items-center">
-                <span className="mr-2">✓</span>
-                Thank you! This will help us create enhanced marketing materials for your listings.
+            {formData.has_branded_sign && (
+              <div className="space-y-2">
+                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                  Sign Details/Notes
+                </Label>
+                <Textarea
+                  value={formData.sign_notes}
+                  onChange={(e) => updateField('sign_notes', e.target.value)}
+                  placeholder="Please provide details about your branded sign..."
+                  rows={3}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Review Link Section */}
+        <Card className="border-brand-taupe/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-brand-heading tracking-wide uppercase text-brand-charcoal flex items-center gap-2">
+              <Link className="h-5 w-5" />
+              Client Reviews
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                Review Link <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="url"
+                value={formData.review_link}
+                onChange={(e) => updateField('review_link', e.target.value)}
+                placeholder="https://example.com/reviews"
+                className={displayErrors.review_link ? 'border-red-300' : ''}
+              />
+              {displayErrors.review_link && (
+                <p className="text-sm text-red-600">{displayErrors.review_link}</p>
+              )}
+              <p className="text-sm text-brand-charcoal/60">
+                Link to your Google Reviews, Zillow profile, or other review platform
               </p>
             </div>
-          )}
+          </CardContent>
+        </Card>
+
+        {/* Canva Template Section */}
+        <Card className="border-brand-taupe/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-brand-heading tracking-wide uppercase text-brand-charcoal flex items-center gap-2">
+              <Image className="h-5 w-5" />
+              Marketing Templates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                Do you have Canva templates to share?
+              </Label>
+              <RadioGroup
+                value={formData.has_canva_template}
+                onValueChange={(value) => updateField('has_canva_template', value)}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes_will_share" id="canva-yes" />
+                  <Label htmlFor="canva-yes" className="font-brand-body cursor-pointer">
+                    Yes, I will share my templates
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no_prepare_one" id="canva-prepare" />
+                  <Label htmlFor="canva-prepare" className="font-brand-body cursor-pointer">
+                    No, but please prepare one for me
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no_dont_use" id="canva-no" />
+                  <Label htmlFor="canva-no" className="font-brand-body cursor-pointer">
+                    No, I don't use Canva
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {formData.has_canva_template === 'yes_will_share' && (
+              <div className="space-y-2">
+                <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                  Canva Template URL <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="url"
+                  value={formData.canva_template_url}
+                  onChange={(e) => updateField('canva_template_url', e.target.value)}
+                  placeholder="https://canva.com/design/..."
+                  className={displayErrors.canva_template_url ? 'border-red-300' : ''}
+                />
+                {displayErrors.canva_template_url && (
+                  <p className="text-sm text-red-600">{displayErrors.canva_template_url}</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Personal Preferences Section */}
+        <Card className="border-brand-taupe/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-brand-heading tracking-wide uppercase text-brand-charcoal flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Personal Preferences
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                Favorite Color
+              </Label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="color"
+                  value={formData.favorite_color}
+                  onChange={(e) => updateField('favorite_color', e.target.value)}
+                  className="w-12 h-12 rounded border border-brand-taupe/30 cursor-pointer"
+                />
+                <Input
+                  type="text"
+                  value={formData.favorite_color}
+                  onChange={(e) => updateField('favorite_color', e.target.value)}
+                  placeholder="#3C3C3C"
+                  className="max-w-32"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="drinks-coffee"
+                  checked={formData.drinks_coffee}
+                  onCheckedChange={(checked) => updateField('drinks_coffee', !!checked)}
+                />
+                <div className="flex items-center gap-2">
+                  <Coffee className="h-4 w-4" />
+                  <Label htmlFor="drinks-coffee" className="font-brand-body cursor-pointer">
+                    I drink coffee
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="drinks-alcohol"
+                  checked={formData.drinks_alcohol}
+                  onCheckedChange={(checked) => updateField('drinks_alcohol', !!checked)}
+                />
+                <div className="flex items-center gap-2">
+                  <Wine className="h-4 w-4" />
+                  <Label htmlFor="drinks-alcohol" className="font-brand-body cursor-pointer">
+                    I drink alcohol
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-brand-heading text-sm tracking-wide uppercase flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Birthday (Optional)
+              </Label>
+              <Input
+                type="date"
+                value={formData.birthday}
+                onChange={(e) => updateField('birthday', e.target.value)}
+                className="max-w-48"
+              />
+              <p className="text-sm text-brand-charcoal/60">
+                This helps us send personalized birthday wishes to enhance client relationships
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Social Media Permission Section */}
+        <Card className="border-brand-taupe/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-brand-heading tracking-wide uppercase text-brand-charcoal flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Social Media Permissions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="social-media-permission"
+                checked={formData.social_media_permission}
+                onCheckedChange={(checked) => updateField('social_media_permission', !!checked)}
+                className="mt-1"
+              />
+              <div className="space-y-2">
+                <Label htmlFor="social-media-permission" className="font-brand-body cursor-pointer">
+                  I give permission to use my transactions and client success stories for social media marketing
+                </Label>
+                <p className="text-sm text-brand-charcoal/60 leading-relaxed">
+                  This permission allows us to create professional social media posts showcasing your successful 
+                  transactions (with client consent). We will always maintain client privacy and professionalism. 
+                  You can revoke this permission at any time.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-6">
+          <Button variant="outline" onClick={onPrevious}>
+            Previous
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isLoading}
+            className="min-w-32"
+          >
+            {isLoading ? 'Saving...' : 'Save & Continue'}
+          </Button>
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
-const BrandingPreferencesStep: React.FC = () => {
-  const { register } = useFormContext()
-
-  return (
-    <div className="space-y-6">
-      {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Branding & Personalization Setup</h3>
-        <p className="text-blue-800 text-sm">
-          These preferences help us deliver a personalized service experience that aligns with your brand 
-          and communication style. All fields are optional except where marked with an asterisk (*).
-        </p>
-      </div>
-
-      {/* Sign Preferences */}
-      <SignPreferencesSection />
-
-      {/* Review Link */}
-      <ReviewLinkSection />
-
-      {/* Canva Template */}
-      <CanvaTemplateSection />
-
-      {/* Personalization */}
-      <PersonalizationSection />
-
-      {/* Communication Preferences */}
-      <CommunicationSection />
-
-      {/* Social Media Permissions */}
-      <SocialMediaSection />
-
-      {/* Email Signature */}
-      <Card className="bg-gray-50 border-gray-200">
-        <CardHeader>
-          <CardTitle className="flex items-center text-gray-900">
-            <FileText className="w-5 h-5 mr-2" />
-            Email Signature (Optional)
-          </CardTitle>
-          <CardDescription className="text-gray-700">
-            Custom email signature for automated communications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div>
-            <Label htmlFor="branding.email_signature">
-              Email Signature
-            </Label>
-            <Textarea
-              {...register('branding.email_signature')}
-              placeholder="Best regards,&#10;Your Name&#10;Your Title&#10;Your Brokerage&#10;Phone: (555) 123-4567&#10;Email: your.email@example.com"
-              className="mt-1"
-              rows={5}
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              This signature will be automatically added to system-generated emails
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-export default BrandingPreferencesStep
+  );
+};

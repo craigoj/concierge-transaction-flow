@@ -1,3 +1,5 @@
+// This file is deprecated - auth is now handled directly in AuthGuard
+// Keeping for compatibility but not exported
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
@@ -15,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+// Note: This hook is deprecated, use AuthGuard instead
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -27,6 +30,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Note: This provider is deprecated, use AuthGuard instead
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);

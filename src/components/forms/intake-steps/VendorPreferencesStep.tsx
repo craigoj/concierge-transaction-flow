@@ -1,484 +1,475 @@
-import React from 'react'
-import { useFormContext, useFieldArray } from 'react-hook-form'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from '@/components/ui/accordion'
-import { 
-  Plus, 
-  Trash2, 
-  Building, 
-  Phone, 
-  Mail, 
-  MapPin,
-  Star,
-  AlertCircle
-} from 'lucide-react'
 
-import { VENDOR_TYPES, type VendorType, type AgentVendorInsert } from '@/integrations/supabase/agent-concierge-types'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/integrations/supabase/auth';
+import { ChevronDown, ChevronRight, Plus, Trash2, Building2, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// =============================================================================
-// VENDOR TYPE CONFIGURATION
-// =============================================================================
+const vendorTypes = [
+  { key: 'lender', label: 'Lender', required: true, icon: Building2 },
+  { key: 'settlement', label: 'Settlement Company', required: true, icon: Building2 },
+  { key: 'home_inspection', label: 'Home Inspection', required: true, icon: Building2 },
+  { key: 'termite_inspection', label: 'Termite Inspection', required: false, icon: Building2 },
+  { key: 'photography', label: 'Photography', required: false, icon: Building2 },
+  { key: 'staging', label: 'Staging', required: false, icon: Building2 },
+  { key: 'cleaning', label: 'Cleaning', required: false, icon: Building2 },
+  { key: 'lawn_care', label: 'Lawn Care', required: false, icon: Building2 }
+];
 
-const VENDOR_CONFIG = {
-  lender: {
-    title: 'Preferred Lender',
-    description: 'Your go-to mortgage lender for financing coordination',
-    icon: Building,
-    required: true,
-    color: 'bg-blue-50 border-blue-200'
-  },
-  settlement: {
-    title: 'Settlement Company',
-    description: 'Title company for closing coordination',
-    icon: Building,
-    required: true,
-    color: 'bg-green-50 border-green-200'
-  },
-  home_inspection: {
-    title: 'Home Inspector',
-    description: 'Qualified home inspection services',
-    icon: Building,
-    required: true,
-    color: 'bg-orange-50 border-orange-200'
-  },
-  termite_inspection: {
-    title: 'Termite/Moisture Inspector',
-    description: 'Specialized pest and moisture inspection',
-    icon: Building,
-    required: false,
-    color: 'bg-red-50 border-red-200'
-  },
-  photography: {
-    title: 'Photographer',
-    description: 'Professional property photography',
-    icon: Building,
-    required: false,
-    color: 'bg-purple-50 border-purple-200'
-  },
-  staging: {
-    title: 'Staging Company',
-    description: 'Home staging and preparation services',
-    icon: Building,
-    required: false,
-    color: 'bg-pink-50 border-pink-200'
-  },
-  cleaning: {
-    title: 'Cleaning Service',
-    description: 'Pre and post-transaction cleaning',
-    icon: Building,
-    required: false,
-    color: 'bg-cyan-50 border-cyan-200'
-  },
-  lawn_care: {
-    title: 'Lawn Care',
-    description: 'Property maintenance and landscaping',
-    icon: Building,
-    required: false,
-    color: 'bg-emerald-50 border-emerald-200'
-  }
-} as const
+const vendorSchema = z.object({
+  id: z.string().optional(),
+  company_name: z.string().min(1, 'Company name is required'),
+  contact_name: z.string().optional(),
+  email: z.string().email('Invalid email format').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+  is_primary: z.boolean().default(false)
+});
 
-// =============================================================================
-// VENDOR CARD COMPONENT
-// =============================================================================
+type VendorFormData = z.infer<typeof vendorSchema>;
 
-interface VendorCardProps {
-  vendorType: VendorType
-  vendorIndex: number
-  isExpanded: boolean
-  onToggle: () => void
-  onRemove: () => void
+interface VendorsData {
+  [key: string]: VendorFormData[];
 }
 
-const VendorCard: React.FC<VendorCardProps> = ({
-  vendorType,
-  vendorIndex,
-  isExpanded,
-  onToggle,
-  onRemove
-}) => {
-  const { register, watch, setValue, formState: { errors } } = useFormContext()
-  const config = VENDOR_CONFIG[vendorType]
-  const IconComponent = config.icon
-  
-  const vendorData = watch(`vendors.${vendorIndex}`)
-  const isPrimary = vendorData?.is_primary || false
+const formSchema = z.object({
+  vendors: z.record(z.string(), z.array(vendorSchema))
+}).refine((data) => {
+  // Check required vendor types have at least one vendor
+  const requiredTypes = vendorTypes.filter(t => t.required).map(t => t.key);
+  return requiredTypes.every(type => 
+    data.vendors[type] && data.vendors[type].length > 0
+  );
+}, {
+  message: 'Lender, Settlement Company, and Home Inspection are required',
+  path: ['vendors']
+});
 
-  const handlePrimaryChange = (checked: boolean) => {
-    setValue(`vendors.${vendorIndex}.is_primary`, checked)
-    
-    // If setting as primary, unset other primary vendors of same type
-    if (checked) {
-      const vendors = watch('vendors')
-      vendors.forEach((vendor: AgentVendorInsert, index: number) => {
-        if (index !== vendorIndex && vendor.vendor_type === vendorType && vendor.is_primary) {
-          setValue(`vendors.${index}.is_primary`, false)
-        }
-      })
+type FormData = z.infer<typeof formSchema>;
+
+interface VendorPreferencesStepProps {
+  onComplete: (data: VendorsData) => void;
+  onNext: () => void;
+  initialData?: VendorsData;
+}
+
+export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: VendorPreferencesStepProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [openSections, setOpenSections] = useState<string[]>(['lender']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [vendorsData, setVendorsData] = useState<VendorsData>(
+    vendorTypes.reduce((acc, type) => ({
+      ...acc,
+      [type.key]: initialData?.[type.key] || []
+    }), {} as VendorsData)
+  );
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      vendors: vendorsData
     }
-  }
+  });
 
-  return (
-    <Card className={`${config.color} transition-all duration-200 hover:shadow-md`}>
-      <CardHeader 
-        className="cursor-pointer pb-3"
-        onClick={onToggle}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <IconComponent className="w-5 h-5 text-brand-charcoal" />
-            <div>
-              <CardTitle className="text-lg font-semibold text-brand-charcoal">
-                {config.title}
-                {config.required && (
-                  <span className="text-red-500 ml-1">*</span>
-                )}
-              </CardTitle>
-              <CardDescription className="text-sm text-brand-charcoal/60">
-                {config.description}
-              </CardDescription>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {isPrimary && (
-              <Badge variant="default" className="bg-amber-100 text-amber-800 border-amber-200">
-                <Star className="w-3 h-3 mr-1" />
-                Primary
-              </Badge>
-            )}
-            
-            {vendorData?.company_name && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                Configured
-              </Badge>
-            )}
-            
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove()
-              }}
-              className="text-gray-400 hover:text-red-500"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+  // Load existing vendor data
+  useEffect(() => {
+    const loadVendorData = async () => {
+      if (!user?.id) return;
 
-      {isExpanded && (
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Company Name - Required */}
-            <div className="md:col-span-2">
-              <Label htmlFor={`vendors.${vendorIndex}.company_name`} className="flex items-center">
-                Company Name
-                <span className="text-red-500 ml-1">*</span>
-              </Label>
-              <Input
-                {...register(`vendors.${vendorIndex}.company_name`, { 
-                  required: 'Company name is required' 
-                })}
-                placeholder="Enter company name"
-                className="mt-1"
-              />
-              {errors.vendors?.[vendorIndex]?.company_name && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.vendors[vendorIndex].company_name.message}
-                </p>
-              )}
-            </div>
+      try {
+        const { data, error } = await supabase
+          .from('agent_vendors')
+          .select('*')
+          .eq('agent_id', user.id);
 
-            {/* Contact Name */}
-            <div>
-              <Label htmlFor={`vendors.${vendorIndex}.contact_name`}>
-                Contact Name
-              </Label>
-              <Input
-                {...register(`vendors.${vendorIndex}.contact_name`)}
-                placeholder="Primary contact"
-                className="mt-1"
-              />
-            </div>
+        if (error) throw error;
 
-            {/* Phone */}
-            <div>
-              <Label htmlFor={`vendors.${vendorIndex}.phone`} className="flex items-center">
-                <Phone className="w-4 h-4 mr-1" />
-                Phone
-              </Label>
-              <Input
-                {...register(`vendors.${vendorIndex}.phone`)}
-                placeholder="(555) 123-4567"
-                type="tel"
-                className="mt-1"
-              />
-            </div>
+        if (data && data.length > 0) {
+          const groupedVendors: VendorsData = data.reduce((acc, vendor) => {
+            if (!acc[vendor.vendor_type]) {
+              acc[vendor.vendor_type] = [];
+            }
+            acc[vendor.vendor_type].push({
+              id: vendor.id,
+              company_name: vendor.company_name,
+              contact_name: vendor.contact_name || '',
+              email: vendor.email || '',
+              phone: vendor.phone || '',
+              address: vendor.address || '',
+              notes: vendor.notes || '',
+              is_primary: vendor.is_primary
+            });
+            return acc;
+          }, {} as VendorsData);
 
-            {/* Email */}
-            <div>
-              <Label htmlFor={`vendors.${vendorIndex}.email`} className="flex items-center">
-                <Mail className="w-4 h-4 mr-1" />
-                Email
-              </Label>
-              <Input
-                {...register(`vendors.${vendorIndex}.email`)}
-                placeholder="contact@company.com"
-                type="email"
-                className="mt-1"
-              />
-              {errors.vendors?.[vendorIndex]?.email && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  Please enter a valid email address
-                </p>
-              )}
-            </div>
+          setVendorsData({ ...vendorsData, ...groupedVendors });
+          form.reset({ vendors: { ...vendorsData, ...groupedVendors } });
+        }
+      } catch (error) {
+        console.error('Error loading vendor data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load existing vendor data',
+          variant: 'destructive'
+        });
+      }
+    };
 
-            {/* Address */}
-            <div>
-              <Label htmlFor={`vendors.${vendorIndex}.address`} className="flex items-center">
-                <MapPin className="w-4 h-4 mr-1" />
-                Address
-              </Label>
-              <Input
-                {...register(`vendors.${vendorIndex}.address`)}
-                placeholder="Business address"
-                className="mt-1"
-              />
-            </div>
+    loadVendorData();
+  }, [user?.id, toast]);
 
-            {/* Notes */}
-            <div className="md:col-span-2">
-              <Label htmlFor={`vendors.${vendorIndex}.notes`}>
-                Notes
-              </Label>
-              <Textarea
-                {...register(`vendors.${vendorIndex}.notes`)}
-                placeholder="Any special notes or preferences..."
-                className="mt-1"
-                rows={3}
-              />
-            </div>
+  const toggleSection = (sectionKey: string) => {
+    setOpenSections(prev => 
+      prev.includes(sectionKey) 
+        ? prev.filter(key => key !== sectionKey)
+        : [...prev, sectionKey]
+    );
+  };
 
-            {/* Primary Vendor Checkbox */}
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id={`vendors.${vendorIndex}.is_primary`}
-                  checked={isPrimary}
-                  onCheckedChange={handlePrimaryChange}
-                />
-                <Label 
-                  htmlFor={`vendors.${vendorIndex}.is_primary`}
-                  className="flex items-center cursor-pointer"
-                >
-                  <Star className="w-4 h-4 mr-1 text-amber-500" />
-                  Set as primary {config.title.toLowerCase()}
-                </Label>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Primary vendors will be automatically selected for new transactions
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
-const VendorPreferencesStep: React.FC = () => {
-  const { control, watch } = useFormContext()
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'vendors'
-  })
-
-  const [expandedVendors, setExpandedVendors] = React.useState<Set<number>>(new Set([0]))
-
-  const vendors = watch('vendors')
-
-  const addVendor = (vendorType: VendorType) => {
-    const newVendorIndex = fields.length
-    append({
-      vendor_type: vendorType,
+  const addVendor = (vendorType: string) => {
+    const currentVendors = vendorsData[vendorType] || [];
+    const newVendor: VendorFormData = {
       company_name: '',
       contact_name: '',
       email: '',
       phone: '',
       address: '',
       notes: '',
-      is_primary: false,
-      is_active: true
-    })
+      is_primary: currentVendors.length === 0
+    };
     
-    // Expand the newly added vendor
-    setExpandedVendors(prev => new Set([...prev, newVendorIndex]))
-  }
+    const updatedVendors = [...currentVendors, newVendor];
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
+    
+    // Open the section if it's not already open
+    if (!openSections.includes(vendorType)) {
+      setOpenSections(prev => [...prev, vendorType]);
+    }
+  };
 
-  const removeVendor = (index: number) => {
-    remove(index)
-    // Update expanded vendors set
-    setExpandedVendors(prev => {
-      const newSet = new Set()
-      prev.forEach(expandedIndex => {
-        if (expandedIndex < index) {
-          newSet.add(expandedIndex)
-        } else if (expandedIndex > index) {
-          newSet.add(expandedIndex - 1)
-        }
-      })
-      return newSet
-    })
-  }
+  const removeVendor = (vendorType: string, index: number) => {
+    const currentVendors = vendorsData[vendorType] || [];
+    const updatedVendors = currentVendors.filter((_, i) => i !== index);
+    
+    // If we're removing the primary vendor, make the first remaining vendor primary
+    if (currentVendors[index]?.is_primary && updatedVendors.length > 0) {
+      updatedVendors[0].is_primary = true;
+    }
+    
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
+  };
 
-  const toggleVendorExpansion = (index: number) => {
-    setExpandedVendors(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(index)) {
-        newSet.delete(index)
-      } else {
-        newSet.add(index)
+  const setPrimaryVendor = (vendorType: string, index: number) => {
+    const currentVendors = vendorsData[vendorType] || [];
+    const updatedVendors = currentVendors.map((vendor, i) => ({
+      ...vendor,
+      is_primary: i === index
+    }));
+    
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
+  };
+
+  const updateVendorField = (vendorType: string, index: number, field: keyof VendorFormData, value: string | boolean) => {
+    const currentVendors = vendorsData[vendorType] || [];
+    const updatedVendors = [...currentVendors];
+    updatedVendors[index] = { ...updatedVendors[index], [field]: value };
+    
+    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
+    setVendorsData(newVendorsData);
+    form.setValue('vendors', newVendorsData);
+  };
+
+  const handleSave = async (data: FormData) => {
+    if (!user?.id) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to save vendor preferences',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Delete existing vendors for this agent
+      await supabase
+        .from('agent_vendors')
+        .delete()
+        .eq('agent_id', user.id);
+
+      // Insert new vendor data
+      const vendorInserts = [];
+      Object.entries(data.vendors).forEach(([vendorType, vendors]) => {
+        vendors.forEach(vendor => {
+          if (vendor.company_name.trim()) {
+            vendorInserts.push({
+              agent_id: user.id,
+              vendor_type: vendorType,
+              company_name: vendor.company_name,
+              contact_name: vendor.contact_name || null,
+              email: vendor.email || null,
+              phone: vendor.phone || null,
+              address: vendor.address || null,
+              notes: vendor.notes || null,
+              is_primary: vendor.is_primary
+            });
+          }
+        });
+      });
+
+      if (vendorInserts.length > 0) {
+        const { error } = await supabase
+          .from('agent_vendors')
+          .insert(vendorInserts);
+
+        if (error) throw error;
       }
-      return newSet
-    })
-  }
 
-  const getAvailableVendorTypes = (): VendorType[] => {
-    const usedTypes = new Set(vendors?.map((v: AgentVendorInsert) => v.vendor_type) || [])
-    return VENDOR_TYPES.filter(type => !usedTypes.has(type))
-  }
+      onComplete(data.vendors);
+      onNext();
+      
+      toast({
+        title: 'Success',
+        description: 'Vendor preferences saved successfully',
+      });
+    } catch (error) {
+      console.error('Error saving vendor data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save vendor preferences',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const getRequiredVendorTypes = (): VendorType[] => {
-    return Object.entries(VENDOR_CONFIG)
-      .filter(([_, config]) => config.required)
-      .map(([type, _]) => type as VendorType)
-  }
-
-  const getMissingRequiredVendors = (): VendorType[] => {
-    const configuredTypes = new Set(vendors?.map((v: AgentVendorInsert) => v.vendor_type) || [])
-    return getRequiredVendorTypes().filter(type => !configuredTypes.has(type))
-  }
-
-  const availableVendorTypes = getAvailableVendorTypes()
-  const missingRequired = getMissingRequiredVendors()
+  // Check if we have validation errors for required vendor types
+  const hasRequiredVendorErrors = () => {
+    const requiredTypes = vendorTypes.filter(t => t.required);
+    return requiredTypes.some(type => {
+      const vendors = vendorsData[type.key] || [];
+      return vendors.length === 0;
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Vendor Preferences Setup</h3>
-        <p className="text-blue-800 text-sm mb-3">
-          Configure your preferred vendors to enable automated coordination and streamlined communication. 
-          Required vendors are marked with an asterisk (*).
+    <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
+      <CardHeader>
+        <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
+          <Building2 className="h-6 w-6" />
+          Vendor Preferences
+        </CardTitle>
+        <p className="text-brand-charcoal/70 font-brand-body">
+          Set up your preferred vendors for different services. Required vendors are marked with an asterisk (*).
         </p>
-        
-        {missingRequired.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-3">
-            <p className="text-amber-800 text-sm font-medium flex items-center">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              Missing Required Vendors:
-            </p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {missingRequired.map(type => (
-                <Badge key={type} variant="outline" className="border-amber-300 text-amber-700">
-                  {VENDOR_CONFIG[type].title}
-                </Badge>
-              ))}
-            </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
+          <div className="space-y-4">
+            {vendorTypes.map((vendorType) => {
+              const vendors = vendorsData[vendorType.key] || [];
+              const isOpen = openSections.includes(vendorType.key);
+              const hasError = vendors.length === 0 && vendorType.required;
+
+              return (
+                <Collapsible key={vendorType.key} open={isOpen} onOpenChange={() => toggleSection(vendorType.key)}>
+                  <CollapsibleTrigger asChild>
+                    <div className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                      hasError 
+                        ? 'border-red-300 bg-red-50' 
+                        : isOpen 
+                        ? 'border-brand-charcoal bg-brand-charcoal text-brand-background' 
+                        : 'border-brand-taupe/30 bg-brand-background hover:border-brand-taupe hover:bg-brand-taupe/10'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <vendorType.icon className="h-5 w-5" />
+                        <div>
+                          <h4 className="font-brand-heading tracking-wide uppercase text-base">
+                            {vendorType.label}
+                            {vendorType.required && <span className="text-red-500 ml-1">*</span>}
+                          </h4>
+                          <p className="text-sm opacity-80">
+                            {vendors.length} vendor{vendors.length !== 1 ? 's' : ''} configured
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {hasError && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <div className="space-y-4 pl-4">
+                      {vendors.map((vendor, index) => (
+                        <div key={index} className="border border-brand-taupe/30 rounded-lg p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-brand-heading text-sm tracking-wide uppercase text-brand-charcoal">
+                              Vendor #{index + 1}
+                            </h5>
+                            <div className="flex items-center gap-2">
+                              {vendors.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeVendor(vendorType.key, index)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Company Name <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                value={vendor.company_name}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'company_name', e.target.value)}
+                                placeholder="Enter company name"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Contact Name
+                              </Label>
+                              <Input
+                                value={vendor.contact_name}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'contact_name', e.target.value)}
+                                placeholder="Enter contact name"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Email
+                              </Label>
+                              <Input
+                                type="email"
+                                value={vendor.email}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'email', e.target.value)}
+                                placeholder="Enter email address"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                                Phone
+                              </Label>
+                              <Input
+                                type="tel"
+                                value={vendor.phone}
+                                onChange={(e) => updateVendorField(vendorType.key, index, 'phone', e.target.value)}
+                                placeholder="Enter phone number"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                              Address
+                            </Label>
+                            <Input
+                              value={vendor.address}
+                              onChange={(e) => updateVendorField(vendorType.key, index, 'address', e.target.value)}
+                              placeholder="Enter full address"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
+                              Notes
+                            </Label>
+                            <Textarea
+                              rows={2}
+                              value={vendor.notes}
+                              onChange={(e) => updateVendorField(vendorType.key, index, 'notes', e.target.value)}
+                              placeholder="Any additional notes..."
+                            />
+                          </div>
+
+                          {vendors.length > 1 && (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id={`primary-${vendorType.key}-${index}`}
+                                name={`primary-${vendorType.key}`}
+                                checked={vendor.is_primary}
+                                onChange={() => setPrimaryVendor(vendorType.key, index)}
+                                className="h-4 w-4 text-brand-charcoal"
+                              />
+                              <Label 
+                                htmlFor={`primary-${vendorType.key}-${index}`}
+                                className="font-brand-heading text-sm tracking-wide uppercase cursor-pointer"
+                              >
+                                Primary Vendor
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => addVendor(vendorType.key)}
+                        className="w-full flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add {vendorType.label}
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
           </div>
-        )}
-      </div>
 
-      {/* Existing Vendors */}
-      <div className="space-y-4">
-        {fields.map((field, index) => {
-          const vendor = vendors?.[index]
-          return (
-            <VendorCard
-              key={field.id}
-              vendorType={vendor?.vendor_type}
-              vendorIndex={index}
-              isExpanded={expandedVendors.has(index)}
-              onToggle={() => toggleVendorExpansion(index)}
-              onRemove={() => removeVendor(index)}
-            />
-          )
-        })}
-      </div>
-
-      {/* Add New Vendor */}
-      {availableVendorTypes.length > 0 && (
-        <Card className="border-dashed border-2 border-gray-300 bg-gray-50">
-          <CardContent className="p-6 text-center">
-            <h3 className="font-semibold text-gray-700 mb-4">Add Additional Vendors</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {availableVendorTypes.map(vendorType => {
-                const config = VENDOR_CONFIG[vendorType]
-                return (
-                  <Button
-                    key={vendorType}
-                    type="button"
-                    variant="outline"
-                    onClick={() => addVendor(vendorType)}
-                    className="flex items-center space-x-2 h-auto p-4 flex-col"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm font-medium">{config.title}</span>
-                    {config.required && (
-                      <Badge variant="secondary" className="text-xs">Required</Badge>
-                    )}
-                  </Button>
-                )
-              })}
+          {hasRequiredVendorErrors() && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <p className="text-sm text-red-600 font-brand-body">
+                Lender, Settlement Company, and Home Inspection are required
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
 
-      {/* Summary */}
-      {vendors && vendors.length > 0 && (
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <h4 className="font-semibold text-green-900 mb-2">Configuration Summary</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-green-700">Total Vendors:</span>
-                <span className="font-medium ml-2">{vendors.length}</span>
-              </div>
-              <div>
-                <span className="text-green-700">Primary Vendors:</span>
-                <span className="font-medium ml-2">
-                  {vendors.filter((v: AgentVendorInsert) => v.is_primary).length}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )
-}
-
-export default VendorPreferencesStep
+          <div className="flex justify-end pt-6">
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="min-w-32"
+            >
+              {isLoading ? 'Saving...' : 'Save & Continue'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};

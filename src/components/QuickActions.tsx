@@ -1,9 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Calendar, MessageSquare, FileText, Users } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 const QuickActions = () => {
+  const navigate = useNavigate();
+  
   const actions = [
     {
       icon: Plus,
@@ -38,12 +40,14 @@ const QuickActions = () => {
   ];
 
   return (
-    <Card>
+    <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+        <CardTitle className="text-lg font-brand-heading tracking-brand-wide text-brand-charcoal uppercase">
+          Quick Actions
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {actions.map((action, index) => (
             <Button
               key={index}
@@ -59,6 +63,19 @@ const QuickActions = () => {
               </div>
             </Button>
           ))}
+          
+          {/* Add new offer drafting button */}
+          <button
+            onClick={() => navigate('/offer-drafting')}
+            className="flex flex-col items-center p-4 rounded-xl border-2 border-brand-taupe/30 hover:border-brand-taupe hover:bg-brand-taupe/5 transition-all duration-300 group"
+          >
+            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+              <FileText className="h-6 w-6 text-purple-600" />
+            </div>
+            <span className="text-sm font-brand-heading tracking-wide text-brand-charcoal">
+              DRAFT OFFER
+            </span>
+          </button>
         </div>
       </CardContent>
     </Card>

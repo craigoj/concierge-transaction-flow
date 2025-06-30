@@ -1,216 +1,227 @@
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/integrations/supabase/auth';
-import AuthGuard from '@/components/AuthGuard';
-
-// Main pages
-import Index from '@/pages/Index';
-import Transactions from '@/pages/Transactions';
-import TransactionDetail from '@/pages/TransactionDetail';
-import Clients from '@/pages/Clients';
-import ClientDetail from '@/pages/ClientDetail';
-import CreateClient from '@/pages/CreateClient';
-import Agents from '@/pages/Agents';
-import AgentDetail from '@/pages/AgentDetail';
-import Communications from '@/pages/Communications';
-import Documents from '@/pages/Documents';
-import Analytics from '@/pages/Analytics';
-import Templates from '@/pages/Templates';
-import Workflows from '@/pages/Workflows';
-import WorkflowTemplates from '@/pages/WorkflowTemplates';
-import Settings from '@/pages/Settings';
-import Profile from '@/pages/Profile';
-import Search from '@/pages/Search';
-import DemoSetup from '@/pages/DemoSetup';
-import AutomationDashboard from '@/pages/AutomationDashboard';
-
-// Agent portal pages
-import AgentDashboard from '@/pages/agent/AgentDashboard';
-import AgentSetup from '@/pages/agent/AgentSetup';
-import AgentTransactionDetail from '@/pages/agent/TransactionDetail';
-
-// Landing pages
-import LandingHome from '@/pages/landing/Home';
-import About from '@/pages/landing/About';
-import Services from '@/pages/landing/Services';
-import Contact from '@/pages/landing/Contact';
-
-// Auth and error pages
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
+import AuthGuard from '@/components/AuthGuard';
+import AppLayout from '@/components/layout/AppLayout';
 
-const queryClient = new QueryClient();
+// Import all page components
+import Dashboard from '@/pages/Index';
+import Transactions from '@/pages/Transactions';
+import TransactionDetail from '@/pages/TransactionDetail';
+import Workflows from '@/pages/Workflows';
+import AutomationDashboard from '@/pages/AutomationDashboard';
+import Templates from '@/pages/Templates';
+import Documents from '@/pages/Documents';
+import Clients from '@/pages/Clients';
+import Settings from '@/pages/Settings';
+import Profile from '@/pages/Profile';
+import OfferDrafting from '@/pages/OfferDrafting';
+import ServiceTierSelection from '@/pages/ServiceTierSelection';
+import Agents from '@/pages/Agents';
+import AgentIntake from '@/pages/AgentIntake';
+
+// Import agent pages
+import AgentDashboard from '@/pages/agent/AgentDashboard';
+import AgentTransactionDetail from '@/pages/agent/TransactionDetail';
+import AgentTransactions from '@/pages/agent/AgentTransactions';
+import AgentTasks from '@/pages/agent/AgentTasks';
+import AgentClients from '@/pages/agent/AgentClients';
+import AgentCalendar from '@/pages/agent/AgentCalendar';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              {/* Landing pages - public */}
-              <Route path="/landing" element={<LandingHome />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/contact" element={<Contact />} />
-              
-              {/* Authentication */}
-              <Route path="/auth" element={<Auth />} />
-              
-              {/* Main dashboard - protected */}
-              <Route path="/" element={
-                <AuthGuard>
-                  <Index />
-                </AuthGuard>
-              } />
-              <Route path="/dashboard" element={
-                <AuthGuard>
-                  <Index />
-                </AuthGuard>
-              } />
-              
-              {/* Transactions - protected */}
-              <Route path="/transactions" element={
-                <AuthGuard>
-                  <Transactions />
-                </AuthGuard>
-              } />
-              <Route path="/transactions/:id" element={
-                <AuthGuard>
-                  <TransactionDetail />
-                </AuthGuard>
-              } />
-              
-              {/* Clients - protected */}
-              <Route path="/clients" element={
-                <AuthGuard>
-                  <Clients />
-                </AuthGuard>
-              } />
-              <Route path="/clients/new" element={
-                <AuthGuard>
-                  <CreateClient />
-                </AuthGuard>
-              } />
-              <Route path="/clients/:id" element={
-                <AuthGuard>
-                  <ClientDetail />
-                </AuthGuard>
-              } />
-              
-              {/* Agents - protected */}
-              <Route path="/agents" element={
-                <AuthGuard>
-                  <Agents />
-                </AuthGuard>
-              } />
-              <Route path="/agents/:id" element={
-                <AuthGuard>
-                  <AgentDetail />
-                </AuthGuard>
-              } />
-              
-              {/* Communications - protected */}
-              <Route path="/communications" element={
-                <AuthGuard>
-                  <Communications />
-                </AuthGuard>
-              } />
-              
-              {/* Documents - protected */}
-              <Route path="/documents" element={
-                <AuthGuard>
-                  <Documents />
-                </AuthGuard>
-              } />
-              
-              {/* Analytics - protected */}
-              <Route path="/analytics" element={
-                <AuthGuard>
-                  <Analytics />
-                </AuthGuard>
-              } />
-              
-              {/* Templates - protected */}
-              <Route path="/templates" element={
-                <AuthGuard>
-                  <Templates />
-                </AuthGuard>
-              } />
-              
-              {/* Workflows - protected */}
-              <Route path="/workflows" element={
-                <AuthGuard>
-                  <Workflows />
-                </AuthGuard>
-              } />
-              <Route path="/workflow-templates" element={
-                <AuthGuard>
-                  <WorkflowTemplates />
-                </AuthGuard>
-              } />
-              
-              {/* Automation - protected */}
-              <Route path="/automation" element={
-                <AuthGuard>
-                  <AutomationDashboard />
-                </AuthGuard>
-              } />
-              
-              {/* Settings and Profile - protected */}
-              <Route path="/settings" element={
-                <AuthGuard>
-                  <Settings />
-                </AuthGuard>
-              } />
-              <Route path="/profile" element={
-                <AuthGuard>
-                  <Profile />
-                </AuthGuard>
-              } />
-              
-              {/* Search - protected */}
-              <Route path="/search" element={
-                <AuthGuard>
-                  <Search />
-                </AuthGuard>
-              } />
-              
-              {/* Demo Setup - protected */}
-              <Route path="/demo-setup" element={
-                <AuthGuard>
-                  <DemoSetup />
-                </AuthGuard>
-              } />
-              
-              {/* Agent Portal - protected */}
-              <Route path="/agent/dashboard" element={
-                <AuthGuard>
-                  <AgentDashboard />
-                </AuthGuard>
-              } />
-              <Route path="/agent/setup" element={
-                <AuthGuard>
-                  <AgentSetup />
-                </AuthGuard>
-              } />
-              <Route path="/agent/transactions/:id" element={
-                <AuthGuard>
-                  <AgentTransactionDetail />
-                </AuthGuard>
-              } />
-              
-              {/* 404 - Catch all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <Router>
+      <QueryClientProvider client={queryClient}>
+        <Routes>
+          {/* Public auth route */}
+          <Route path="/auth" element={<Auth />} />
+          
+          {/* Coordinator routes */}
+          <Route path="/" element={
+            <AuthGuard>
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/dashboard" element={
+            <AuthGuard>
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Transaction routes */}
+          <Route path="/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <Transactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId" element={
+            <AuthGuard>
+              <AppLayout>
+                <TransactionDetail />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId/service-tier" element={
+            <AuthGuard>
+              <AppLayout>
+                <ServiceTierSelection />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/:transactionId/offer-drafting" element={
+            <AuthGuard>
+              <AppLayout>
+                <OfferDrafting />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Workflow and automation routes */}
+          <Route path="/workflows" element={
+            <AuthGuard>
+              <AppLayout>
+                <Workflows />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/automation" element={
+            <AuthGuard>
+              <AppLayout>
+                <AutomationDashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/templates" element={
+            <AuthGuard>
+              <AppLayout>
+                <Templates />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Management routes */}
+          <Route path="/documents" element={
+            <AuthGuard>
+              <AppLayout>
+                <Documents />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/clients" element={
+            <AuthGuard>
+              <AppLayout>
+                <Clients />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agents" element={
+            <AuthGuard>
+              <AppLayout>
+                <Agents />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent-intake" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentIntake />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Settings and profile routes */}
+          <Route path="/settings" element={
+            <AuthGuard>
+              <AppLayout>
+                <Settings />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/profile" element={
+            <AuthGuard>
+              <AppLayout>
+                <Profile />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/offer-drafting" element={
+            <AuthGuard>
+              <AppLayout>
+                <OfferDrafting />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Agent routes */}
+          <Route path="/agent/dashboard" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentDashboard />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTransactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/transactions/:id" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTransactionDetail />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/tasks" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentTasks />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/clients" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentClients />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/agent/calendar" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentCalendar />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </QueryClientProvider>
+    </Router>
   );
 }
 

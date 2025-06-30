@@ -1,63 +1,45 @@
 
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Home, ArrowLeft } from "lucide-react";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Home, ArrowLeft } from 'lucide-react';
 
 const NotFound = () => {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-cream to-brand-background flex items-center justify-center p-4">
-      <Card className="max-w-md w-full shadow-brand-elevation">
-        <CardContent className="p-8 text-center">
-          <div className="w-20 h-20 bg-brand-taupe/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl font-bold text-brand-charcoal">404</span>
-          </div>
-          
-          <h1 className="text-2xl font-brand-heading font-bold text-brand-charcoal mb-3 tracking-brand-wide">
-            PAGE NOT FOUND
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center p-6">
+      <div className="text-center max-w-md">
+        <div className="mb-8">
+          <h1 className="text-6xl font-brand-heading font-bold text-brand-charcoal mb-4">
+            404
           </h1>
-          
-          <p className="text-brand-charcoal/70 font-brand-body mb-8 leading-relaxed">
+          <h2 className="text-2xl font-brand-heading text-brand-charcoal mb-4">
+            Page Not Found
+          </h2>
+          <p className="text-brand-charcoal/60 font-brand-body">
             The page you're looking for doesn't exist or has been moved.
           </p>
-          
-          <div className="space-y-3">
-            <Button 
-              onClick={() => navigate('/dashboard')}
-              className="w-full gap-2 font-brand-heading tracking-wide"
-            >
-              <Home className="h-4 w-4" />
-              Return to Dashboard
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="w-full gap-2 font-brand-heading tracking-wide"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Go Back
-            </Button>
-          </div>
-          
-          <div className="mt-8 pt-6 border-t border-brand-taupe/20">
-            <p className="text-xs text-brand-charcoal/50 font-brand-body">
-              Route: {location.pathname}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button 
+            onClick={() => navigate(-1)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
+          </Button>
+          <Button 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Go Home
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
