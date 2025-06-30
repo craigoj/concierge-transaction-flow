@@ -1,8 +1,10 @@
 
 import { useState } from "react";
-import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
-import { AgentsList } from "@/components/agents/AgentsList";
-import { Users } from "lucide-react";
+import { EnhancedCreateAgentDialog } from "@/components/agents/EnhancedCreateAgentDialog";
+import { EnhancedAgentsList } from "@/components/agents/EnhancedAgentsList";
+import { Users, Settings, UserPlus, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
 
 const Agents = () => {
@@ -26,18 +28,72 @@ const Agents = () => {
             </div>
             <div>
               <h1 className="text-3xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
-                Agent Management
+                Enhanced Agent Management
               </h1>
               <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Create and manage agent accounts with white-glove onboarding
+                Create, manage, and onboard agent accounts with flexible setup options
               </p>
             </div>
           </div>
-          <CreateAgentDialog onAgentCreated={handleAgentCreated} />
+          <div className="flex space-x-3">
+            <Button variant="outline" className="border-brand-taupe/30">
+              <Download className="h-4 w-4 mr-2" />
+              Export Data
+            </Button>
+            <Button variant="outline" className="border-brand-taupe/30">
+              <Settings className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
+            <EnhancedCreateAgentDialog onAgentCreated={handleAgentCreated} />
+          </div>
         </div>
       </div>
 
-      <AgentsList refreshTrigger={refreshTrigger} />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground">All registered agents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <UserPlus className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">--</div>
+            <p className="text-xs text-muted-foreground">Fully activated accounts</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Users className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">--</div>
+            <p className="text-xs text-muted-foreground">Awaiting setup</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <UserPlus className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">--</div>
+            <p className="text-xs text-muted-foreground">New this month</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <EnhancedAgentsList refreshTrigger={refreshTrigger} />
     </div>
   );
 };

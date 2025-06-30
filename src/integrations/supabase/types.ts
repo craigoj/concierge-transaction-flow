@@ -140,35 +140,47 @@ export type Database = {
       agent_invitations: {
         Row: {
           accepted_at: string | null
+          admin_notes: string | null
           agent_id: string
           created_at: string
+          creation_method: string | null
           email: string
+          expires_at: string | null
           id: string
           invitation_token: string
           invited_at: string
           invited_by: string
+          setup_link_token: string | null
           status: string
         }
         Insert: {
           accepted_at?: string | null
+          admin_notes?: string | null
           agent_id: string
           created_at?: string
+          creation_method?: string | null
           email: string
+          expires_at?: string | null
           id?: string
           invitation_token: string
           invited_at?: string
           invited_by: string
+          setup_link_token?: string | null
           status?: string
         }
         Update: {
           accepted_at?: string | null
+          admin_notes?: string | null
           agent_id?: string
           created_at?: string
+          creation_method?: string | null
           email?: string
+          expires_at?: string | null
           id?: string
           invitation_token?: string
           invited_at?: string
           invited_by?: string
+          setup_link_token?: string | null
           status?: string
         }
         Relationships: [
@@ -1040,6 +1052,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admin_activated: boolean | null
           bio: string | null
           brokerage: string | null
           created_at: string
@@ -1052,15 +1065,19 @@ export type Database = {
           invited_by: string | null
           last_name: string | null
           license_number: string | null
+          manual_setup: boolean | null
           onboarding_completed_at: string | null
+          onboarding_method: string | null
           phone_number: string | null
           profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          setup_method: string | null
           specialties: string[] | null
           updated_at: string
           years_experience: number | null
         }
         Insert: {
+          admin_activated?: boolean | null
           bio?: string | null
           brokerage?: string | null
           created_at?: string
@@ -1073,15 +1090,19 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          manual_setup?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_method?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          setup_method?: string | null
           specialties?: string[] | null
           updated_at?: string
           years_experience?: number | null
         }
         Update: {
+          admin_activated?: boolean | null
           bio?: string | null
           brokerage?: string | null
           created_at?: string
@@ -1094,10 +1115,13 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          manual_setup?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_method?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          setup_method?: string | null
           specialties?: string[] | null
           updated_at?: string
           years_experience?: number | null
@@ -1707,6 +1731,14 @@ export type Database = {
         }
         Returns: string
       }
+      bulk_update_agent_status: {
+        Args: {
+          p_agent_ids: string[]
+          p_new_status: string
+          p_updated_by?: string
+        }
+        Returns: number
+      }
       bulk_update_transaction_status: {
         Args: {
           transaction_ids: string[]
@@ -1714,6 +1746,18 @@ export type Database = {
           updated_by?: string
         }
         Returns: number
+      }
+      create_manual_agent: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_phone?: string
+          p_brokerage?: string
+          p_password?: string
+          p_created_by?: string
+        }
+        Returns: Json
       }
       detect_property_duplicates: {
         Args: {
@@ -1732,6 +1776,10 @@ export type Database = {
           similarity_score: number
           status: Database["public"]["Enums"]["transaction_status"]
         }[]
+      }
+      generate_agent_setup_link: {
+        Args: { p_agent_id: string; p_expires_hours?: number }
+        Returns: string
       }
       get_my_role: {
         Args: Record<PropertyKey, never>
