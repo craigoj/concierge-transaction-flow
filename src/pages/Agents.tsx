@@ -1,44 +1,26 @@
 
-import { useState } from "react";
-import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
-import { AgentsList } from "@/components/agents/AgentsList";
-import { Users } from "lucide-react";
-import Breadcrumb from "@/components/navigation/Breadcrumb";
+import React, { useState } from 'react';
+import AppLayout from '@/components/layout/AppLayout';
+import { AgentsList } from '@/components/agents/AgentsList';
+import Breadcrumb from '@/components/navigation/Breadcrumb';
 
 const Agents = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleAgentCreated = () => {
+  const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <Breadcrumb />
-      </div>
-      
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-brand-charcoal rounded-xl flex items-center justify-center">
-              <Users className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
-                Agent Management
-              </h1>
-              <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Create and manage agent accounts with white-glove onboarding
-              </p>
-            </div>
-          </div>
-          <CreateAgentDialog onAgentCreated={handleAgentCreated} />
+    <AppLayout>
+      <div className="p-6 lg:p-8">
+        <div className="mb-8">
+          <Breadcrumb />
         </div>
+        
+        <AgentsList refreshTrigger={refreshTrigger} />
       </div>
-
-      <AgentsList refreshTrigger={refreshTrigger} />
-    </div>
+    </AppLayout>
   );
 };
 

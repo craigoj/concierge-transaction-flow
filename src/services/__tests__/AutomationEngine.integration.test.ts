@@ -18,7 +18,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock AutomationEngine class with the required methods
-class AutomationEngine {
+class MockAutomationEngine {
   async processRules(transactionId: string, triggerEvent: string, context: any): Promise<any> {
     // Mock implementation that simulates rule processing
     const { data: rules } = await supabase.from('automation_rules').select('*').eq('trigger_event', triggerEvent);
@@ -67,7 +67,7 @@ class AutomationEngine {
 }
 
 describe('AutomationEngine Integration Tests', () => {
-  let automationEngine: AutomationEngine;
+  let automationEngine: MockAutomationEngine;
   const mockRule: AutomationRuleData = {
     id: 'rule-1',
     name: 'Test Rule',
@@ -81,7 +81,7 @@ describe('AutomationEngine Integration Tests', () => {
   };
 
   beforeEach(() => {
-    automationEngine = new AutomationEngine();
+    automationEngine = new MockAutomationEngine();
     vi.clearAllMocks();
   });
 
