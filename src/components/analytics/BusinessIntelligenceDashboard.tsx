@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ServiceTierType } from '@/types/serviceTiers';
 import { 
   TrendingUp, 
   Users, 
@@ -28,7 +29,7 @@ interface BusinessIntelligenceDashboardProps {
 
 const BusinessIntelligenceDashboard = ({ agentId, dateRange = '6months' }: BusinessIntelligenceDashboardProps) => {
   const [selectedMetric, setSelectedMetric] = useState('revenue');
-  const [selectedServiceTier, setSelectedServiceTier] = useState('all');
+  const [selectedServiceTier, setSelectedServiceTier] = useState<'all' | ServiceTierType>('all');
 
   const { data: businessData } = useQuery({
     queryKey: ['business-intelligence', agentId, dateRange, selectedServiceTier],
@@ -50,7 +51,7 @@ const BusinessIntelligenceDashboard = ({ agentId, dateRange = '6months' }: Busin
         .eq('agent_id', targetAgentId);
 
       if (selectedServiceTier !== 'all') {
-        query = query.eq('service_tier', selectedServiceTier);
+        query = query.eq('service_tier', selectedServiceTier as ServiceTierType);
       }
 
       const { data: transactions } = await query;
@@ -180,7 +181,7 @@ const BusinessIntelligenceDashboard = ({ agentId, dateRange = '6months' }: Busin
           <p className="text-brand-charcoal/60">Advanced analytics and market insights</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={selectedServiceTier} onValueChange={setSelectedServiceTier}>
+          <Select value={selectedServiceTier} onValueChange={(value: 'all' | ServiceTierType) => setSelectedServiceTier(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
