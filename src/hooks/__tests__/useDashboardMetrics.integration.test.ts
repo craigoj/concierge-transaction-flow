@@ -122,7 +122,6 @@ describe('useDashboardMetrics Integration Tests', () => {
   });
 
   it('should fetch dashboard metrics successfully', async () => {
-    // Mock successful responses
     const mockTransactions: TransactionData[] = [
       {
         id: '1',
@@ -160,7 +159,6 @@ describe('useDashboardMetrics Integration Tests', () => {
   });
 
   it('should handle data fetching failures', async () => {
-    // Mock error response
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -200,11 +198,9 @@ describe('useDashboardMetrics Integration Tests', () => {
       { wrapper: createWrapper() }
     );
 
-    // Should be loading initially
     expect(result.current.isLoading).toBe(true);
     expect(result.current.error).toBeNull();
 
-    // Resolve the promise
     resolvePromise({ data: [], error: null });
 
     await waitFor(() => {
@@ -230,10 +226,8 @@ describe('useDashboardMetrics Integration Tests', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Call refetch
     await result.current.refetch();
 
-    // Should have been called at least twice (initial + refetch)
     expect(mockFn).toHaveBeenCalledTimes(2);
   });
 
