@@ -1,137 +1,69 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { useAuth } from '@/integrations/supabase/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
-
-type Transaction = Tables<'transactions'> & {
-  clients: Tables<'clients'>[];
-  tasks: Tables<'tasks'>[];
-};
+import type { AgentData, ServiceError } from '@/types';
 
 interface AgentDataContextType {
-  transactions: Transaction[];
+  agentData: AgentData | null;
   isLoading: boolean;
+  error: ServiceError | null;
   refreshData: () => Promise<void>;
-  hasAccess: (transactionId: string) => boolean;
 }
 
 const AgentDataContext = createContext<AgentDataContextType | undefined>(undefined);
 
 interface SecureAgentDataProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const SecureAgentDataProvider = ({ children }: SecureAgentDataProviderProps) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { user } = useAuth();
+  const [agentData, setAgentData] = useState<AgentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const [error, setError] = useState<ServiceError | null>(null);
 
-  const fetchAgentData = async () => {
+  const fetchAgentData = useCallback(async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setTransactions([]);
-        return;
+      setIsLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
       }
 
-      // With RLS policies in place, this query will automatically 
-      // only return transactions where auth.uid() = agent_id
-      const { data: transactionsData, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          clients (*),
-          tasks (*)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching agent transactions:', error);
-        toast({
-          variant: "destructive",
-          title: "Data Access Error",
-          description: "Unable to load your transactions. Please try again.",
-        });
-        return;
-      }
-
-      setTransactions(transactionsData || []);
-    } catch (error) {
-      console.error('Error in fetchAgentData:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while loading your data.",
+      setAgentData(data as AgentData);
+    } catch (err) {
+      console.error('Error fetching agent data:', err);
+      setError({
+        message: err instanceof Error ? err.message : 'Failed to fetch agent data',
+        code: 'FETCH_ERROR'
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const refreshData = async () => {
-    setIsLoading(true);
-    await fetchAgentData();
-  };
-
-  const hasAccess = (transactionId: string): boolean => {
-    return transactions.some(transaction => transaction.id === transactionId);
-  };
+  }, [user?.id]); // Added user?.id to dependencies
 
   useEffect(() => {
     fetchAgentData();
-
-    // Set up real-time subscription for agent's transactions
-    const channel = supabase
-      .channel('agent-data-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'transactions'
-        },
-        () => {
-          console.log('Transaction data changed, refreshing...');
-          fetchAgentData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks'
-        },
-        () => {
-          console.log('Task data changed, refreshing...');
-          fetchAgentData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clients'
-        },
-        () => {
-          console.log('Client data changed, refreshing...');
-          fetchAgentData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  }, [fetchAgentData]); // Added fetchAgentData to dependencies
 
   const contextValue: AgentDataContextType = {
-    transactions,
+    agentData,
     isLoading,
-    refreshData,
-    hasAccess,
+    error,
+    refreshData: fetchAgentData
   };
 
   return (
@@ -141,10 +73,10 @@ export const SecureAgentDataProvider = ({ children }: SecureAgentDataProviderPro
   );
 };
 
-export const useAgentData = () => {
+export const useSecureAgentData = () => {
   const context = useContext(AgentDataContext);
   if (context === undefined) {
-    throw new Error('useAgentData must be used within a SecureAgentDataProvider');
+    throw new Error('useSecureAgentData must be used within a SecureAgentDataProvider');
   }
   return context;
 };
