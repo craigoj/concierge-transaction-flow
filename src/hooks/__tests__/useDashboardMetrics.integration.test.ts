@@ -12,13 +12,16 @@ const mockSupabaseResponse = {
   count: 0
 };
 
-const mockSupabase = {
-  from: vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve(mockSupabaseResponse))
-    }))
-  }))
+// Create a proper mock that handles the method chaining
+const createMockSupabaseClient = () => {
+  const mockEq = vi.fn(() => Promise.resolve(mockSupabaseResponse));
+  const mockSelect = vi.fn(() => ({ eq: mockEq }));
+  const mockFrom = vi.fn(() => ({ select: mockSelect }));
+  
+  return { from: mockFrom };
 };
+
+const mockSupabase = createMockSupabaseClient();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: mockSupabase
@@ -50,23 +53,7 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
     try {
       setMetrics(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Create proper mock chain with argument handling
-      const mockEqFunction = vi.fn().mockImplementation((field: string, value: any) => 
-        Promise.resolve(mockSupabaseResponse)
-      );
-      
-      const mockSelectFunction = vi.fn().mockImplementation((fields: string) => ({
-        eq: mockEqFunction
-      }));
-      
-      const mockFromFunction = vi.fn().mockImplementation((table: string) => ({
-        select: mockSelectFunction
-      }));
-
-      // Override the mock implementation
-      (mockSupabase.from as any) = mockFromFunction;
-
-      // Simulate API calls
+      // Simulate API calls - the mocks will handle the arguments properly
       const transactionsResult = await mockSupabase.from('transactions').select('*').eq('agent_id', agentId);
       const clientsResult = await mockSupabase.from('clients').select('*').eq('dummy', 'value');
       const tasksResult = await mockSupabase.from('tasks').select('*').eq('is_completed', false);
