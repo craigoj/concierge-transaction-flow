@@ -185,7 +185,7 @@ describe('useDashboardMetrics Integration Tests', () => {
 
   it('should handle state management correctly during loading', async () => {
     let resolvePromise: (value: any) => void;
-    const mockPromise = new Promise(resolve => {
+    const mockPromise = new Promise((resolve) => {
       resolvePromise = resolve;
     });
 
