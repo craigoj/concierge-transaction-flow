@@ -109,17 +109,16 @@ describe('useDashboardMetrics Integration Tests', () => {
       }
     ];
 
-    // Mock the return data for this specific test
-    const mockFromResult = {
-      select: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({
+    // Simplify the mock by casting to any to avoid type issues
+    const mockSupabase = supabase as any;
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
           data: mockTransactions,
           error: null
-        }))
-      }))
-    };
-
-    (supabase.from as any).mockReturnValue(mockFromResult);
+        })
+      })
+    });
 
     const { result } = renderHook(
       () => useDashboardMetrics('agent-1'),
@@ -135,17 +134,16 @@ describe('useDashboardMetrics Integration Tests', () => {
   });
 
   it('should handle data fetching failures', async () => {
-    // Mock error response
-    const mockFromResult = {
-      select: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({
+    // Cast to any to avoid type issues
+    const mockSupabase = supabase as any;
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'Database connection failed' }
-        }))
-      }))
-    };
-
-    (supabase.from as any).mockReturnValue(mockFromResult);
+        })
+      })
+    });
 
     const { result } = renderHook(
       () => useDashboardMetrics('agent-1'),
