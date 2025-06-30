@@ -56,10 +56,14 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
       setMetrics(prev => ({ ...prev, isLoading: true, error: null }));
 
       // Simulate API calls
+      const transactionsQuery = mockSupabase.from('transactions').select('*');
+      const clientsQuery = mockSupabase.from('clients').select('*');
+      const tasksQuery = mockSupabase.from('tasks').select('*');
+
       const [transactionsResult, clientsResult, tasksResult] = await Promise.all([
-        mockSupabase.from('transactions').select('*').eq('agent_id', agentId),
-        mockSupabase.from('clients').select('*'),
-        mockSupabase.from('tasks').select('*').eq('is_completed', false)
+        transactionsQuery.eq('agent_id', agentId),
+        clientsQuery,
+        tasksQuery.eq('is_completed', false)
       ]);
 
       if (transactionsResult.error || clientsResult.error || tasksResult.error) {
@@ -137,13 +141,17 @@ describe('useDashboardMetrics Integration Tests', () => {
       }
     ];
 
+    const mockEq = vi.fn().mockReturnValue({
+      data: mockTransactions,
+      error: null
+    });
+
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: mockEq
+    });
+
     mockSupabase.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          data: mockTransactions,
-          error: null
-        })
-      })
+      select: mockSelect
     });
 
     const { result } = renderHook(
@@ -161,13 +169,17 @@ describe('useDashboardMetrics Integration Tests', () => {
 
   it('should handle data fetching failures', async () => {
     // Mock error response
+    const mockEq = vi.fn().mockReturnValue({
+      data: null,
+      error: { message: 'Database connection failed' }
+    });
+
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: mockEq
+    });
+
     mockSupabase.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          data: null,
-          error: { message: 'Database connection failed' }
-        })
-      })
+      select: mockSelect
     });
 
     const { result } = renderHook(
@@ -189,10 +201,13 @@ describe('useDashboardMetrics Integration Tests', () => {
       resolvePromise = resolve;
     });
 
+    const mockEq = vi.fn().mockReturnValue(mockPromise);
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: mockEq
+    });
+
     mockSupabase.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue(mockPromise)
-      })
+      select: mockSelect
     });
 
     const { result } = renderHook(
@@ -213,12 +228,13 @@ describe('useDashboardMetrics Integration Tests', () => {
   });
 
   it('should refetch data correctly', async () => {
-    const mockFn = vi.fn().mockResolvedValue({ data: [], error: null });
-    
+    const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
+    const mockSelect = vi.fn().mockReturnValue({
+      eq: mockEq
+    });
+
     mockSupabase.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: mockFn
-      })
+      select: mockSelect
     });
 
     const { result } = renderHook(
@@ -234,7 +250,7 @@ describe('useDashboardMetrics Integration Tests', () => {
     await result.current.refetch();
 
     // Should have been called at least twice (initial + refetch)
-    expect(mockFn).toHaveBeenCalledTimes(2);
+    expect(mockEq).toHaveBeenCalledTimes(6); // 3 queries x 2 calls
   });
 
   it('should handle empty agent ID gracefully', () => {
@@ -264,14 +280,16 @@ describe('useDashboardMetrics Integration Tests', () => {
       ]
     };
 
-    mockSupabase.from.mockImplementation((table: string) => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
+    const mockFrom = vi.fn((table: string) => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
           data: mockData[table as keyof typeof mockData] || [],
           error: null
-        })
-      })
+        }))
+      }))
     }));
+
+    mockSupabase.from.mockImplementation(mockFrom);
 
     const { result } = renderHook(
       () => useDashboardMetrics('agent-1'),
