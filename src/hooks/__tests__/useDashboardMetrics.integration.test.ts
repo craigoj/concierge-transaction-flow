@@ -50,19 +50,23 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
     try {
       setMetrics(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Create proper mock chain that returns promises
-      const mockSelectChain = {
-        eq: vi.fn((field: string, value: any) => Promise.resolve(mockSupabaseResponse))
-      };
+      // Create proper mock chain with argument handling
+      const mockEqFunction = vi.fn().mockImplementation((field: string, value: any) => 
+        Promise.resolve(mockSupabaseResponse)
+      );
       
-      const mockFromChain = {
-        select: vi.fn((fields: string) => mockSelectChain)
-      };
+      const mockSelectFunction = vi.fn().mockImplementation((fields: string) => ({
+        eq: mockEqFunction
+      }));
+      
+      const mockFromFunction = vi.fn().mockImplementation((table: string) => ({
+        select: mockSelectFunction
+      }));
 
-      // Override the mock implementation for this test
-      (mockSupabase.from as any).mockReturnValue(mockFromChain);
+      // Override the mock implementation
+      (mockSupabase.from as any) = mockFromFunction;
 
-      // Simulate API calls with proper await
+      // Simulate API calls
       const transactionsResult = await mockSupabase.from('transactions').select('*').eq('agent_id', agentId);
       const clientsResult = await mockSupabase.from('clients').select('*').eq('dummy', 'value');
       const tasksResult = await mockSupabase.from('tasks').select('*').eq('is_completed', false);
