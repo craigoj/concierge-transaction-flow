@@ -36,6 +36,15 @@ const createAgentSchema = z.object({
 
 type CreateAgentForm = z.infer<typeof createAgentSchema>;
 
+// Define the response type for the manual agent creation
+interface ManualAgentResponse {
+  success: boolean;
+  agent_id: string;
+  email: string;
+  temporary_password?: string;
+  message: string;
+}
+
 interface EnhancedCreateAgentDialogProps {
   onAgentCreated: () => void;
 }
@@ -90,13 +99,16 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
 
         if (error) throw error;
 
+        // Type assertion for the response
+        const typedResponse = response as ManualAgentResponse;
+
         toast({
           title: "Agent Created Successfully",
-          description: `${data.firstName} ${data.lastName} has been created and activated. ${response.temporary_password ? `Temporary password: ${response.temporary_password}` : ''}`,
+          description: `${data.firstName} ${data.lastName} has been created and activated. ${typedResponse.temporary_password ? `Temporary password: ${typedResponse.temporary_password}` : ''}`,
         });
 
-        if (response.temporary_password) {
-          setGeneratedPassword(response.temporary_password);
+        if (typedResponse.temporary_password) {
+          setGeneratedPassword(typedResponse.temporary_password);
         }
       } else {
         // Use existing email invitation method

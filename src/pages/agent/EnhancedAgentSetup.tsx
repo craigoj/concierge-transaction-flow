@@ -62,7 +62,7 @@ const EnhancedAgentSetup = () => {
             expires_at,
             status,
             creation_method,
-            profiles!inner(first_name, last_name, setup_method)
+            profiles!agent_invitations_agent_id_fkey(first_name, last_name, setup_method)
           `)
           .eq("setup_link_token", token)
           .single();
@@ -100,10 +100,14 @@ const EnhancedAgentSetup = () => {
             throw new Error("Setup link has expired");
           }
 
+          const profileData = Array.isArray(invitationData.profiles) 
+            ? invitationData.profiles[0] 
+            : invitationData.profiles;
+
           setAgentInfo({
-            firstName: invitationData.profiles.first_name || "Agent",
+            firstName: profileData?.first_name || "Agent",
             email: invitationData.email,
-            setupMethod: invitationData.profiles.setup_method || "assisted_setup",
+            setupMethod: profileData?.setup_method || "assisted_setup",
           });
         }
       } catch (error: any) {
