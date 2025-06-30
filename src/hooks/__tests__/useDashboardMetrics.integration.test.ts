@@ -55,7 +55,6 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
     try {
       setMetrics(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Simulate API calls
       const [transactionsResult, clientsResult, tasksResult] = await Promise.all([
         mockSupabase.from('transactions').select('*').eq('agent_id', agentId),
         mockSupabase.from('clients').select('*'),
@@ -71,7 +70,7 @@ const useDashboardMetrics = (agentId: string): DashboardMetrics => {
         activeTransactions: transactionsResult.data?.length || 0,
         totalClients: clientsResult.data?.length || 0,
         pendingTasks: tasksResult.data?.length || 0,
-        monthlyVolume: 150000, // Mock value
+        monthlyVolume: 150000,
         isLoading: false
       }));
     } catch (error) {
