@@ -6,6 +6,7 @@ import PremiumDashboardMetrics from '@/components/agent/PremiumDashboardMetrics'
 import PremiumActionRequiredPanel from '@/components/agent/PremiumActionRequiredPanel';
 import PremiumWhatsNextPanel from '@/components/agent/PremiumWhatsNextPanel';
 import TransactionProgressTracker from '@/components/agent/TransactionProgressTracker';
+import MobileOptimizedDashboard from '@/components/agent/MobileOptimizedDashboard';
 import { useAuth } from '@/integrations/supabase/auth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

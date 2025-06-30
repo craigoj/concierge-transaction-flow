@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ServiceTierType } from '@/types/serviceTiers';
 
 interface ServiceTierManagementProps {
   transactionId: string;
@@ -26,7 +27,7 @@ interface ServiceTierManagementProps {
 
 const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) => {
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<string>('');
+  const [selectedTier, setSelectedTier] = useState<ServiceTierType | ''>('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -54,14 +55,14 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
         completionRate: 95,
         avgClosingTime: 28,
         clientSatisfaction: 4.8,
-        upgradeRecommendation: transaction.service_tier === 'buyer_core' ? 'buyer_elite' : null
+        upgradeRecommendation: transaction.service_tier === 'buyer_core' ? 'buyer_elite' as ServiceTierType : null
       };
     },
     enabled: !!transaction?.service_tier
   });
 
   const upgradeTierMutation = useMutation({
-    mutationFn: async (newTier: string) => {
+    mutationFn: async (newTier: ServiceTierType) => {
       const { error: transactionError } = await supabase
         .from('transactions')
         .update({ service_tier: newTier })
@@ -91,8 +92,8 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
     },
   });
 
-  const getTierFeatures = (tier: string): string[] => {
-    const features = {
+  const getTierFeatures = (tier: ServiceTierType): string[] => {
+    const features: Record<ServiceTierType, string[]> = {
       buyer_core: ['Basic coordination', 'Document management', 'Email updates'],
       buyer_elite: ['Premium coordination', 'Advanced marketing', 'Priority support', 'Custom materials'],
       white_glove_buyer: ['Dedicated concierge', 'VIP treatment', 'Personal assistant', 'Luxury amenities'],
@@ -100,11 +101,11 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
       listing_elite: ['Professional photos', 'Marketing materials', 'Social media promotion'],
       white_glove_listing: ['Luxury marketing', 'Staging coordination', 'Private showings', 'Concierge services']
     };
-    return features[tier as keyof typeof features] || [];
+    return features[tier] || [];
   };
 
-  const getTierPricing = (tier: string): number => {
-    const pricing = {
+  const getTierPricing = (tier: ServiceTierType): number => {
+    const pricing: Record<ServiceTierType, number> = {
       buyer_core: 500,
       buyer_elite: 1000,
       white_glove_buyer: 2500,
@@ -112,22 +113,22 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
       listing_elite: 1500,
       white_glove_listing: 3000
     };
-    return pricing[tier as keyof typeof pricing] || 0;
+    return pricing[tier] || 0;
   };
 
-  const getTierIcon = (tier: string) => {
+  const getTierIcon = (tier: ServiceTierType) => {
     if (tier?.includes('white_glove')) return Crown;
     if (tier?.includes('elite')) return Star;
     return Zap;
   };
 
-  const getTierColor = (tier: string) => {
+  const getTierColor = (tier: ServiceTierType) => {
     if (tier?.includes('white_glove')) return 'from-purple-500 to-pink-500';
     if (tier?.includes('elite')) return 'from-blue-500 to-cyan-500';
     return 'from-green-500 to-emerald-500';
   };
 
-  const currentTier = transaction?.service_tier;
+  const currentTier = transaction?.service_tier as ServiceTierType;
   const TierIcon = currentTier ? getTierIcon(currentTier) : Zap;
 
   return (
@@ -253,7 +254,7 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
                   <DialogTitle>Service Tier Selection</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Select value={selectedTier} onValueChange={setSelectedTier}>
+                  <Select value={selectedTier} onValueChange={(value: ServiceTierType) => setSelectedTier(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a service tier" />
                     </SelectTrigger>
