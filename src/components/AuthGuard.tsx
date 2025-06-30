@@ -26,24 +26,19 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
     const initAuth = async () => {
       try {
-        console.log('AuthGuard: Initializing authentication...');
-        
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        console.log('AuthGuard: Session check result:', { session: !!session, error: sessionError });
         
         if (!mounted) return;
 
         if (sessionError) {
-          console.error('AuthGuard: Session error:', sessionError);
+          console.error('Session error:', sessionError);
           setError(sessionError.message);
           setAuthState('error');
           return;
         }
 
         if (session?.user) {
-          console.log('AuthGuard: User found, setting up session...');
           setSession(session);
           setUser(session.user);
           
@@ -58,25 +53,23 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
             if (!mounted) return;
 
             if (profileError) {
-              console.warn('AuthGuard: Profile error:', profileError);
+              console.warn('Profile error:', profileError);
               // Default to 'agent' if profile not found
               setUserRole('agent');
             } else {
-              console.log('AuthGuard: User role found:', profile?.role);
               setUserRole(profile?.role || 'agent');
             }
           } catch (err) {
-            console.warn('AuthGuard: Error fetching profile:', err);
+            console.warn('Error fetching profile:', err);
             setUserRole('agent'); // Default fallback
           }
           
           setAuthState('authenticated');
         } else {
-          console.log('AuthGuard: No session found, user not authenticated');
           setAuthState('unauthenticated');
         }
       } catch (err) {
-        console.error('AuthGuard: Auth initialization error:', err);
+        console.error('Auth initialization error:', err);
         if (mounted) {
           setError('Authentication failed');
           setAuthState('error');
@@ -93,11 +86,9 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Set up auth state listener
   useEffect(() => {
-    console.log('AuthGuard: Setting up auth state listener...');
-    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('AuthGuard: Auth state change:', event, session?.user?.email);
+        console.log('Auth state change:', event, session?.user?.email);
         
         if (event === 'SIGNED_OUT') {
           setSession(null);
@@ -120,7 +111,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
               
               setUserRole(profile?.role || 'agent');
             } catch (err) {
-              console.warn('AuthGuard: Error fetching role on sign in:', err);
+              console.warn('Error fetching role on sign in:', err);
               setUserRole('agent');
             }
           }, 100);
@@ -133,11 +124,8 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Handle navigation based on auth state and role
   useEffect(() => {
-    console.log('AuthGuard: Navigation check - authState:', authState, 'userRole:', userRole, 'currentPath:', location.pathname);
-    
     if (authState === 'unauthenticated') {
       if (location.pathname !== '/auth') {
-        console.log('AuthGuard: Redirecting to /auth - user not authenticated');
         navigate('/auth', { replace: true });
       }
       return;
@@ -146,10 +134,8 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     if (authState === 'authenticated' && userRole) {
       // Handle role-based routing
       if (userRole === 'agent' && !location.pathname.startsWith('/agent/')) {
-        console.log('AuthGuard: Redirecting agent to /agent/dashboard');
         navigate('/agent/dashboard', { replace: true });
       } else if (userRole === 'coordinator' && location.pathname.startsWith('/agent/')) {
-        console.log('AuthGuard: Redirecting coordinator to /dashboard');
         navigate('/dashboard', { replace: true });
       }
     }

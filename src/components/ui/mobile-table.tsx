@@ -1,9 +1,24 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
-import type { MobileTableColumn, MobileTableProps } from '@/types';
 
-export function MobileTable<T extends Record<string, any>>({ 
+interface MobileTableColumn<T = any> {
+  key: keyof T;
+  label: string;
+  render?: (value: any, item: T) => React.ReactNode;
+  primary?: boolean;
+  secondary?: boolean;
+}
+
+interface MobileTableProps<T = any> {
+  data: T[];
+  columns: MobileTableColumn<T>[];
+  onRowClick?: (item: T) => void;
+  loading?: boolean;
+  emptyMessage?: string;
+}
+
+export function MobileTable<T = any>({ 
   data, 
   columns, 
   onRowClick, 
