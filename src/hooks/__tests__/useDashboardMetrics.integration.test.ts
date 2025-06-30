@@ -191,7 +191,7 @@ describe('useDashboardMetrics Integration Tests', () => {
 
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
-        eq: vi.fn(() => mockPromise)
+        eq: vi.fn().mockReturnValue(mockPromise)
       })
     });
 
