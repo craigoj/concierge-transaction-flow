@@ -734,6 +734,48 @@ export type Database = {
           },
         ]
       }
+      duplicate_detection_logs: {
+        Row: {
+          created_at: string
+          detection_method: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          potential_duplicate_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          similarity_score: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          detection_method: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          potential_duplicate_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          similarity_score?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          detection_method?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          potential_duplicate_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          similarity_score?: number
+          status?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body_html: string
@@ -1364,6 +1406,42 @@ export type Database = {
           },
         ]
       }
+      transaction_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           agent_id: string
@@ -1629,6 +1707,32 @@ export type Database = {
         }
         Returns: string
       }
+      bulk_update_transaction_status: {
+        Args: {
+          transaction_ids: string[]
+          new_status: Database["public"]["Enums"]["transaction_status"]
+          updated_by?: string
+        }
+        Returns: number
+      }
+      detect_property_duplicates: {
+        Args: {
+          p_property_address: string
+          p_city: string
+          p_state: string
+          p_zip_code: string
+          p_exclude_transaction_id?: string
+        }
+        Returns: {
+          transaction_id: string
+          property_address: string
+          city: string
+          state: string
+          zip_code: string
+          similarity_score: number
+          status: Database["public"]["Enums"]["transaction_status"]
+        }[]
+      }
       get_my_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1636,6 +1740,38 @@ export type Database = {
       get_user_role: {
         Args: { user_id?: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {
