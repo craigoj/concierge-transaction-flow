@@ -7,6 +7,9 @@ import { Trash2, Users, Workflow, Download, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type TransactionStatus = Database['public']['Enums']['transaction_status'];
 
 interface BulkActionBarProps {
   selectedTransactionIds: string[];
@@ -18,7 +21,7 @@ export const BulkActionBar = ({ selectedTransactionIds, onClearSelection }: Bulk
   const queryClient = useQueryClient();
 
   const bulkStatusUpdateMutation = useMutation({
-    mutationFn: async ({ status }: { status: string }) => {
+    mutationFn: async ({ status }: { status: TransactionStatus }) => {
       const { data, error } = await supabase.rpc('bulk_update_transaction_status', {
         transaction_ids: selectedTransactionIds,
         new_status: status
@@ -45,7 +48,7 @@ export const BulkActionBar = ({ selectedTransactionIds, onClearSelection }: Bulk
   });
 
   const handleStatusUpdate = (status: string) => {
-    bulkStatusUpdateMutation.mutate({ status });
+    bulkStatusUpdateMutation.mutate({ status: status as TransactionStatus });
   };
 
   if (selectedTransactionIds.length === 0) return null;

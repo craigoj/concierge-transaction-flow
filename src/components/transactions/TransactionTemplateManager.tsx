@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, FileTemplate } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TransactionTemplate {
@@ -44,12 +44,18 @@ export const TransactionTemplateManager = () => {
 
   const createTemplateMutation = useMutation({
     mutationFn: async (templateData: Partial<TransactionTemplate>) => {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('transaction_templates')
-        .insert([{
-          ...templateData,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        }])
+        .insert({
+          name: templateData.name!,
+          description: templateData.description,
+          category: templateData.category!,
+          template_data: templateData.template_data!,
+          created_by: user.data.user.id
+        })
         .select()
         .single();
       
@@ -169,7 +175,7 @@ export const TransactionTemplateManager = () => {
                 </p>
                 <div className="mt-4 flex justify-between items-center text-xs text-brand-charcoal/50">
                   <span>Created {new Date(template.created_at).toLocaleDateString()}</span>
-                  <FileTemplate className="h-4 w-4" />
+                  <FileText className="h-4 w-4" />
                 </div>
               </CardContent>
             </Card>
