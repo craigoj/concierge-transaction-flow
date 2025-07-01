@@ -25,6 +25,27 @@ interface RealtimeUpdate {
   agent_name?: string;
 }
 
+interface PayloadData {
+  id?: string;
+  agent_id?: string;
+  target_user_id?: string;
+  user_id?: string;
+  status?: string;
+  first_name?: string;
+  last_name?: string;
+  invitation_status?: string;
+  action?: string;
+  description?: string;
+  created_at?: string;
+  [key: string]: any;
+}
+
+interface RealtimePayload {
+  eventType: string;
+  new?: PayloadData;
+  old?: PayloadData;
+}
+
 export const RealTimeAgentUpdates = () => {
   const [updates, setUpdates] = useState<RealtimeUpdate[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
@@ -43,7 +64,7 @@ export const RealTimeAgentUpdates = () => {
           table: 'profiles',
           filter: 'role=eq.agent'
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Profile change detected:', payload);
           
           // Invalidate agent queries
@@ -51,23 +72,23 @@ export const RealTimeAgentUpdates = () => {
           queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] });
           
           // Add to updates feed
-          if (payload.eventType === 'UPDATE') {
+          if (payload.eventType === 'UPDATE' && payload.new) {
             const newUpdate: RealtimeUpdate = {
               id: `profile-${payload.new.id}-${Date.now()}`,
-              user_id: payload.new.id,
+              user_id: payload.new.id || '',
               action: 'profile_update',
-              description: `Agent profile updated: ${payload.new.first_name} ${payload.new.last_name}`,
+              description: `Agent profile updated: ${payload.new.first_name || ''} ${payload.new.last_name || ''}`,
               timestamp: new Date().toISOString(),
-              agent_name: `${payload.new.first_name} ${payload.new.last_name}`
+              agent_name: `${payload.new.first_name || ''} ${payload.new.last_name || ''}`
             };
             
             setUpdates(prev => [newUpdate, ...prev.slice(0, 49)]); // Keep last 50 updates
             
             // Show toast for significant changes
-            if (payload.old.invitation_status !== payload.new.invitation_status) {
+            if (payload.old?.invitation_status !== payload.new.invitation_status) {
               toast({
                 title: "Agent Status Updated",
-                description: `${payload.new.first_name} ${payload.new.last_name} status changed to ${payload.new.invitation_status}`,
+                description: `${payload.new.first_name || ''} ${payload.new.last_name || ''} status changed to ${payload.new.invitation_status || ''}`,
               });
             }
           }
@@ -89,12 +110,12 @@ export const RealTimeAgentUpdates = () => {
           table: 'enhanced_activity_logs',
           filter: 'category=eq.agent_management'
         },
-        async (payload) => {
+        async (payload: RealtimePayload) => {
           console.log('Activity log detected:', payload);
           
           // Fetch agent name for the update
           let agentName = 'Unknown Agent';
-          if (payload.new.target_user_id) {
+          if (payload.new?.target_user_id) {
             const { data: agent } = await supabase
               .from('profiles')
               .select('first_name, last_name')
@@ -107,21 +128,21 @@ export const RealTimeAgentUpdates = () => {
           }
           
           const newUpdate: RealtimeUpdate = {
-            id: `activity-${payload.new.id}`,
-            user_id: payload.new.target_user_id || payload.new.user_id,
-            action: payload.new.action,
-            description: payload.new.description,
-            timestamp: payload.new.created_at,
+            id: `activity-${payload.new?.id || Date.now()}`,
+            user_id: payload.new?.target_user_id || payload.new?.user_id || '',
+            action: payload.new?.action || 'unknown',
+            description: payload.new?.description || 'Activity logged',
+            timestamp: payload.new?.created_at || new Date().toISOString(),
             agent_name: agentName
           };
           
           setUpdates(prev => [newUpdate, ...prev.slice(0, 49)]);
           
           // Show toast for important actions
-          if (['account_lock', 'account_unlock', 'status_change'].includes(payload.new.action)) {
+          if (payload.new?.action && ['account_lock', 'account_unlock', 'status_change'].includes(payload.new.action)) {
             toast({
               title: "Agent Management Action",
-              description: payload.new.description,
+              description: payload.new.description || 'Action completed',
             });
           }
         }
@@ -138,7 +159,7 @@ export const RealTimeAgentUpdates = () => {
           schema: 'public',
           table: 'agent_invitations'
         },
-        async (payload) => {
+        async (payload: RealtimePayload) => {
           console.log('Invitation change detected:', payload);
           
           // Invalidate invitation queries
@@ -146,11 +167,12 @@ export const RealTimeAgentUpdates = () => {
           
           // Fetch agent name
           let agentName = 'Unknown Agent';
-          if (payload.new?.agent_id) {
+          const agentId = payload.new?.agent_id || payload.old?.agent_id;
+          if (agentId) {
             const { data: agent } = await supabase
               .from('profiles')
               .select('first_name, last_name')
-              .eq('id', payload.new.agent_id)
+              .eq('id', agentId)
               .single();
             
             if (agent) {
@@ -165,8 +187,8 @@ export const RealTimeAgentUpdates = () => {
           };
           
           const newUpdate: RealtimeUpdate = {
-            id: `invitation-${payload.new?.id || payload.old?.id}-${Date.now()}`,
-            user_id: payload.new?.agent_id || payload.old?.agent_id,
+            id: `invitation-${payload.new?.id || payload.old?.id || Date.now()}-${Date.now()}`,
+            user_id: agentId || '',
             action: getActionFromInvitationChange(payload.eventType, payload.new?.status, payload.old?.status),
             description: payload.eventType === 'INSERT' 
               ? `Invitation sent to ${agentName}`

@@ -7,7 +7,7 @@ import { EmailTemplateManager } from "@/components/agents/EmailTemplateManager";
 import { AgentProfileTemplateManager } from "@/components/agents/AgentProfileTemplateManager";
 import { CommunicationSettingsPanel } from "@/components/agents/CommunicationSettingsPanel";
 import { RealTimeAgentUpdates } from "@/components/agents/RealTimeAgentUpdates";
-import { Users, Settings, UserPlus, Download, BarChart3, Mail, Template, MessageSquare } from "lucide-react";
+import { Users, Settings, UserPlus, Download, BarChart3, Mail, FileText, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

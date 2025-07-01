@@ -7,8 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Copy, Trash2, User, Building, Phone, Mail } from "lucide-react";
+import { 
+  Plus, 
+  Edit, 
+  Copy, 
+  Trash2, 
+  FileText,
+  User,
+  Settings
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,27 +27,64 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-interface AgentProfileTemplate {
+interface ProfileTemplate {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   template_data: {
-    brokerage?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
     phone_number?: string;
-    specialties?: string[];
+    brokerage?: string;
     years_experience?: number;
-    license_number?: string;
+    specialties?: string[];
     bio?: string;
-    default_vendor_preferences?: Record<string, any>;
+    [key: string]: any;
   };
   is_active: boolean;
   created_at: string;
+  created_by: string;
+}
+
+interface TemplateFormData {
+  name: string;
+  description: string;
+  template_data: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone_number?: string;
+    brokerage?: string;
+    years_experience?: number;
+    specialties?: string[];
+    bio?: string;
+  };
+  is_active: boolean;
 }
 
 export const AgentProfileTemplateManager = () => {
-  const [selectedTemplate, setSelectedTemplate] = useState<AgentProfileTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<ProfileTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<TemplateFormData>({
+    name: '',
+    description: '',
+    template_data: {},
+    is_active: true
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -47,39 +94,22 @@ export const AgentProfileTemplateManager = () => {
       const { data, error } = await supabase
         .from('agent_profile_templates')
         .select('*')
-        .order('name', { ascending: true });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as AgentProfileTemplate[];
+      return data as ProfileTemplate[];
     }
   });
 
   const createTemplateMutation = useMutation({
-    mutationFn: async (templateData: {
-      name: string;
-      description: string;
-      brokerage: string;
-      phone_number: string;
-      specialties: string;
-      years_experience: string;
-      license_number: string;
-      bio: string;
-    }) => {
+    mutationFn: async (templateData: TemplateFormData) => {
+      const { data: user } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('agent_profile_templates')
         .insert([{
-          name: templateData.name,
-          description: templateData.description,
-          template_data: {
-            brokerage: templateData.brokerage || undefined,
-            phone_number: templateData.phone_number || undefined,
-            specialties: templateData.specialties ? templateData.specialties.split(',').map(s => s.trim()) : [],
-            years_experience: templateData.years_experience ? parseInt(templateData.years_experience) : undefined,
-            license_number: templateData.license_number || undefined,
-            bio: templateData.bio || undefined,
-          },
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          is_active: true
+          ...templateData,
+          created_by: user.user?.id || ''
         }])
         .select()
         .single();
@@ -90,10 +120,11 @@ export const AgentProfileTemplateManager = () => {
     onSuccess: () => {
       toast({
         title: "Template created",
-        description: "Agent profile template has been created successfully.",
+        description: "Profile template has been created successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['agent-profile-templates'] });
       setIsCreating(false);
+      resetForm();
     },
     onError: (error: any) => {
       toast({
@@ -104,19 +135,50 @@ export const AgentProfileTemplateManager = () => {
     }
   });
 
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ id, ...templateData }: Partial<ProfileTemplate> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('agent_profile_templates')
+        .update(templateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Template updated",
+        description: "Profile template has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['agent-profile-templates'] });
+      setIsEditing(false);
+      setSelectedTemplate(null);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to update template",
+        description: error.message,
+      });
+    }
+  });
+
   const deleteTemplateMutation = useMutation({
-    mutationFn: async (templateId: string) => {
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('agent_profile_templates')
         .delete()
-        .eq('id', templateId);
+        .eq('id', id);
       
       if (error) throw error;
     },
     onSuccess: () => {
       toast({
         title: "Template deleted",
-        description: "Agent profile template has been deleted successfully.",
+        description: "Profile template has been deleted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['agent-profile-templates'] });
     },
@@ -129,210 +191,206 @@ export const AgentProfileTemplateManager = () => {
     }
   });
 
-  const handleCreateTemplate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const templateData = {
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      brokerage: formData.get('brokerage') as string,
-      phone_number: formData.get('phone_number') as string,
-      specialties: formData.get('specialties') as string,
-      years_experience: formData.get('years_experience') as string,
-      license_number: formData.get('license_number') as string,
-      bio: formData.get('bio') as string,
-    };
-    
-    createTemplateMutation.mutate(templateData);
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      template_data: {},
+      is_active: true
+    });
   };
 
-  const renderTemplateCard = (template: AgentProfileTemplate) => (
-    <Card key={template.id} className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{template.name}</CardTitle>
-            {template.description && (
-              <p className="text-sm text-gray-600 mt-1">{template.description}</p>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {template.template_data.brokerage && (
-            <div className="flex items-center text-sm">
-              <Building className="h-4 w-4 mr-2 text-gray-400" />
-              <span>{template.template_data.brokerage}</span>
-            </div>
-          )}
-          
-          {template.template_data.phone_number && (
-            <div className="flex items-center text-sm">
-              <Phone className="h-4 w-4 mr-2 text-gray-400" />
-              <span>{template.template_data.phone_number}</span>
-            </div>
-          )}
+  const handleEditTemplate = (template: ProfileTemplate) => {
+    setSelectedTemplate(template);
+    setFormData({
+      name: template.name,
+      description: template.description,
+      template_data: template.template_data,
+      is_active: template.is_active
+    });
+    setIsEditing(true);
+  };
 
-          {template.template_data.specialties && template.template_data.specialties.length > 0 && (
-            <div className="flex items-start text-sm">
-              <User className="h-4 w-4 mr-2 text-gray-400 mt-0.5" />
-              <div className="flex flex-wrap gap-1">
-                {template.template_data.specialties.map((specialty, index) => (
-                  <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                    {specialty}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+  const handleSaveTemplate = () => {
+    if (!formData.name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Template name is required.",
+      });
+      return;
+    }
 
-          {template.template_data.years_experience && (
-            <div className="text-sm text-gray-600">
-              Experience: {template.template_data.years_experience} years
-            </div>
-          )}
+    if (isEditing && selectedTemplate) {
+      updateTemplateMutation.mutate({ id: selectedTemplate.id, ...formData });
+    } else {
+      createTemplateMutation.mutate(formData);
+    }
+  };
 
-          <div className="flex space-x-2 pt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {/* Apply template logic */}}
-            >
-              <Copy className="h-4 w-4 mr-1" />
-              Apply
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setSelectedTemplate(template)}
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => deleteTemplateMutation.mutate(template.id)}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const updateTemplateData = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      template_data: {
+        ...prev.template_data,
+        [field]: value
+      }
+    }));
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Agent Profile Templates</h2>
-          <p className="text-gray-600">Create templates for quick agent setup</p>
+          <p className="text-gray-600">Create and manage reusable agent profile templates</p>
         </div>
-        <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <Dialog open={isCreating || isEditing} onOpenChange={(open) => {
+          if (!open) {
+            setIsCreating(false);
+            setIsEditing(false);
+            setSelectedTemplate(null);
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => setIsCreating(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Template
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Create Agent Profile Template</DialogTitle>
+              <DialogTitle>
+                {isEditing ? 'Edit Profile Template' : 'Create Profile Template'}
+              </DialogTitle>
               <DialogDescription>
-                Create a template to quickly set up new agent profiles
+                {isEditing ? 'Update the profile template' : 'Create a new profile template for quick agent setup'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateTemplate} className="space-y-4">
+            
+            <div className="space-y-4 max-h-96 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Template Name</Label>
                   <Input
                     id="name"
-                    name="name"
-                    placeholder="e.g., Residential Agent"
-                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g., New Agent Template"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="brokerage">Default Brokerage</Label>
+                  <Label htmlFor="description">Description</Label>
                   <Input
-                    id="brokerage"
-                    name="brokerage"
-                    placeholder="e.g., ABC Realty"
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Brief description of the template"
                   />
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Brief description of this template..."
-                  rows={2}
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="phone_number">Default Phone Format</Label>
+                  <Label htmlFor="first_name">First Name</Label>
                   <Input
-                    id="phone_number"
-                    name="phone_number"
-                    placeholder="e.g., (555) 000-0000"
+                    id="first_name"
+                    value={formData.template_data.first_name || ''}
+                    onChange={(e) => updateTemplateData('first_name', e.target.value)}
+                    placeholder="Default first name"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="years_experience">Default Experience (years)</Label>
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.template_data.last_name || ''}
+                    onChange={(e) => updateTemplateData('last_name', e.target.value)}
+                    placeholder="Default last name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.template_data.email || ''}
+                    onChange={(e) => updateTemplateData('email', e.target.value)}
+                    placeholder="Default email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone_number">Phone Number</Label>
+                  <Input
+                    id="phone_number"
+                    value={formData.template_data.phone_number || ''}
+                    onChange={(e) => updateTemplateData('phone_number', e.target.value)}
+                    placeholder="Default phone number"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="brokerage">Brokerage</Label>
+                  <Input
+                    id="brokerage"
+                    value={formData.template_data.brokerage || ''}
+                    onChange={(e) => updateTemplateData('brokerage', e.target.value)}
+                    placeholder="Default brokerage"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="years_experience">Years of Experience</Label>
                   <Input
                     id="years_experience"
-                    name="years_experience"
                     type="number"
-                    placeholder="e.g., 5"
+                    value={formData.template_data.years_experience || ''}
+                    onChange={(e) => updateTemplateData('years_experience', parseInt(e.target.value) || 0)}
+                    placeholder="0"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="specialties">Default Specialties (comma-separated)</Label>
-                <Input
-                  id="specialties"
-                  name="specialties"
-                  placeholder="e.g., Residential, First-time Buyers, Luxury Homes"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="license_number">License Number Format</Label>
-                <Input
-                  id="license_number"
-                  name="license_number"
-                  placeholder="e.g., RE-000000"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="bio">Default Bio Template</Label>
+                <Label htmlFor="bio">Bio</Label>
                 <Textarea
                   id="bio"
-                  name="bio"
-                  placeholder="Default biography template..."
                   rows={3}
+                  value={formData.template_data.bio || ''}
+                  onChange={(e) => updateTemplateData('bio', e.target.value)}
+                  placeholder="Default bio template"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createTemplateMutation.isPending}>
-                  Create Template
-                </Button>
+              <div>
+                <Label htmlFor="specialties">Specialties (comma-separated)</Label>
+                <Input
+                  id="specialties"
+                  value={formData.template_data.specialties?.join(', ') || ''}
+                  onChange={(e) => updateTemplateData('specialties', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
+                  placeholder="e.g., Residential, Commercial, Luxury"
+                />
               </div>
-            </form>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setIsCreating(false);
+                setIsEditing(false);
+                setSelectedTemplate(null);
+                resetForm();
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveTemplate} disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}>
+                {(createTemplateMutation.isPending || updateTemplateMutation.isPending) ? 'Saving...' : (isEditing ? 'Update Template' : 'Create Template')}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -354,7 +412,99 @@ export const AgentProfileTemplateManager = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates?.map(renderTemplateCard)}
+          {templates?.map((template) => (
+            <Card key={template.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{template.name}</CardTitle>
+                    <p className="text-sm text-gray-600">{template.description}</p>
+                  </div>
+                  <Badge variant={template.is_active ? "default" : "secondary"}>
+                    {template.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">Pre-filled Fields:</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Object.keys(template.template_data).filter(key => template.template_data[key]).map((field) => (
+                        <Badge key={field} variant="outline" className="text-xs">
+                          {field.replace('_', ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditTemplate(template)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setFormData({
+                          name: `${template.name} (Copy)`,
+                          description: template.description,
+                          template_data: template.template_data,
+                          is_active: true
+                        });
+                        setIsCreating(true);
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{template.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteTemplateMutation.mutate(template.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {templates?.length === 0 && !isLoading && (
+        <div className="text-center py-12">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Templates Yet</h3>
+          <p className="text-gray-600 mb-4">Create your first agent profile template to streamline onboarding</p>
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Template
+          </Button>
         </div>
       )}
     </div>

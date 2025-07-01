@@ -39,12 +39,33 @@ interface EmailTemplate {
   variables: string[];
   is_active: boolean;
   created_at: string;
+  created_by: string;
+}
+
+interface EmailTemplateInput {
+  name: string;
+  category: string;
+  template_type: string;
+  subject: string;
+  body_html: string;
+  body_text?: string;
+  variables: string[];
+  is_active: boolean;
 }
 
 export const EmailTemplateManager = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [formData, setFormData] = useState<EmailTemplateInput>({
+    name: '',
+    category: 'general',
+    template_type: 'agent_welcome',
+    subject: '',
+    body_html: '',
+    body_text: '',
+    variables: [],
+    is_active: true
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,17 +79,23 @@ export const EmailTemplateManager = () => {
         .order('name', { ascending: true });
       
       if (error) throw error;
-      return data as EmailTemplate[];
+      return data.map(template => ({
+        ...template,
+        variables: Array.isArray(template.variables) ? template.variables : []
+      })) as EmailTemplate[];
     }
   });
 
   const createTemplateMutation = useMutation({
-    mutationFn: async (templateData: Partial<EmailTemplate>) => {
+    mutationFn: async (templateData: EmailTemplateInput) => {
+      const { data: user } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('enhanced_email_templates')
         .insert([{
           ...templateData,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: user.user?.id || '',
+          variables: templateData.variables
         }])
         .select()
         .single();
@@ -83,6 +110,16 @@ export const EmailTemplateManager = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['enhanced-email-templates'] });
       setIsCreating(false);
+      setFormData({
+        name: '',
+        category: 'general',
+        template_type: 'agent_welcome',
+        subject: '',
+        body_html: '',
+        body_text: '',
+        variables: [],
+        is_active: true
+      });
     },
     onError: (error: any) => {
       toast({
@@ -122,6 +159,19 @@ export const EmailTemplateManager = () => {
     }
   });
 
+  const handleSaveTemplate = () => {
+    if (!formData.name || !formData.subject || !formData.body_html) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    createTemplateMutation.mutate(formData);
+  };
+
   const getCategoryBadge = (category: string) => {
     const colors = {
       onboarding: 'bg-blue-100 text-blue-800',
@@ -132,78 +182,9 @@ export const EmailTemplateManager = () => {
     return colors[category as keyof typeof colors] || colors.general;
   };
 
-  const renderTemplateForm = (template?: EmailTemplate) => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name">Template Name</Label>
-          <Input
-            id="name"
-            defaultValue={template?.name}
-            placeholder="e.g., Welcome Email"
-          />
-        </div>
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Select defaultValue={template?.category || 'general'}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="onboarding">Onboarding</SelectItem>
-              <SelectItem value="reminders">Reminders</SelectItem>
-              <SelectItem value="notifications">Notifications</SelectItem>
-              <SelectItem value="general">General</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="template_type">Template Type</Label>
-        <Select defaultValue={template?.template_type || 'agent_welcome'}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="agent_welcome">Agent Welcome</SelectItem>
-            <SelectItem value="setup_reminder">Setup Reminder</SelectItem>
-            <SelectItem value="account_activated">Account Activated</SelectItem>
-            <SelectItem value="password_reset">Password Reset</SelectItem>
-            <SelectItem value="account_locked">Account Locked</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label htmlFor="subject">Email Subject</Label>
-        <Input
-          id="subject"
-          defaultValue={template?.subject}
-          placeholder="e.g., Welcome to Our Team!"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="body_html">Email Body (HTML)</Label>
-        <Textarea
-          id="body_html"
-          rows={8}
-          defaultValue={template?.body_html}
-          placeholder="Enter HTML email content..."
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="variables">Available Variables (comma-separated)</Label>
-        <Input
-          id="variables"
-          defaultValue={template?.variables?.join(', ')}
-          placeholder="e.g., agent_name, login_url, support_email"
-        />
-      </div>
-    </div>
-  );
+  const parseVariables = (variableString: string): string[] => {
+    return variableString.split(',').map(v => v.trim()).filter(v => v.length > 0);
+  };
 
   return (
     <div className="space-y-6">
@@ -226,13 +207,88 @@ export const EmailTemplateManager = () => {
                 Create a new email template for agent communications
               </DialogDescription>
             </DialogHeader>
-            {renderTemplateForm()}
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Template Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g., Welcome Email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="onboarding">Onboarding</SelectItem>
+                      <SelectItem value="reminders">Reminders</SelectItem>
+                      <SelectItem value="notifications">Notifications</SelectItem>
+                      <SelectItem value="general">General</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="template_type">Template Type</Label>
+                <Select value={formData.template_type} onValueChange={(value) => setFormData({...formData, template_type: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agent_welcome">Agent Welcome</SelectItem>
+                    <SelectItem value="setup_reminder">Setup Reminder</SelectItem>
+                    <SelectItem value="account_activated">Account Activated</SelectItem>
+                    <SelectItem value="password_reset">Password Reset</SelectItem>
+                    <SelectItem value="account_locked">Account Locked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="subject">Email Subject</Label>
+                <Input
+                  id="subject"
+                  value={formData.subject}
+                  onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                  placeholder="e.g., Welcome to Our Team!"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="body_html">Email Body (HTML)</Label>
+                <Textarea
+                  id="body_html"
+                  rows={8}
+                  value={formData.body_html}
+                  onChange={(e) => setFormData({...formData, body_html: e.target.value})}
+                  placeholder="Enter HTML email content..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="variables">Available Variables (comma-separated)</Label>
+                <Input
+                  id="variables"
+                  value={formData.variables.join(', ')}
+                  onChange={(e) => setFormData({...formData, variables: parseVariables(e.target.value)})}
+                  placeholder="e.g., agent_name, login_url, support_email"
+                />
+              </div>
+            </div>
+            
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsCreating(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => {/* Handle save */}}>
-                Create Template
+              <Button onClick={handleSaveTemplate} disabled={createTemplateMutation.isPending}>
+                {createTemplateMutation.isPending ? 'Creating...' : 'Create Template'}
               </Button>
             </div>
           </DialogContent>
@@ -288,19 +344,11 @@ export const EmailTemplateManager = () => {
                   </div>
 
                   <div className="flex space-x-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setPreviewMode(true)}
-                    >
+                    <Button size="sm" variant="outline">
                       <Eye className="h-4 w-4 mr-1" />
                       Preview
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedTemplate(template)}
-                    >
+                    <Button size="sm" variant="outline">
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
