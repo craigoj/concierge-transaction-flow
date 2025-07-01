@@ -1,5 +1,5 @@
 
-import { Building2, Users, FileText, BarChart3, Settings, Calendar, Bell, MessageSquare, User } from "lucide-react";
+import { Building2, Users, FileText, Settings, Calendar, Bell, MessageSquare, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -15,14 +15,13 @@ import {
 
 // Main navigation items
 const items = [
-  { title: "Dashboard", url: "/", icon: BarChart3 },
+  { title: "Dashboard", url: "/", icon: Building2 },
   { title: "Transactions", url: "/transactions", icon: Building2 },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Agents", url: "/agents", icon: User },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Communications", url: "/communications", icon: MessageSquare },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
 // Settings and utility items
