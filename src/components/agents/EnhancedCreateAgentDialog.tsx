@@ -99,8 +99,8 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
 
         if (error) throw error;
 
-        // Type assertion for the response
-        const typedResponse = response as ManualAgentResponse;
+        // Type assertion for the response - cast through unknown first
+        const typedResponse = response as unknown as ManualAgentResponse;
 
         toast({
           title: "Agent Created Successfully",
