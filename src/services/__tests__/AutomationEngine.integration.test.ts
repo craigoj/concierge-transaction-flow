@@ -8,6 +8,37 @@ import type {
   TriggerEvent 
 } from '@/types/automation'
 
+// Define proper types for database results
+interface WorkflowExecution {
+  id: string;
+  rule_id: string;
+  status: string;
+  retry_count: number;
+  transaction_id: string;
+  rule_name?: string;
+  template_name?: string;
+}
+
+interface WorkflowInstance {
+  id: string;
+  transaction_id: string;
+  template_id: string;
+  applied_by: string;
+  status: string;
+}
+
+interface AutomationRuleRecord {
+  id: string;
+  name: string;
+  trigger_event: string;
+  template_id: string;
+  is_active: number;
+}
+
+interface CountResult {
+  count: number;
+}
+
 // Mock the supabase client to use our SQLite database
 let mockSupabaseClient: any = null
 
@@ -90,7 +121,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       await engine.processTriggeredRules(mockContext)
 
       // Verify workflow execution was created in database
-      const executions = db.prepare('SELECT * FROM workflow_executions WHERE transaction_id = ?').all('txn-1')
+      const executions = db.prepare('SELECT * FROM workflow_executions WHERE transaction_id = ?').all('txn-1') as WorkflowExecution[]
       expect(executions.length).toBeGreaterThan(0)
       
       const execution = executions[0]
@@ -158,7 +189,7 @@ describe('AutomationEngine - SQLite Integration', () => {
         // Verify execution was created
         const executions = db.prepare(
           'SELECT * FROM workflow_executions WHERE rule_id = ? AND transaction_id = ?'
-        ).all(ruleId, testCase.context.transaction_id)
+        ).all(ruleId, testCase.context.transaction_id) as WorkflowExecution[]
         
         expect(executions.length).toBe(1)
         expect(executions[0].rule_id).toBe(ruleId)
@@ -238,7 +269,7 @@ describe('AutomationEngine - SQLite Integration', () => {
         JOIN automation_rules ar ON we.rule_id = ar.id
         JOIN workflow_templates wt ON ar.template_id = wt.id
         WHERE we.transaction_id = ?
-      `).all('txn-1')
+      `).all('txn-1') as WorkflowExecution[]
 
       expect(executions.length).toBeGreaterThan(0)
       
@@ -274,7 +305,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify workflow instance was created through RPC
       const instances = db.prepare(
         'SELECT * FROM workflow_instances WHERE transaction_id = ? AND template_id = ?'
-      ).all('txn-1', 'template-1')
+      ).all('txn-1', 'template-1') as WorkflowInstance[]
 
       expect(instances.length).toBeGreaterThan(0)
       
@@ -311,7 +342,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify at least some processing occurred
       const rules = db.prepare(
         'SELECT * FROM automation_rules WHERE id = ?'
-      ).get('rule-invalid-condition')
+      ).get('rule-invalid-condition') as AutomationRuleRecord
       
       expect(rules).toBeTruthy()
       expect(rules.is_active).toBe(1)
@@ -342,7 +373,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify executions were created (audit logs may be created asynchronously)
       const executions = db.prepare(
         'SELECT * FROM workflow_executions WHERE rule_id = ?'
-      ).all('rule-audit-test')
+      ).all('rule-audit-test') as WorkflowExecution[]
 
       expect(executions.length).toBeGreaterThan(0)
       
@@ -351,7 +382,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       expect(execution.status).toBeTruthy()
       
       // Check if any audit logs exist (they may be created by other operations)
-      const allAuditLogs = db.prepare('SELECT COUNT(*) as count FROM automation_audit_logs').get()
+      const allAuditLogs = db.prepare('SELECT COUNT(*) as count FROM automation_audit_logs').get() as CountResult
       expect(allAuditLogs.count).toBeGreaterThanOrEqual(0) // Allow for 0 logs
     })
   })
@@ -395,7 +426,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify all executions were created
       const executions = db.prepare(
         'SELECT COUNT(*) as count FROM workflow_executions WHERE transaction_id = ?'
-      ).get('txn-1')
+      ).get('txn-1') as CountResult
       
       expect(executions.count).toBe(50)
       
@@ -469,7 +500,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // First verify that the rule and execution were created
       const executions = db.prepare(
         'SELECT * FROM workflow_executions WHERE rule_id = ?'
-      ).all('rule-integrity-test')
+      ).all('rule-integrity-test') as WorkflowExecution[]
       
       expect(executions.length).toBeGreaterThan(0)
       const execution = executions[0]
@@ -479,7 +510,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify workflow instances were created
       const instances = db.prepare(
         'SELECT * FROM workflow_instances WHERE transaction_id = ? AND template_id = ?'
-      ).all('txn-1', 'template-1')
+      ).all('txn-1', 'template-1') as WorkflowInstance[]
       
       expect(instances.length).toBeGreaterThan(0)
       const instance = instances[0]
@@ -488,7 +519,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify the rule exists and is linked correctly
       const rule = db.prepare(
         'SELECT * FROM automation_rules WHERE id = ?'
-      ).get('rule-integrity-test')
+      ).get('rule-integrity-test') as AutomationRuleRecord
       
       expect(rule).toBeTruthy()
       expect(rule.template_id).toBe('template-1')
@@ -542,7 +573,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       for (const rule of rules) {
         const executions = db.prepare(
           'SELECT COUNT(*) as count FROM workflow_executions WHERE rule_id = ?'
-        ).get(rule.id)
+        ).get(rule.id) as CountResult
         
         expect(executions.count).toBeGreaterThanOrEqual(1)
       }
@@ -550,7 +581,7 @@ describe('AutomationEngine - SQLite Integration', () => {
       // Verify workflow instances were created correctly
       const instances = db.prepare(
         'SELECT COUNT(*) as count FROM workflow_instances WHERE transaction_id = ?'
-      ).get('txn-1')
+      ).get('txn-1') as CountResult
       
       expect(instances.count).toBeGreaterThanOrEqual(1)
     })
