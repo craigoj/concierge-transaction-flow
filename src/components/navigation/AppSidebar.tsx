@@ -1,5 +1,6 @@
 
-import { Home, FileText, Users, MessageCircle, Settings, BarChart3, Calendar, Workflow, Database, UserPlus } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Settings, Calendar, Bell, MessageSquare, User } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -9,213 +10,77 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { Link, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
-const coordinatorMenuItems = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "Transactions",
-    url: "/transactions",
-    icon: FileText,
-  },
-  {
-    title: "Clients",
-    url: "/clients",
-    icon: Users,
-  },
-  {
-    title: "Communications", 
-    url: "/communications",
-    icon: MessageCircle,
-  },
-  {
-    title: "Documents",
-    url: "/documents",
-    icon: FileText,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-  },
+// Main navigation items
+const items = [
+  { title: "Dashboard", url: "/", icon: BarChart3 },
+  { title: "Transactions", url: "/transactions", icon: Building2 },
+  { title: "Clients", url: "/clients", icon: Users },
+  { title: "Agents", url: "/agents", icon: User },
+  { title: "Documents", url: "/documents", icon: FileText },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Communications", url: "/communications", icon: MessageSquare },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
-const agentMenuItems = [
-  {
-    title: "Dashboard",
-    url: "/agent/dashboard",
-    icon: Home,
-  },
-  {
-    title: "My Transactions",
-    url: "/agent/transactions", 
-    icon: FileText,
-  },
-  {
-    title: "My Tasks",
-    url: "/agent/tasks",
-    icon: Workflow,
-  },
-  {
-    title: "My Clients",
-    url: "/agent/clients",
-    icon: Users,
-  },
-  {
-    title: "Calendar",
-    url: "/agent/calendar",
-    icon: Calendar,
-  },
-];
-
-const managementItems = [
-  {
-    title: "Agents",
-    url: "/agents",
-    icon: Users,
-  },
-  {
-    title: "Agent Intake",
-    url: "/agent-intake",
-    icon: UserPlus,
-  },
-  {
-    title: "Workflows",
-    url: "/workflows",
-    icon: Workflow,
-  },
-  {
-    title: "Templates",
-    url: "/templates",
-    icon: FileText,
-  },
-  {
-    title: "Automation",
-    url: "/automation",
-    icon: Workflow,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-];
-
-const demoItems = [
-  {
-    title: "Demo Setup",
-    url: "/demo-setup",
-    icon: Database,
-  },
+// Settings and utility items
+const utilityItems = [
+  { title: "Notifications", url: "/notifications", icon: Bell },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
+  const { state } = useSidebar();
   const location = useLocation();
-
-  // Get user role to determine which menu items to show
-  const { data: userRole } = useQuery({
-    queryKey: ['user-role'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.warn('Error fetching user role:', error);
-        return 'agent'; // Default fallback
-      }
-
-      return profile?.role || 'agent';
+  const currentPath = location.pathname;
+  
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return currentPath === "/";
     }
-  });
-
-  const isActive = (url: string) => {
-    if (url === '/dashboard' || url === '/agent/dashboard') {
-      return location.pathname === '/' || location.pathname === url;
-    }
-    return location.pathname.startsWith(url);
+    return currentPath === path || currentPath.startsWith(path + "/");
   };
 
-  const isAgent = userRole === 'agent';
-  const isCoordinator = userRole === 'coordinator';
-  const mainMenuItems = isAgent ? agentMenuItems : coordinatorMenuItems;
-
   return (
-    <Sidebar>
+    <Sidebar variant="inset">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            {isAgent ? 'Agent Portal' : 'Main'}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainMenuItems.map((item) => (
+              {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
+                    <NavLink to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </Link>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
-        {/* Only show management section for coordinators */}
-        {isCoordinator && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Management</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {managementItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-        
-        {/* Only show demo section for coordinators */}
-        {isCoordinator && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Demo</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {demoItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {utilityItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );

@@ -1,7 +1,7 @@
-
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getTestDb } from '@/test/integration-setup'
 import { seedTestData } from '@/test/db/sqlite-setup'
+import crypto from 'crypto'
 
 // Define proper types for database results
 interface CountResult {
@@ -19,10 +19,75 @@ interface IntegrityCheckResult {
   client_name: string;
 }
 
-describe('SQLite Performance and Constraint Testing', () => {
+describe('SQLite Performance Integration Tests', () => {
   beforeEach(() => {
     const { db } = getTestDb()
     seedTestData(db)
+  })
+
+  describe('Database Operations Performance', () => {
+    it('tests foreign key relationships and data integrity', async () => {
+      const { db, insertProfile, insertTransaction, insertTask, insertClient } = getTestDb()
+
+      // Insert test data with proper relationships
+      const profileId = insertProfile.run({
+        id: crypto.randomUUID(),
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john.doe@example.com',
+        phone: '555-0123',
+        role: 'agent'
+      }).lastInsertRowid as number
+
+      const transactionId = insertTransaction.run({
+        id: crypto.randomUUID(),
+        property_address: '123 Test St',
+        purchase_price: 500000,
+        status: 'active',
+        agent_id: profileId,
+        created_at: new Date().toISOString()
+      }).lastInsertRowid as number
+
+      const taskId = insertTask.run({
+        id: crypto.randomUUID(),
+        transaction_id: transactionId,
+        subject: 'Test Task',
+        description: 'Test Description',
+        due_date: new Date().toISOString(),
+        status: 'pending',
+        created_at: new Date().toISOString()
+      }).lastInsertRowid as number
+
+      const clientId = insertClient.run({
+        id: crypto.randomUUID(),
+        transaction_id: transactionId,
+        full_name: 'Jane Smith',
+        email: 'jane.smith@example.com',
+        phone: '555-0124',
+        type: 'buyer',
+        created_at: new Date().toISOString()
+      }).lastInsertRowid as number
+
+      // Test data integrity with JOIN query
+      const integrityCheck = db.prepare(`
+        SELECT 
+          p.id as profile_id,
+          t.id as transaction_id,
+          ta.id as task_id,
+          c.id as client_id
+        FROM profiles p
+        JOIN transactions t ON p.id = t.agent_id
+        JOIN tasks ta ON t.id = ta.transaction_id
+        JOIN clients c ON t.id = c.transaction_id
+        WHERE p.id = ?
+      `).get(profileId) as IntegrityCheckResult
+      
+      expect(integrityCheck).toBeDefined()
+      expect(integrityCheck.profile_id).toBe(profileId)
+      expect(integrityCheck.transaction_id).toBe(transactionId)
+      expect(integrityCheck.task_id).toBe(taskId)
+      expect(integrityCheck.client_id).toBe(clientId)
+    })
   })
 
   describe('Query Performance Benchmarks', () => {
