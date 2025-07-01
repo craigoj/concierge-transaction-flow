@@ -23,6 +23,7 @@ import OfferDrafting from '@/pages/OfferDrafting';
 import ServiceTierSelection from '@/pages/ServiceTierSelection';
 import Agents from '@/pages/Agents';
 import AgentIntake from '@/pages/AgentIntake';
+import Communications from '@/pages/Communications';
 
 // Import agent pages
 import AgentDashboard from '@/pages/agent/AgentDashboard';
@@ -145,6 +146,22 @@ function App() {
             <AuthGuard>
               <AppLayout>
                 <AgentIntake />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
+          {/* Communications and Calendar routes */}
+          <Route path="/communications" element={
+            <AuthGuard>
+              <AppLayout>
+                <Communications />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/calendar" element={
+            <AuthGuard>
+              <AppLayout>
+                <AgentCalendar />
               </AppLayout>
             </AuthGuard>
           } />
