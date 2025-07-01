@@ -9,7 +9,7 @@ import { TransactionListWithBulk } from '@/components/transactions/TransactionLi
 import { TransactionTemplateManager } from '@/components/transactions/TransactionTemplateManager';
 import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
@@ -25,7 +25,17 @@ const Transactions = () => {
   const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Auto-open create dialog if coming from /transactions/new
+  React.useEffect(() => {
+    if (location.pathname === '/transactions/new') {
+      setCreateDialogOpen(true);
+      // Replace the URL without the /new part
+      window.history.replaceState(null, '', '/transactions');
+    }
+  }, [location.pathname]);
 
   const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['transactions'],
@@ -105,6 +115,7 @@ const Transactions = () => {
               onClick={() => setCreateDialogOpen(true)} 
               className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-4 rounded-xl shadow-brand-subtle hover:shadow-brand-elevation transition-all duration-300 gap-3"
               size="lg"
+              data-create-transaction
             >
               <Plus className="h-5 w-5" />
               NEW TRANSACTION

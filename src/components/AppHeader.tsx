@@ -39,6 +39,37 @@ const AppHeader = () => {
     }
   };
 
+  const handleCreateTransaction = () => {
+    navigate('/transactions');
+    // Trigger the create dialog after navigation
+    setTimeout(() => {
+      const createButton = document.querySelector('[data-create-transaction]');
+      if (createButton) {
+        (createButton as HTMLElement).click();
+      }
+    }, 100);
+  };
+
+  const handleCreateContact = () => {
+    navigate('/clients/new');
+  };
+
+  const handleCreateTask = () => {
+    toast({
+      title: "Create Task",
+      description: "Task creation will be available from within a transaction. Please create or select a transaction first.",
+    });
+    navigate('/transactions');
+  };
+
+  const handleCreateContactNote = () => {
+    navigate('/communications');
+  };
+
+  const handleCreateLetter = () => {
+    navigate('/templates');
+  };
+
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-brand-taupe/20 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between w-full">
@@ -83,31 +114,31 @@ const AppHeader = () => {
             <DropdownMenuContent align="end" className="w-56 bg-white border-brand-taupe/20 shadow-brand-elevation">
               <DropdownMenuItem 
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
-                onClick={() => navigate('/transactions/new')}
+                onClick={handleCreateTransaction}
               >
                 🏠 Transaction
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
-                onClick={() => navigate('/clients/new')}
+                onClick={handleCreateContact}
               >
                 👤 Contact
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
-                onClick={() => navigate('/tasks/new')}
+                onClick={handleCreateTask}
               >
                 ✓ Task
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
-                onClick={() => navigate('/communications/new')}
+                onClick={handleCreateContactNote}
               >
                 📝 Contact Note
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
-                onClick={() => navigate('/templates/new')}
+                onClick={handleCreateLetter}
               >
                 📄 Letter (Blank)
               </DropdownMenuItem>

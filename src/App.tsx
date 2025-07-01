@@ -17,6 +17,7 @@ import AutomationDashboard from '@/pages/AutomationDashboard';
 import Templates from '@/pages/Templates';
 import Documents from '@/pages/Documents';
 import Clients from '@/pages/Clients';
+import CreateClient from '@/pages/CreateClient';
 import Settings from '@/pages/Settings';
 import Profile from '@/pages/Profile';
 import OfferDrafting from '@/pages/OfferDrafting';
@@ -69,6 +70,13 @@ function App() {
           
           {/* Transaction routes */}
           <Route path="/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <Transactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/transactions/new" element={
             <AuthGuard>
               <AppLayout>
                 <Transactions />
@@ -132,6 +140,13 @@ function App() {
             <AuthGuard>
               <AppLayout>
                 <Clients />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          <Route path="/clients/new" element={
+            <AuthGuard>
+              <AppLayout>
+                <CreateClient />
               </AppLayout>
             </AuthGuard>
           } />
