@@ -198,10 +198,13 @@ npx supabase migration new   # Create new migration
 
 ### **Important Files**
 - **Main Documentation**: `/CLAUDE.md` (this file)
-- **Implementation Summary**: `/AGENT_CONCIERGE_IMPLEMENTATION_SUMMARY.md`
-- **Schema Design**: `/AGENT_CONCIERGE_SCHEMA_DESIGN.md`
+- **Current Development Plan**: `/NEXT_PHASE_DEVELOPMENT_PLAN.md`
+- **Sync Analysis**: `/LOVABLE_SYNC_ANALYSIS_AND_NEXT_PHASE.md`
+- **Testing Workflow**: `/TESTING_WORKFLOW.md`
+- **Database Schema**: `/DATABASE_SCHEMA_DOCUMENTATION.md`
 - **Database Migration**: `/supabase/migrations/20250629200000_agent_concierge_integration.sql`
 - **TypeScript Types**: `/src/integrations/supabase/agent-concierge-types.ts`
+- **Archived Documentation**: `/archive/` (historical files)
 
 ### **Key URLs**
 - **Local Development**: http://localhost:5173
