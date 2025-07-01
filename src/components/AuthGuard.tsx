@@ -20,30 +20,39 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Debug logging
+  const logDebug = (message: string, data?: any) => {
+    console.log(`[AuthGuard] ${message}`, data || '');
+  };
+
   // Initialize authentication
   useEffect(() => {
     let mounted = true;
 
     const initAuth = async () => {
       try {
+        logDebug('Initializing authentication...');
+        
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!mounted) return;
 
         if (sessionError) {
-          console.error('Session error:', sessionError);
+          logDebug('Session error:', sessionError);
           setError(sessionError.message);
           setAuthState('error');
           return;
         }
 
         if (session?.user) {
+          logDebug('Session found, user:', session.user.email);
           setSession(session);
           setUser(session.user);
           
           // Fetch user role
           try {
+            logDebug('Fetching user profile...');
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('role')
@@ -53,23 +62,46 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
             if (!mounted) return;
 
             if (profileError) {
-              console.warn('Profile error:', profileError);
-              // Default to 'agent' if profile not found
-              setUserRole('agent');
+              logDebug('Profile error:', profileError);
+              // Check if user exists in profiles table
+              if (profileError.code === 'PGRST116') {
+                logDebug('User profile not found, creating...');
+                // Try to create profile
+                const { error: createError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    role: 'agent' // Default role
+                  });
+                
+                if (createError) {
+                  logDebug('Failed to create profile:', createError);
+                  setUserRole('agent'); // Fallback
+                } else {
+                  logDebug('Profile created successfully');
+                  setUserRole('agent');
+                }
+              } else {
+                logDebug('Using fallback role: agent');
+                setUserRole('agent');
+              }
             } else {
+              logDebug('Profile found, role:', profile?.role);
               setUserRole(profile?.role || 'agent');
             }
           } catch (err) {
-            console.warn('Error fetching profile:', err);
+            logDebug('Error fetching profile:', err);
             setUserRole('agent'); // Default fallback
           }
           
           setAuthState('authenticated');
         } else {
+          logDebug('No session found');
           setAuthState('unauthenticated');
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        logDebug('Auth initialization error:', err);
         if (mounted) {
           setError('Authentication failed');
           setAuthState('error');
@@ -86,16 +118,20 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Set up auth state listener
   useEffect(() => {
+    logDebug('Setting up auth state listener...');
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
+      async (event, session) => {
+        logDebug('Auth state change:', { event, userEmail: session?.user?.email });
         
         if (event === 'SIGNED_OUT') {
+          logDebug('User signed out');
           setSession(null);
           setUser(null);
           setUserRole(null);
           setAuthState('unauthenticated');
         } else if (event === 'SIGNED_IN' && session?.user) {
+          logDebug('User signed in:', session.user.email);
           setSession(session);
           setUser(session.user);
           setAuthState('authenticated');
@@ -103,15 +139,22 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           // Fetch role for signed in user
           setTimeout(async () => {
             try {
-              const { data: profile } = await supabase
+              logDebug('Fetching role for signed in user...');
+              const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', session.user.id)
                 .single();
               
-              setUserRole(profile?.role || 'agent');
+              if (error) {
+                logDebug('Error fetching role:', error);
+                setUserRole('agent');
+              } else {
+                logDebug('Role fetched:', profile?.role);
+                setUserRole(profile?.role || 'agent');
+              }
             } catch (err) {
-              console.warn('Error fetching role on sign in:', err);
+              logDebug('Error in role fetch:', err);
               setUserRole('agent');
             }
           }, 100);
@@ -119,30 +162,59 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      logDebug('Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Handle navigation based on auth state and role
   useEffect(() => {
+    logDebug('Navigation effect triggered', {
+      authState,
+      userRole,
+      currentPath: location.pathname
+    });
+
     if (authState === 'unauthenticated') {
       if (location.pathname !== '/auth') {
+        logDebug('Redirecting to auth page');
         navigate('/auth', { replace: true });
       }
       return;
     }
 
     if (authState === 'authenticated' && userRole) {
-      // Handle role-based routing
-      if (userRole === 'agent' && !location.pathname.startsWith('/agent/')) {
-        navigate('/agent/dashboard', { replace: true });
-      } else if (userRole === 'coordinator' && location.pathname.startsWith('/agent/')) {
-        navigate('/dashboard', { replace: true });
+      logDebug('User authenticated, checking role-based routing', {
+        role: userRole,
+        currentPath: location.pathname
+      });
+
+      // Simplified role-based routing to avoid loops
+      if (userRole === 'agent') {
+        // Only redirect agents if they're on coordinator-only routes
+        const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
+        const isOnCoordinatorRoute = coordinatorOnlyRoutes.some(route => 
+          location.pathname.startsWith(route)
+        );
+        
+        if (isOnCoordinatorRoute) {
+          logDebug('Agent on coordinator route, redirecting to agent dashboard');
+          navigate('/agent/dashboard', { replace: true });
+        }
+      } else if (userRole === 'coordinator') {
+        // Only redirect coordinators if they're on agent-only routes
+        if (location.pathname.startsWith('/agent/')) {
+          logDebug('Coordinator on agent route, redirecting to main dashboard');
+          navigate('/dashboard', { replace: true });
+        }
       }
     }
   }, [authState, userRole, location.pathname, navigate]);
 
   // Loading state
   if (authState === 'loading') {
+    logDebug('Showing loading state');
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center">
         <div className="text-center">
@@ -155,13 +227,17 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Error state
   if (authState === 'error') {
+    logDebug('Showing error state:', error);
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 font-brand-body mb-4">Authentication Error</p>
           <p className="text-brand-charcoal/60 font-brand-body">{error}</p>
           <button 
-            onClick={() => navigate('/auth')}
+            onClick={() => {
+              logDebug('Retry button clicked');
+              navigate('/auth');
+            }}
             className="mt-4 px-4 py-2 bg-brand-charcoal text-white rounded"
           >
             Go to Login
@@ -173,10 +249,12 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Unauthenticated state - don't render children
   if (authState === 'unauthenticated') {
+    logDebug('User unauthenticated, not rendering children');
     return null;
   }
 
   // Authenticated state - render children
+  logDebug('Rendering authenticated content');
   return <>{children}</>;
 };
 

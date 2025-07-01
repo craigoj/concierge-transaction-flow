@@ -8,6 +8,9 @@ import NotFound from '@/pages/NotFound';
 import AuthGuard from '@/components/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
 
+// Import debug utility
+import '@/utils/authDebug';
+
 // Import all page components
 import Dashboard from '@/pages/Index';
 import Transactions from '@/pages/Transactions';

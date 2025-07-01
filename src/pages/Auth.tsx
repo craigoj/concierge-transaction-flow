@@ -21,24 +21,47 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Debug logging
+  const logDebug = (message: string, data?: any) => {
+    console.log(`[Auth] ${message}`, data || '');
+  };
+
   useEffect(() => {
     let mounted = true;
 
     const checkInitialAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        logDebug('Checking initial auth state...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (mounted && session?.user) {
-          // User is already authenticated, redirect them
+        if (!mounted) return;
+
+        if (error) {
+          logDebug('Session check error:', error);
+          setCheckingAuth(false);
+          return;
+        }
+
+        if (session?.user) {
+          logDebug('User already authenticated:', session.user.email);
+          
+          // Check user role for proper redirect
           try {
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('role')
               .eq('id', session.user.id)
               .single();
             
-            if (mounted) {
+            if (!mounted) return;
+
+            if (profileError) {
+              logDebug('Profile error, using default redirect:', profileError);
+              navigate('/dashboard', { replace: true });
+            } else {
               const role = profile?.role || 'agent';
+              logDebug('User role found:', role);
+              
               if (role === 'agent') {
                 navigate('/agent/dashboard', { replace: true });
               } else {
@@ -46,14 +69,14 @@ const Auth = () => {
               }
             }
           } catch (error) {
-            console.error('Error fetching user role:', error);
-            if (mounted) {
-              navigate('/dashboard', { replace: true });
-            }
+            logDebug('Error fetching user role:', error);
+            navigate('/dashboard', { replace: true });
           }
+        } else {
+          logDebug('No active session found');
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        logDebug('Auth check error:', error);
       } finally {
         if (mounted) {
           setCheckingAuth(false);
@@ -71,22 +94,30 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    logDebug('Attempting sign in...', { email });
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      logDebug('Sign in response:', { data: !!data, error });
+
       if (error) {
+        logDebug('Sign in error:', error);
         toast({
           variant: "destructive",
           title: "Sign In Error",
           description: error.message,
         });
+      } else {
+        logDebug('Sign in successful, user:', data.user?.email);
+        // Navigation will be handled by AuthGuard
       }
-      // Navigation will be handled by AuthGuard after sign in
     } catch (error) {
+      logDebug('Sign in exception:', error);
       toast({
         variant: "destructive",
         title: "Sign In Error",
@@ -100,11 +131,13 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    logDebug('Attempting sign up...', { email });
 
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -119,19 +152,24 @@ const Auth = () => {
         }
       });
 
+      logDebug('Sign up response:', { data: !!data, error });
+
       if (error) {
+        logDebug('Sign up error:', error);
         toast({
           variant: "destructive",
           title: "Sign Up Error",
           description: error.message,
         });
       } else {
+        logDebug('Sign up successful');
         toast({
           title: "Success!",
           description: "Please check your email to confirm your account.",
         });
       }
     } catch (error) {
+      logDebug('Sign up exception:', error);
       toast({
         variant: "destructive",
         title: "Sign Up Error",
@@ -186,6 +224,13 @@ const Auth = () => {
               : 'Where excellence meets intention'
             }
           </p>
+        </div>
+
+        {/* Debug info for testing */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+          <p className="font-semibold text-blue-800">Test Account:</p>
+          <p className="text-blue-600">Email: admin@demo.com</p>
+          <p className="text-blue-600">Password: (any password)</p>
         </div>
 
         {/* Authentication Card */}
