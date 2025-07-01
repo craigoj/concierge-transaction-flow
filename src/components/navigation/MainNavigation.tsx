@@ -8,7 +8,6 @@ import {
   Users, 
   MessageSquare, 
   FolderOpen, 
-  BarChart3,
   UserCheck,
   Mail,
   Workflow
@@ -26,8 +25,7 @@ const MainNavigation = () => {
     { path: '/communications', label: 'Communications', icon: MessageSquare },
     { path: '/templates', label: 'Templates', icon: Mail },
     { path: '/workflows', label: 'Workflows', icon: Workflow },
-    { path: '/documents', label: 'Documents', icon: FolderOpen },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 }
+    { path: '/documents', label: 'Documents', icon: FolderOpen }
   ];
 
   const isActive = (path: string) => {
