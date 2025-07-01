@@ -22,7 +22,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Missing required environment variables");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Create admin client with service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -31,7 +37,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
       console.error("Authentication failed:", authError);
@@ -41,7 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Authenticated user:", user.email);
 
     // Verify the user is a coordinator
-    const { data: coordinatorProfile, error: profileError } = await supabase
+    const { data: coordinatorProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("role")
       .eq("id", user.id)
@@ -66,17 +72,23 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Email, first name, and last name are required");
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email);
+    // Check if user already exists using admin client
+    const { data: existingUsers, error: lookupError } = await supabaseAdmin.auth.admin.listUsers();
     
+    if (lookupError) {
+      console.error("User lookup error:", lookupError);
+      throw new Error("Failed to check existing users");
+    }
+
+    const existingUser = existingUsers.users.find(u => u.email === email);
     let newUserId;
     
-    if (existingUser?.user) {
+    if (existingUser) {
       console.log("User already exists:", email);
-      newUserId = existingUser.user.id;
+      newUserId = existingUser.id;
     } else {
-      // Create new user
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      // Create new user using admin client
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: password || 'temporaryPassword123!',
         email_confirm: true,
@@ -98,8 +110,8 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("New user created:", newUserId);
     }
 
-    // Update or create profile
-    const { data: profileData, error: profileUpsertError } = await supabase
+    // Update or create profile using admin client
+    const { data: profileData, error: profileUpsertError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: newUserId,
@@ -125,8 +137,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to create profile: ${profileUpsertError.message}`);
     }
 
-    // Create invitation record
-    const { error: invitationError } = await supabase
+    // Create invitation record using admin client
+    const { error: invitationError } = await supabaseAdmin
       .from('agent_invitations')
       .insert({
         invited_by: user.id,
