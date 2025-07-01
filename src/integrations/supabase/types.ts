@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_lockouts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          locked_at: string
+          locked_by: string
+          metadata: Json | null
+          reason: string | null
+          unlock_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locked_at?: string
+          locked_by: string
+          metadata?: Json | null
+          reason?: string | null
+          unlock_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locked_at?: string
+          locked_by?: string
+          metadata?: Json | null
+          reason?: string | null
+          unlock_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action: string
@@ -140,35 +176,47 @@ export type Database = {
       agent_invitations: {
         Row: {
           accepted_at: string | null
+          admin_notes: string | null
           agent_id: string
           created_at: string
+          creation_method: string | null
           email: string
+          expires_at: string | null
           id: string
           invitation_token: string
           invited_at: string
           invited_by: string
+          setup_link_token: string | null
           status: string
         }
         Insert: {
           accepted_at?: string | null
+          admin_notes?: string | null
           agent_id: string
           created_at?: string
+          creation_method?: string | null
           email: string
+          expires_at?: string | null
           id?: string
           invitation_token: string
           invited_at?: string
           invited_by: string
+          setup_link_token?: string | null
           status?: string
         }
         Update: {
           accepted_at?: string | null
+          admin_notes?: string | null
           agent_id?: string
           created_at?: string
+          creation_method?: string | null
           email?: string
+          expires_at?: string | null
           id?: string
           invitation_token?: string
           invited_at?: string
           invited_by?: string
+          setup_link_token?: string | null
           status?: string
         }
         Relationships: [
@@ -187,6 +235,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_profile_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       agent_vendors: {
         Row: {
@@ -476,6 +557,54 @@ export type Database = {
           },
         ]
       }
+      communication_history: {
+        Row: {
+          clicked_at: string | null
+          communication_type: string
+          content: string
+          delivered_at: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_id: string
+          sent_at: string
+          status: string
+          subject: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          communication_type: string
+          content: string
+          delivered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_id: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          communication_type?: string
+          content?: string
+          delivered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       communication_logs: {
         Row: {
           communication_type: string
@@ -566,6 +695,39 @@ export type Database = {
           preferred_method?: string
           preferred_time?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_settings: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          notification_types: Json
+          sms_enabled: boolean
+          template_preferences: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          notification_types?: Json
+          sms_enabled?: boolean
+          template_preferences?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          notification_types?: Json
+          sms_enabled?: boolean
+          template_preferences?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -817,6 +979,96 @@ export type Database = {
           },
         ]
       }
+      enhanced_activity_logs: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          description: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          target_user_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          category?: string
+          created_at?: string
+          description: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          description?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      enhanced_email_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          template_type: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          template_type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       imported_email_templates: {
         Row: {
           created_at: string | null
@@ -1040,6 +1292,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admin_activated: boolean | null
           bio: string | null
           brokerage: string | null
           created_at: string
@@ -1052,15 +1305,19 @@ export type Database = {
           invited_by: string | null
           last_name: string | null
           license_number: string | null
+          manual_setup: boolean | null
           onboarding_completed_at: string | null
+          onboarding_method: string | null
           phone_number: string | null
           profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role"]
+          setup_method: string | null
           specialties: string[] | null
           updated_at: string
           years_experience: number | null
         }
         Insert: {
+          admin_activated?: boolean | null
           bio?: string | null
           brokerage?: string | null
           created_at?: string
@@ -1073,15 +1330,19 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          manual_setup?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_method?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          setup_method?: string | null
           specialties?: string[] | null
           updated_at?: string
           years_experience?: number | null
         }
         Update: {
+          admin_activated?: boolean | null
           bio?: string | null
           brokerage?: string | null
           created_at?: string
@@ -1094,10 +1355,13 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           license_number?: string | null
+          manual_setup?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_method?: string | null
           phone_number?: string | null
           profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          setup_method?: string | null
           specialties?: string[] | null
           updated_at?: string
           years_experience?: number | null
@@ -1364,6 +1628,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      temporary_passwords: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          password_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          password_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          password_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       transaction_service_details: {
         Row: {
@@ -1707,6 +2004,14 @@ export type Database = {
         }
         Returns: string
       }
+      bulk_update_agent_status: {
+        Args: {
+          p_agent_ids: string[]
+          p_new_status: string
+          p_updated_by?: string
+        }
+        Returns: number
+      }
       bulk_update_transaction_status: {
         Args: {
           transaction_ids: string[]
@@ -1714,6 +2019,18 @@ export type Database = {
           updated_by?: string
         }
         Returns: number
+      }
+      create_manual_agent: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_phone?: string
+          p_brokerage?: string
+          p_password?: string
+          p_created_by?: string
+        }
+        Returns: Json
       }
       detect_property_duplicates: {
         Args: {
@@ -1732,6 +2049,10 @@ export type Database = {
           similarity_score: number
           status: Database["public"]["Enums"]["transaction_status"]
         }[]
+      }
+      generate_agent_setup_link: {
+        Args: { p_agent_id: string; p_expires_hours?: number }
+        Returns: string
       }
       get_my_role: {
         Args: Record<PropertyKey, never>
@@ -1761,6 +2082,14 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      is_account_locked: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      lock_user_account: {
+        Args: { p_user_id: string; p_reason?: string }
+        Returns: boolean
+      }
       set_limit: {
         Args: { "": number }
         Returns: number
@@ -1772,6 +2101,10 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      unlock_user_account: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
