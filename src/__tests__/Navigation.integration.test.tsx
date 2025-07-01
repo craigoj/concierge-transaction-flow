@@ -194,14 +194,6 @@ describe('Navigation Integration Tests', () => {
     })
 
     it('preserves existing query parameters when navigating', () => {
-      // Mock location with existing search params
-      const mockLocationWithSearch = {
-        ...mockLocation,
-        search: '?existing=param'
-      }
-      
-      vi.mocked(vi.importActual('react-router-dom')).useLocation = () => mockLocationWithSearch
-
       const TestComponent = () => {
         const navigate = mockNavigate
         
