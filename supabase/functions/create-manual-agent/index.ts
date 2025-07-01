@@ -21,8 +21,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing environment variables");
-      throw new Error("Missing required environment variables");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Server configuration error - missing environment variables"
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
+
+    console.log("Environment variables OK");
 
     // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -32,13 +43,15 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
+    console.log("Supabase admin client created");
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: "Authorization header required"
+          error: "Authorization header required - please log in"
         }),
         {
           status: 401,
@@ -50,14 +63,15 @@ const handler = async (req: Request): Promise<Response> => {
     const token = authHeader.replace("Bearer ", "");
     console.log("Validating authentication token...");
     
+    // Verify the user is authenticated
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("Authentication failed:", authError);
+      console.error("Authentication failed:", authError?.message);
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: "Invalid authentication - please log in again"
+          error: "Authentication failed - please log in again"
         }),
         {
           status: 401,
@@ -66,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Authenticated user:", user.email, "User ID:", user.id);
+    console.log("Authenticated user:", user.email);
 
     // Verify the user is a coordinator
     console.log("Checking user role...");
@@ -77,11 +91,11 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (profileError) {
-      console.error("Profile lookup error:", profileError);
+      console.error("Profile lookup error:", profileError.message);
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: "Failed to verify user permissions"
+          error: "Unable to verify user permissions"
         }),
         {
           status: 403,
@@ -106,15 +120,27 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const requestBody = await req.json();
-    console.log("Request body received:", {
-      email: requestBody.email,
-      firstName: requestBody.firstName,
-      lastName: requestBody.lastName,
-      hasPhone: !!requestBody.phoneNumber,
-      hasBrokerage: !!requestBody.brokerage,
-      hasPassword: !!requestBody.password
-    });
+    console.log("User is authorized as coordinator");
+
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid request body - must be valid JSON"
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Request body parsed successfully");
     
     const { email, firstName, lastName, phoneNumber, brokerage, password } = requestBody;
 
@@ -147,24 +173,35 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Creating agent manually...");
+    console.log("Input validation passed");
 
     // Generate temporary password if none provided
-    const tempPassword = password || Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]
+    const tempPassword = password || Array.from(
+      crypto.getRandomValues(new Uint8Array(12)), 
+      b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]
     ).join('');
 
-    console.log("Generated password:", tempPassword ? "Yes" : "No");
+    console.log("Password generated/received");
 
-    // Check if user already exists by trying to get user by email
+    // Check if user already exists
     console.log("Checking if user already exists...");
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
-    let existingUser = null;
-    if (!listError && existingUsers?.users) {
-      existingUser = existingUsers.users.find(u => u.email === email);
+    if (listError) {
+      console.error("Error listing users:", listError.message);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Unable to check existing users"
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
     let newUserId: string;
 
     if (existingUser) {
@@ -188,11 +225,11 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (createUserError || !newUser.user) {
-        console.error("Failed to create auth user:", createUserError);
+        console.error("Failed to create auth user:", createUserError?.message);
         return new Response(
           JSON.stringify({ 
             success: false,
-            error: `Failed to create user account: ${createUserError?.message}`
+            error: `Failed to create user account: ${createUserError?.message || 'Unknown error'}`
           }),
           {
             status: 500,
@@ -224,12 +261,14 @@ const handler = async (req: Request): Promise<Response> => {
         invitation_status: 'completed',
         invited_by: user.id,
         invited_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
       })
       .select()
       .single();
 
     if (profileInsertError) {
-      console.error("Profile creation error:", profileInsertError);
+      console.error("Profile creation error:", profileInsertError.message);
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -242,7 +281,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Profile created/updated:", profile);
+    console.log("Profile created/updated successfully");
 
     // Create invitation record
     console.log("Creating invitation record...");
@@ -260,8 +299,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (invitationError) {
-      console.error("Invitation creation error:", invitationError);
+      console.error("Invitation creation error:", invitationError.message);
       // Don't fail the whole operation for invitation record creation
+    } else {
+      console.log("Invitation record created successfully");
     }
 
     // Log the activity
@@ -269,8 +310,8 @@ const handler = async (req: Request): Promise<Response> => {
     const { error: activityError } = await supabaseAdmin
       .from('enhanced_activity_logs')
       .insert({
-        user_id: user.id, // The coordinator creating the agent
-        target_user_id: newUserId, // The agent being created
+        user_id: user.id,
+        target_user_id: newUserId,
         action: 'manual_agent_creation',
         category: 'agent_management',
         description: `Manually created agent: ${firstName} ${lastName}`,
@@ -283,11 +324,13 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (activityError) {
-      console.error("Activity logging error:", activityError);
+      console.error("Activity logging error:", activityError.message);
       // Don't fail the whole operation for logging errors
+    } else {
+      console.log("Activity logged successfully");
     }
 
-    console.log("Agent created successfully!");
+    console.log("Agent creation completed successfully!");
 
     return new Response(
       JSON.stringify({ 
@@ -306,17 +349,16 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("=== ERROR in create-manual-agent function ===");
+    console.error("=== CRITICAL ERROR in create-manual-agent function ===");
     console.error("Error type:", typeof error);
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
-    console.error("Full error object:", error);
     
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || "An unexpected error occurred",
-        details: "Check function logs for more information"
+        error: error.message || "An unexpected server error occurred",
+        details: "Please check the function logs for detailed error information"
       }),
       {
         status: 500,

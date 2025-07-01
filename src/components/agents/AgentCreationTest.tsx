@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth";
-import { AlertCircle, CheckCircle2, TestTube } from "lucide-react";
+import { AlertCircle, CheckCircle2, TestTube, Bug } from "lucide-react";
 
 export const AgentCreationTest = () => {
   const [isTestingAuth, setIsTestingAuth] = useState(false);
   const [isTestingFunction, setIsTestingFunction] = useState(false);
   const [authResult, setAuthResult] = useState<string | null>(null);
   const [functionResult, setFunctionResult] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const testAuthentication = async () => {
@@ -49,6 +50,7 @@ export const AgentCreationTest = () => {
   const testFunctionCall = async () => {
     setIsTestingFunction(true);
     setFunctionResult(null);
+    setDetailedError(null);
     
     try {
       if (!user) {
@@ -74,11 +76,18 @@ export const AgentCreationTest = () => {
       console.log('Function response:', { response, error });
 
       if (error) {
+        setDetailedError(`Function invocation error: ${JSON.stringify(error, null, 2)}`);
         throw new Error(`Function error: ${error.message}`);
       }
 
-      if (!response?.success) {
-        throw new Error(`Function failed: ${response?.error || 'Unknown error'}`);
+      if (!response) {
+        setDetailedError('No response received from function');
+        throw new Error('No response received from function');
+      }
+
+      if (!response.success) {
+        setDetailedError(`Function returned error: ${JSON.stringify(response, null, 2)}`);
+        throw new Error(`Function failed: ${response.error || 'Unknown error'}`);
       }
 
       setFunctionResult(`✅ Function test successful! Agent created: ${response.data?.email} (ID: ${response.data?.agent_id})`);
@@ -144,11 +153,24 @@ export const AgentCreationTest = () => {
           )}
         </div>
 
+        {detailedError && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <Bug className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <div className="font-semibold mb-2">Detailed Error Information:</div>
+              <pre className="text-xs bg-yellow-100 p-2 rounded overflow-auto max-h-40">
+                {detailedError}
+              </pre>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="text-sm text-gray-600 space-y-1">
           <p><strong>Test Instructions:</strong></p>
           <p>1. First test authentication to verify you have coordinator permissions</p>
           <p>2. Then test the function call to verify the agent creation process works</p>
           <p>3. Check the console logs for detailed debugging information</p>
+          <p>4. If errors occur, the detailed error information will be shown above</p>
         </div>
       </CardContent>
     </Card>
