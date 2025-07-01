@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,21 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QuickActionsMenu } from "./QuickActionsMenu";
+import { Database } from "@/integrations/supabase/types";
 
-interface Agent {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number?: string;
-  brokerage?: string;
-  invitation_status: string;
-  setup_method: string;
-  admin_activated: boolean;
-  manual_setup: boolean;
-  onboarding_method: string;
-  created_at: string;
-  invited_at?: string;
+type Profile = Database['public']['Tables']['profiles']['Row'];
+
+interface Agent extends Profile {
+  // Additional computed fields if needed
 }
 
 interface EnhancedAgentsListProps {
@@ -68,7 +60,7 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
 
   const { data: agents, isLoading, error } = useQuery({
     queryKey: ['enhanced-agents', refreshTrigger, searchTerm, statusFilter, setupMethodFilter],
-    queryFn: async () => {
+    queryFn: async (): Promise<Agent[]> => {
       let query = supabase
         .from('profiles')
         .select(`
@@ -124,7 +116,7 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
       queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] });
       clearSelection();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Bulk Update Failed",
@@ -150,7 +142,7 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
         description: "Link copied to clipboard. Valid for 24 hours.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Failed to Generate Link",
@@ -176,7 +168,7 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
     }
   };
 
-  const getSetupMethodBadge = (method: string) => {
+  const getSetupMethodBadge = (method: string | null) => {
     switch (method) {
       case 'manual_creation':
         return <Badge variant="outline" className="bg-purple-50 text-purple-700">Manual</Badge>;
@@ -337,7 +329,7 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
                     <QuickActionsMenu
                       agentId={agent.id}
                       agentName={`${agent.first_name} ${agent.last_name}`}
-                      currentStatus={agent.invitation_status}
+                      currentStatus={agent.invitation_status || 'pending'}
                       onRefresh={() => queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] })}
                     />
                   </div>

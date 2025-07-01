@@ -10,7 +10,7 @@ type Transaction = Database['public']['Tables']['transactions']['Row'] & {
   clients: Database['public']['Tables']['clients']['Row'][];
 };
 
-interface TransactionFilters {
+interface TransactionFilters extends Record<string, unknown> {
   status?: string;
   serviceTier?: string;
   search?: string;
