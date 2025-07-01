@@ -1,3 +1,4 @@
+
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getTestDb } from '@/test/integration-setup'
 import { seedTestData } from '@/test/db/sqlite-setup'
@@ -27,54 +28,79 @@ describe('SQLite Performance Integration Tests', () => {
 
   describe('Database Operations Performance', () => {
     it('tests foreign key relationships and data integrity', async () => {
-      const { db, insertProfile, insertTransaction, insertTask, insertClient } = getTestDb()
+      const { db } = getTestDb()
+
+      // Create prepared statements for inserts
+      const insertProfile = db.prepare(`
+        INSERT INTO profiles (id, first_name, last_name, email, role)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+
+      const insertTransaction = db.prepare(`
+        INSERT INTO transactions (id, agent_id, property_address, city, state, zip_code, purchase_price, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+
+      const insertTask = db.prepare(`
+        INSERT INTO tasks (id, transaction_id, title, description, due_date, priority, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
+
+      const insertClient = db.prepare(`
+        INSERT INTO clients (id, transaction_id, full_name, email, phone, type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
 
       // Insert test data with proper relationships
-      const profileId = insertProfile.run({
-        id: crypto.randomUUID(),
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '555-0123',
-        role: 'agent'
-      }).lastInsertRowid as number
+      const profileId = crypto.randomUUID()
+      insertProfile.run(profileId, 'John', 'Doe', 'john.doe@example.com', 'agent')
 
-      const transactionId = insertTransaction.run({
-        id: crypto.randomUUID(),
-        property_address: '123 Test St',
-        purchase_price: 500000,
-        status: 'active',
-        agent_id: profileId,
-        created_at: new Date().toISOString()
-      }).lastInsertRowid as number
+      const transactionId = crypto.randomUUID()
+      insertTransaction.run(
+        transactionId, 
+        profileId, 
+        '123 Test St', 
+        'Norfolk', 
+        'VA', 
+        '23510', 
+        500000, 
+        'active', 
+        new Date().toISOString()
+      )
 
-      const taskId = insertTask.run({
-        id: crypto.randomUUID(),
-        transaction_id: transactionId,
-        subject: 'Test Task',
-        description: 'Test Description',
-        due_date: new Date().toISOString(),
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }).lastInsertRowid as number
+      const taskId = crypto.randomUUID()
+      insertTask.run(
+        taskId,
+        transactionId,
+        'Test Task',
+        'Test Description',
+        new Date().toISOString(),
+        'medium',
+        new Date().toISOString()
+      )
 
-      const clientId = insertClient.run({
-        id: crypto.randomUUID(),
-        transaction_id: transactionId,
-        full_name: 'Jane Smith',
-        email: 'jane.smith@example.com',
-        phone: '555-0124',
-        type: 'buyer',
-        created_at: new Date().toISOString()
-      }).lastInsertRowid as number
+      const clientId = crypto.randomUUID()
+      insertClient.run(
+        clientId,
+        transactionId,
+        'Jane Smith',
+        'jane.smith@example.com',
+        '555-0124',
+        'buyer',
+        new Date().toISOString()
+      )
 
       // Test data integrity with JOIN query
       const integrityCheck = db.prepare(`
         SELECT 
           p.id as profile_id,
+          p.first_name,
           t.id as transaction_id,
+          t.property_address,
           ta.id as task_id,
-          c.id as client_id
+          ta.title as task_title,
+          c.id as client_id,
+          c.full_name as client_name
         FROM profiles p
         JOIN transactions t ON p.id = t.agent_id
         JOIN tasks ta ON t.id = ta.transaction_id
