@@ -183,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Password generated/received");
 
-    // Check if user already exists
+    // Check if user already exists in auth.users
     console.log("Checking if user already exists...");
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
@@ -207,6 +207,18 @@ const handler = async (req: Request): Promise<Response> => {
     if (existingUser) {
       console.log("User already exists:", existingUser.id);
       newUserId = existingUser.id;
+      
+      // Update existing user's password
+      console.log("Updating existing user password...");
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        { password: tempPassword }
+      );
+      
+      if (updateError) {
+        console.error("Failed to update user password:", updateError.message);
+        // Continue anyway, don't fail the whole operation
+      }
     } else {
       console.log("Creating new auth user...");
       
@@ -260,7 +272,8 @@ const handler = async (req: Request): Promise<Response> => {
         onboarding_method: 'assisted_setup',
         invitation_status: 'completed',
         invited_by: user.id,
-        invited_at: new Date().toISOString()
+        invited_at: new Date().toISOString(),
+        onboarding_completed_at: new Date().toISOString()
       }, {
         onConflict: 'id'
       })
