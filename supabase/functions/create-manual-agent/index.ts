@@ -20,10 +20,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing environment variables:", { 
-        supabaseUrl: !!supabaseUrl, 
-        supabaseServiceKey: !!supabaseServiceKey 
-      });
+      console.error("Missing environment variables");
       throw new Error("Missing required environment variables");
     }
 
@@ -159,15 +156,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generated password:", tempPassword ? "Yes" : "No");
 
-    // Check if user already exists in auth.users
+    // Check if user already exists by trying to get user by email
     console.log("Checking if user already exists...");
-    const { data: existingUser, error: userCheckError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
+    let existingUser = null;
+    if (!listError && existingUsers?.users) {
+      existingUser = existingUsers.users.find(u => u.email === email);
+    }
+
     let newUserId: string;
 
-    if (existingUser?.user) {
-      console.log("User already exists:", existingUser.user.id);
-      newUserId = existingUser.user.id;
+    if (existingUser) {
+      console.log("User already exists:", existingUser.id);
+      newUserId = existingUser.id;
     } else {
       console.log("Creating new auth user...");
       
@@ -259,16 +261,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (invitationError) {
       console.error("Invitation creation error:", invitationError);
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: `Failed to create invitation record: ${invitationError.message}`
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+      // Don't fail the whole operation for invitation record creation
     }
 
     // Log the activity
@@ -291,7 +284,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (activityError) {
       console.error("Activity logging error:", activityError);
-      // Don't fail the whole operation for logging errors, just log it
+      // Don't fail the whole operation for logging errors
     }
 
     console.log("Agent created successfully!");
@@ -319,24 +312,14 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error stack:", error.stack);
     console.error("Full error object:", error);
     
-    // Determine appropriate status code
-    let statusCode = 500;
-    if (error.message.includes("Access denied") || error.message.includes("Unauthorized")) {
-      statusCode = 403;
-    } else if (error.message.includes("required") || error.message.includes("valid email")) {
-      statusCode = 400;
-    } else if (error.message.includes("Invalid authentication")) {
-      statusCode = 401;
-    }
-    
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message,
+        error: error.message || "An unexpected error occurred",
         details: "Check function logs for more information"
       }),
       {
-        status: statusCode,
+        status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
