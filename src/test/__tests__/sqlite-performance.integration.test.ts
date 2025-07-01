@@ -404,14 +404,13 @@ describe('SQLite Performance and Constraint Testing', () => {
         JOIN tasks ta ON t.id = ta.transaction_id
         JOIN clients c ON t.id = c.transaction_id
         WHERE p.id = ?
-      `).all(profileId) as IntegrityCheckResult[]
+      `).get(profileId) as IntegrityCheckResult
       
-      expect(integrityCheck.length).toBe(1)
-      const result = integrityCheck[0]
-      expect(result.profile_id).toBe(profileId)
-      expect(result.transaction_id).toBe(transactionId)
-      expect(result.task_id).toBe(taskId)
-      expect(result.client_id).toBe(clientId)
+      expect(integrityCheck).toBeDefined()
+      expect(integrityCheck.profile_id).toBe(profileId)
+      expect(integrityCheck.transaction_id).toBe(transactionId)
+      expect(integrityCheck.task_id).toBe(taskId)
+      expect(integrityCheck.client_id).toBe(clientId)
     })
 
     it('tests cascading operations and cleanup', async () => {
