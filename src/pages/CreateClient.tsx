@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const CreateClient = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const CreateClient = () => {
   });
 
   // Fetch transactions for linking
-  const { data: transactions } = useQuery({
+  const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,16 +81,16 @@ const CreateClient = () => {
         throw new Error('User not authenticated');
       }
 
-      // First create in contacts table (for CRM functionality)
+      // Create contact in contacts table (for CRM functionality)
       const contactData = {
         full_name: `${clientData.first_name} ${clientData.last_name}`.trim(),
-        email: clientData.email,
-        phone: clientData.phone,
-        company: clientData.company,
-        category: clientData.category,
+        email: clientData.email || null,
+        phone: clientData.phone || null,
+        company: clientData.company || null,
+        category: clientData.category || null,
         rating: clientData.rating,
         auto_prospect: clientData.auto_prospect,
-        user_id: currentUser.id // Add the required user_id field
+        user_id: currentUser.id
       };
 
       const { data: contact, error: contactError } = await supabase
@@ -100,42 +101,44 @@ const CreateClient = () => {
       
       if (contactError) throw contactError;
 
-      // Then create in clients table (for transaction linking)
-      const clientPayload = {
-        full_name: `${clientData.first_name} ${clientData.last_name}`.trim(),
-        email: clientData.email,
-        phone: clientData.phone,
-        address: clientData.home_address_line1,
-        type: clientData.type,
-        preferred_contact_method: clientData.preferred_contact_method,
-        referral_source: clientData.referral_source,
-        notes: clientData.notes,
-        transaction_id: clientData.transaction_id
-      };
+      // Only create client record if transaction is selected
+      if (clientData.transaction_id) {
+        const clientPayload = {
+          full_name: `${clientData.first_name} ${clientData.last_name}`.trim(),
+          email: clientData.email || null,
+          phone: clientData.phone || null,
+          address: clientData.home_address_line1 || null,
+          type: clientData.type,
+          preferred_contact_method: clientData.preferred_contact_method,
+          referral_source: clientData.referral_source || null,
+          notes: clientData.notes || null,
+          transaction_id: clientData.transaction_id
+        };
 
-      const { error: clientError } = await supabase
-        .from('clients')
-        .insert(clientPayload);
-      
-      if (clientError) throw clientError;
+        const { error: clientError } = await supabase
+          .from('clients')
+          .insert(clientPayload);
+        
+        if (clientError) throw clientError;
+      }
       
       return contact;
     },
     onSuccess: () => {
-      toast.success('Client created successfully');
+      toast.success('Contact created successfully');
       navigate('/clients');
     },
-    onError: (error) => {
-      console.error('Error creating client:', error);
-      toast.error('Failed to create client');
+    onError: (error: any) => {
+      console.error('Error creating contact:', error);
+      toast.error(`Failed to create contact: ${error.message}`);
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.first_name || !formData.last_name || !formData.transaction_id) {
-      toast.error('Please fill in all required fields (Name and Transaction)');
+    if (!formData.first_name || !formData.last_name) {
+      toast.error('Please fill in the required fields (First Name and Last Name)');
       return;
     }
 
@@ -145,6 +148,8 @@ const CreateClient = () => {
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const noTransactionsAvailable = !transactionsLoading && (!transactions || transactions.length === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
@@ -174,6 +179,15 @@ const CreateClient = () => {
           </div>
         </div>
 
+        {noTransactionsAvailable && (
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No transactions found. You can still create a contact, but you won't be able to link it to a transaction until you create one.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
@@ -199,7 +213,7 @@ const CreateClient = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="first_name">First *</Label>
+                      <Label htmlFor="first_name">First Name *</Label>
                       <Input
                         id="first_name"
                         value={formData.first_name}
@@ -209,7 +223,7 @@ const CreateClient = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="middle_name">Middle</Label>
+                      <Label htmlFor="middle_name">Middle Name</Label>
                       <Input
                         id="middle_name"
                         value={formData.middle_name}
@@ -218,7 +232,7 @@ const CreateClient = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="last_name">Last *</Label>
+                      <Label htmlFor="last_name">Last Name *</Label>
                       <Input
                         id="last_name"
                         value={formData.last_name}
@@ -328,7 +342,7 @@ const CreateClient = () => {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="type">Client Type *</Label>
+                      <Label htmlFor="type">Client Type</Label>
                       <Select 
                         value={formData.type} 
                         onValueChange={(value) => handleInputChange('type', value)}
@@ -348,12 +362,12 @@ const CreateClient = () => {
                 {/* Mailing Addresses Section */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    🏠 Mailing Addresses
+                    🏠 Mailing Addresses (Optional)
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label className="text-sm font-medium mb-2 block">Home Address (Mailing)</Label>
+                      <Label className="text-sm font-medium mb-2 block">Home Address</Label>
                       <div className="space-y-3">
                         <Input
                           value={formData.home_address_line1}
@@ -385,21 +399,26 @@ const CreateClient = () => {
                   </div>
                 </div>
 
-                {/* Transaction & Preferences */}
+                {/* Transaction Link Section */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    🏢 Transaction & Preferences
+                    🏢 Transaction Link (Optional)
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="transaction_id">Associated Transaction *</Label>
+                      <Label htmlFor="transaction_id">Associated Transaction</Label>
                       <Select 
                         value={formData.transaction_id} 
                         onValueChange={(value) => handleInputChange('transaction_id', value)}
+                        disabled={noTransactionsAvailable}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a transaction" />
+                          <SelectValue placeholder={
+                            noTransactionsAvailable 
+                              ? "No transactions available" 
+                              : "Select a transaction (optional)"
+                          } />
                         </SelectTrigger>
                         <SelectContent>
                           {transactions?.map((transaction) => (
@@ -409,6 +428,11 @@ const CreateClient = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {noTransactionsAvailable && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Create a transaction first to link it to this contact
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="preferred_contact_method">Preferred Contact Method</Label>
@@ -446,7 +470,7 @@ const CreateClient = () => {
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder="Any additional notes about the client..."
+                    placeholder="Any additional notes about the contact..."
                     rows={4}
                   />
                 </div>
@@ -465,7 +489,7 @@ const CreateClient = () => {
                     disabled={createClientMutation.isPending}
                     className="bg-primary hover:bg-primary/90"
                   >
-                    {createClientMutation.isPending ? 'Saving...' : 'Save'}
+                    {createClientMutation.isPending ? 'Creating...' : 'Create Contact'}
                   </Button>
                 </div>
               </form>
