@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_lockouts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          locked_at: string
+          locked_by: string
+          metadata: Json | null
+          reason: string | null
+          unlock_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locked_at?: string
+          locked_by: string
+          metadata?: Json | null
+          reason?: string | null
+          unlock_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locked_at?: string
+          locked_by?: string
+          metadata?: Json | null
+          reason?: string | null
+          unlock_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action: string
@@ -199,6 +235,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_profile_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       agent_vendors: {
         Row: {
@@ -488,6 +557,54 @@ export type Database = {
           },
         ]
       }
+      communication_history: {
+        Row: {
+          clicked_at: string | null
+          communication_type: string
+          content: string
+          delivered_at: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_id: string
+          sent_at: string
+          status: string
+          subject: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          communication_type: string
+          content: string
+          delivered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_id: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          communication_type?: string
+          content?: string
+          delivered_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       communication_logs: {
         Row: {
           communication_type: string
@@ -578,6 +695,39 @@ export type Database = {
           preferred_method?: string
           preferred_time?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_settings: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          notification_types: Json
+          sms_enabled: boolean
+          template_preferences: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          notification_types?: Json
+          sms_enabled?: boolean
+          template_preferences?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          notification_types?: Json
+          sms_enabled?: boolean
+          template_preferences?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -828,6 +978,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      enhanced_activity_logs: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          description: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          target_user_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          category?: string
+          created_at?: string
+          description: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          description?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      enhanced_email_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          template_type: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          template_type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
       }
       imported_email_templates: {
         Row: {
@@ -1389,6 +1629,39 @@ export type Database = {
           },
         ]
       }
+      temporary_passwords: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          password_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          password_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          password_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transaction_service_details: {
         Row: {
           add_ons: Json | null
@@ -1809,6 +2082,14 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      is_account_locked: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      lock_user_account: {
+        Args: { p_user_id: string; p_reason?: string }
+        Returns: boolean
+      }
       set_limit: {
         Args: { "": number }
         Returns: number
@@ -1820,6 +2101,10 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      unlock_user_account: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

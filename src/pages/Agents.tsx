@@ -3,7 +3,11 @@ import { useState } from "react";
 import { EnhancedCreateAgentDialog } from "@/components/agents/EnhancedCreateAgentDialog";
 import { EnhancedAgentsList } from "@/components/agents/EnhancedAgentsList";
 import { AgentOnboardingManager } from "@/components/agents/AgentOnboardingManager";
-import { Users, Settings, UserPlus, Download, BarChart3 } from "lucide-react";
+import { EmailTemplateManager } from "@/components/agents/EmailTemplateManager";
+import { AgentProfileTemplateManager } from "@/components/agents/AgentProfileTemplateManager";
+import { CommunicationSettingsPanel } from "@/components/agents/CommunicationSettingsPanel";
+import { RealTimeAgentUpdates } from "@/components/agents/RealTimeAgentUpdates";
+import { Users, Settings, UserPlus, Download, BarChart3, Mail, Template, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,7 +61,7 @@ const Agents = () => {
                 Enhanced Agent Management
               </h1>
               <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Create, manage, and onboard agent accounts with flexible setup options
+                Complete agent lifecycle management with advanced controls
               </p>
             </div>
           </div>
@@ -127,9 +131,13 @@ const Agents = () => {
       </div>
 
       <Tabs defaultValue="list" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="list">Agent List</TabsTrigger>
-          <TabsTrigger value="management">Onboarding Management</TabsTrigger>
+          <TabsTrigger value="management">Onboarding</TabsTrigger>
+          <TabsTrigger value="templates">Profile Templates</TabsTrigger>
+          <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
+          <TabsTrigger value="communication">Communication</TabsTrigger>
+          <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
@@ -143,6 +151,22 @@ const Agents = () => {
               onRefresh={handleAgentCreated} 
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <AgentProfileTemplateManager />
+        </TabsContent>
+
+        <TabsContent value="email-templates">
+          <EmailTemplateManager />
+        </TabsContent>
+
+        <TabsContent value="communication">
+          <CommunicationSettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <RealTimeAgentUpdates />
         </TabsContent>
       </Tabs>
     </div>
