@@ -2062,26 +2062,6 @@ export type Database = {
         Args: { user_id?: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
       is_account_locked: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -2089,18 +2069,6 @@ export type Database = {
       lock_user_account: {
         Args: { p_user_id: string; p_reason?: string }
         Returns: boolean
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
       }
       unlock_user_account: {
         Args: { p_user_id: string }
