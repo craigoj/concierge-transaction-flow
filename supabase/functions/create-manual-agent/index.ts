@@ -38,7 +38,16 @@ const handler = async (req: Request): Promise<Response> => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       console.error("No authorization header provided");
-      throw new Error("Authorization header required");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Authorization header required"
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
@@ -48,7 +57,16 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (authError || !user) {
       console.error("Authentication failed:", authError);
-      throw new Error("Invalid authentication - please log in again");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid authentication - please log in again"
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Authenticated user:", user.email, "User ID:", user.id);
@@ -63,14 +81,32 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (profileError) {
       console.error("Profile lookup error:", profileError);
-      throw new Error("Failed to verify user permissions");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Failed to verify user permissions"
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("User profile found:", coordinatorProfile);
 
     if (coordinatorProfile?.role !== "coordinator") {
       console.error("User role:", coordinatorProfile?.role);
-      throw new Error("Access denied: Only coordinators can create agents");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Access denied: Only coordinators can create agents"
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     const requestBody = await req.json();
@@ -87,16 +123,34 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate required fields
     if (!email || !firstName || !lastName) {
-      throw new Error("Email, first name, and last name are required");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Email, first name, and last name are required"
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new Error("Please enter a valid email address");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Please enter a valid email address"
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    console.log("Creating agent manually using direct database operations...");
+    console.log("Creating agent manually...");
 
     // Generate temporary password if none provided
     const tempPassword = password || Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 
@@ -133,7 +187,16 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (createUserError || !newUser.user) {
         console.error("Failed to create auth user:", createUserError);
-        throw new Error(`Failed to create user account: ${createUserError?.message}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `Failed to create user account: ${createUserError?.message}`
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
 
       newUserId = newUser.user.id;
@@ -165,7 +228,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (profileInsertError) {
       console.error("Profile creation error:", profileInsertError);
-      throw new Error(`Failed to create profile: ${profileInsertError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Failed to create profile: ${profileInsertError.message}`
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Profile created/updated:", profile);
@@ -187,7 +259,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (invitationError) {
       console.error("Invitation creation error:", invitationError);
-      throw new Error(`Failed to create invitation record: ${invitationError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Failed to create invitation record: ${invitationError.message}`
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Log the activity
