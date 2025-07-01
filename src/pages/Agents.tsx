@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { EnhancedCreateAgentDialog } from "@/components/agents/EnhancedCreateAgentDialog";
 import { EnhancedAgentsList } from "@/components/agents/EnhancedAgentsList";
@@ -6,7 +7,8 @@ import { EmailTemplateManager } from "@/components/agents/EmailTemplateManager";
 import { AgentProfileTemplateManager } from "@/components/agents/AgentProfileTemplateManager";
 import { CommunicationSettingsPanel } from "@/components/agents/CommunicationSettingsPanel";
 import { RealTimeAgentUpdates } from "@/components/agents/RealTimeAgentUpdates";
-import { Users, Settings, UserPlus, Download, BarChart3, Mail, FileText, MessageSquare } from "lucide-react";
+import { AgentCreationTest } from "@/components/agents/AgentCreationTest";
+import { Users, Settings, UserPlus, Download, BarChart3, Mail, FileText, MessageSquare, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -134,7 +136,7 @@ const Agents = () => {
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="list">Agent List</TabsTrigger>
           <TabsTrigger value="management">Onboarding</TabsTrigger>
@@ -142,6 +144,10 @@ const Agents = () => {
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="communication">Communication</TabsTrigger>
           <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
+          <TabsTrigger value="testing">
+            <TestTube className="h-4 w-4 mr-1" />
+            Testing
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -191,6 +197,18 @@ const Agents = () => {
 
         <TabsContent value="activity">
           <RealTimeAgentUpdates />
+        </TabsContent>
+
+        <TabsContent value="testing">
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2">Agent Creation System Testing</h2>
+              <p className="text-gray-600 mb-6">
+                Use this panel to test and debug the agent creation functionality
+              </p>
+            </div>
+            <AgentCreationTest />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

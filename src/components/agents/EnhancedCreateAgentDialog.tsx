@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,6 +49,8 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
   const [showPassword, setShowPassword] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<CreateAgentForm>({
@@ -84,6 +88,11 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
   const watchSendEmail = form.watch("sendEmail");
   const watchSetupMethod = form.watch("setupMethod");
 
+  const clearMessages = () => {
+    setError(null);
+    setSuccess(null);
+  };
+
   const applyTemplate = (templateId: string) => {
     const template = templates?.find(t => t.id === templateId);
     if (!template) return;
@@ -106,19 +115,31 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
   };
 
   const generatePassword = () => {
-    const password = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
     form.setValue("password", password);
     setGeneratedPassword(password);
     setShowPassword(true);
   };
 
   const onSubmit = async (data: CreateAgentForm) => {
+    clearMessages();
     setIsLoading(true);
+    
     try {
-      console.log('Submitting agent creation:', data);
+      console.log('Starting agent creation process...');
+      console.log('Form data:', {
+        ...data,
+        password: data.password ? '[REDACTED]' : null
+      });
 
       if (data.setupMethod === "manual_creation") {
-        // Use the new edge function for manual creation
+        console.log('Using manual creation method...');
+        
+        // Use the enhanced edge function for manual creation
         const { data: response, error } = await supabase.functions.invoke('create-manual-agent', {
           body: {
             email: data.email,
@@ -142,12 +163,25 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
           throw new Error(response?.error || "Failed to create agent");
         }
 
+        setSuccess(`Agent ${data.firstName} ${data.lastName} has been created and activated successfully!`);
+        
         toast({
           title: "Agent Created Successfully",
           description: `${data.firstName} ${data.lastName} has been created and activated.`,
         });
 
+        // Show password if generated
+        if (response.data?.temporary_password) {
+          setGeneratedPassword(response.data.temporary_password);
+          toast({
+            title: "Temporary Password Generated",
+            description: "Please share the temporary password with the agent securely.",
+          });
+        }
+
       } else {
+        console.log('Using email invitation method...');
+        
         // Use existing email invitation method
         const { data: response, error } = await supabase.functions.invoke('create-agent-invitation', {
           body: {
@@ -169,21 +203,40 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
           ? `Invitation email sent to ${data.email}` 
           : `Agent account created for ${data.email}. No email was sent.`;
 
+        setSuccess(message);
+        
         toast({
           title: "Agent Invitation Created",
           description: message,
         });
       }
 
-      form.reset();
-      setOpen(false);
-      onAgentCreated();
+      // Reset form and close dialog after successful creation
+      setTimeout(() => {
+        form.reset();
+        setOpen(false);
+        setSuccess(null);
+        setGeneratedPassword(null);
+        onAgentCreated();
+      }, 3000);
+      
     } catch (error: any) {
       console.error("Error creating agent:", error);
+      
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setError(errorMessage);
+      
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to create agent",
+        title: "Error Creating Agent",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -207,6 +260,27 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
             Create a new agent account with the selected setup method.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Success Message */}
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              {success}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Template Selection */}
           {templates && templates.length > 0 && (
@@ -248,6 +322,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                 {...form.register("firstName")}
                 className="border-brand-taupe/30 focus:border-brand-charcoal"
                 disabled={isLoading}
+                onChange={(e) => {
+                  form.setValue("firstName", e.target.value);
+                  clearMessages();
+                }}
               />
               {form.formState.errors.firstName && (
                 <p className="text-sm text-red-500">{form.formState.errors.firstName.message}</p>
@@ -262,6 +340,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                 {...form.register("lastName")}
                 className="border-brand-taupe/30 focus:border-brand-charcoal"
                 disabled={isLoading}
+                onChange={(e) => {
+                  form.setValue("lastName", e.target.value);
+                  clearMessages();
+                }}
               />
               {form.formState.errors.lastName && (
                 <p className="text-sm text-red-500">{form.formState.errors.lastName.message}</p>
@@ -279,6 +361,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
               {...form.register("email")}
               className="border-brand-taupe/30 focus:border-brand-charcoal"
               disabled={isLoading}
+              onChange={(e) => {
+                form.setValue("email", e.target.value);
+                clearMessages();
+              }}
             />
             {form.formState.errors.email && (
               <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
@@ -295,6 +381,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                 {...form.register("phoneNumber")}
                 className="border-brand-taupe/30 focus:border-brand-charcoal"
                 disabled={isLoading}
+                onChange={(e) => {
+                  form.setValue("phoneNumber", e.target.value);
+                  clearMessages();
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -306,6 +396,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                 {...form.register("brokerage")}
                 className="border-brand-taupe/30 focus:border-brand-charcoal"
                 disabled={isLoading}
+                onChange={(e) => {
+                  form.setValue("brokerage", e.target.value);
+                  clearMessages();
+                }}
               />
             </div>
           </div>
@@ -315,7 +409,11 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
             <Label className="text-base font-medium text-brand-charcoal">Setup Method</Label>
             <Select 
               value={watchSetupMethod}
-              onValueChange={(value) => form.setValue("setupMethod", value as any)}
+              onValueChange={(value) => {
+                form.setValue("setupMethod", value as any);
+                clearMessages();
+              }}
+              disabled={isLoading}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -334,6 +432,7 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                     id="sendEmail"
                     checked={watchSendEmail}
                     onCheckedChange={(checked) => form.setValue("sendEmail", checked)}
+                    disabled={isLoading}
                   />
                   <Label htmlFor="sendEmail">Send invitation email</Label>
                 </div>
@@ -344,6 +443,7 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                       id="skipEmailVerification"
                       checked={form.watch("skipEmailVerification")}
                       onCheckedChange={(checked) => form.setValue("skipEmailVerification", checked)}
+                      disabled={isLoading}
                     />
                     <Label htmlFor="skipEmailVerification">Skip email verification</Label>
                   </div>
@@ -385,10 +485,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
                     </Button>
                   </div>
                   {generatedPassword && (
-                    <div className="p-2 bg-green-50 border border-green-200 rounded text-sm">
+                    <div className="p-3 bg-green-50 border border-green-200 rounded text-sm">
                       <strong>Generated Password:</strong> {generatedPassword}
                       <br />
-                      <em>Make sure to share this with the agent securely.</em>
+                      <em className="text-green-700">Make sure to share this with the agent securely.</em>
                     </div>
                   )}
                 </div>
@@ -415,7 +515,11 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setError(null);
+                setSuccess(null);
+              }}
               disabled={isLoading}
               className="border-brand-taupe/30 text-brand-charcoal hover:bg-brand-taupe/10"
             >
