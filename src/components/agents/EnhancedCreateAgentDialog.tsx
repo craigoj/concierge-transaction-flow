@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -35,15 +36,6 @@ const createAgentSchema = z.object({
 });
 
 type CreateAgentForm = z.infer<typeof createAgentSchema>;
-
-// Define the response type for the manual agent creation
-interface ManualAgentResponse {
-  success: boolean;
-  agent_id: string;
-  email: string;
-  temporary_password?: string;
-  message: string;
-}
 
 interface EnhancedCreateAgentDialogProps {
   onAgentCreated: () => void;
@@ -123,30 +115,38 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
   const onSubmit = async (data: CreateAgentForm) => {
     setIsLoading(true);
     try {
+      console.log('Submitting agent creation:', data);
+
       if (data.setupMethod === "manual_creation") {
-        // Use the new manual creation function
-        const { data: response, error } = await supabase.rpc('create_manual_agent', {
-          p_email: data.email,
-          p_first_name: data.firstName,
-          p_last_name: data.lastName,
-          p_phone: data.phoneNumber || null,
-          p_brokerage: data.brokerage || null,
-          p_password: data.password || null,
+        // Use the new edge function for manual creation
+        const { data: response, error } = await supabase.functions.invoke('create-manual-agent', {
+          body: {
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phoneNumber: data.phoneNumber || null,
+            brokerage: data.brokerage || null,
+            password: data.password || null,
+          },
         });
 
-        if (error) throw error;
+        console.log('Edge function response:', { response, error });
 
-        // Type assertion for the response - cast through unknown first
-        const typedResponse = response as unknown as ManualAgentResponse;
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error(error.message || "Failed to create agent");
+        }
+
+        if (!response?.success) {
+          console.error('Edge function returned failure:', response);
+          throw new Error(response?.error || "Failed to create agent");
+        }
 
         toast({
           title: "Agent Created Successfully",
-          description: `${data.firstName} ${data.lastName} has been created and activated. ${typedResponse.temporary_password ? `Temporary password: ${typedResponse.temporary_password}` : ''}`,
+          description: `${data.firstName} ${data.lastName} has been created and activated.`,
         });
 
-        if (typedResponse.temporary_password) {
-          setGeneratedPassword(typedResponse.temporary_password);
-        }
       } else {
         // Use existing email invitation method
         const { data: response, error } = await supabase.functions.invoke('create-agent-invitation', {
@@ -156,7 +156,10 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Invitation function error:', error);
+          throw error;
+        }
 
         if (!response?.success) {
           throw new Error(response?.error || "Failed to create agent invitation");
@@ -200,6 +203,9 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
           <DialogTitle className="text-xl font-brand-heading text-brand-charcoal">
             Create New Agent Account
           </DialogTitle>
+          <DialogDescription>
+            Create a new agent account with the selected setup method.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Template Selection */}
