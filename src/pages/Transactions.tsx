@@ -11,6 +11,14 @@ import CreateTransactionDialog from '@/components/transactions/CreateTransaction
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type Transaction = Database['public']['Tables']['transactions']['Row'] & {
+  clients: Database['public']['Tables']['clients']['Row'][];
+  tasks: Database['public']['Tables']['tasks']['Row'][];
+};
+
+type TransactionStatus = 'active' | 'intake' | 'closed';
 
 const Transactions = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -21,7 +29,7 @@ const Transactions = () => {
 
   const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['transactions'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Transaction[]> => {
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -39,18 +47,19 @@ const Transactions = () => {
         });
         throw error;
       }
-      return data;
+      return data as Transaction[];
     },
   });
 
   const filteredTransactions = transactions?.filter(transaction => {
+    const status = transaction.status as TransactionStatus;
     switch (activeTab) {
       case 'active':
-        return transaction.status === 'active';
+        return status === 'active';
       case 'pending':
-        return transaction.status === 'intake';
+        return status === 'intake';
       case 'completed':
-        return transaction.status === 'closed';
+        return status === 'closed';
       default:
         return true;
     }

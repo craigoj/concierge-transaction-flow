@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -28,6 +29,15 @@ type CreateAgentForm = z.infer<typeof createAgentSchema>;
 
 interface CreateAgentDialogProps {
   onAgentCreated: () => void;
+}
+
+interface AgentCreationResponse {
+  success: boolean;
+  error?: string;
+  agent_id?: string;
+  email?: string;
+  temporary_password?: string;
+  message?: string;
 }
 
 export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) => {
@@ -46,7 +56,7 @@ export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) =>
     },
   });
 
-  const onSubmit = async (data: CreateAgentForm) => {
+  const onSubmit: SubmitHandler<CreateAgentForm> = async (data) => {
     setIsLoading(true);
     try {
       console.log("Starting agent creation with data:", data);
@@ -62,9 +72,11 @@ export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) =>
         throw new Error(error.message || "Failed to create agent invitation");
       }
 
-      if (!response || !response.success) {
-        console.error("No success response:", response);
-        throw new Error(response?.error || "Failed to create agent invitation");
+      const typedResponse = response as AgentCreationResponse;
+
+      if (!typedResponse || !typedResponse.success) {
+        console.error("No success response:", typedResponse);
+        throw new Error(typedResponse?.error || "Failed to create agent invitation");
       }
 
       toast({
@@ -75,12 +87,13 @@ export const CreateAgentDialog = ({ onAgentCreated }: CreateAgentDialogProps) =>
       form.reset();
       setOpen(false);
       onAgentCreated();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating agent:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create agent invitation";
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create agent invitation",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

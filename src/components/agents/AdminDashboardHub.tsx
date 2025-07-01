@@ -14,11 +14,27 @@ import {
   AlertTriangle,
   Calendar
 } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type CommunicationHistory = Database['public']['Tables']['communication_history']['Row'];
+type AccountLockout = Database['public']['Tables']['account_lockouts']['Row'];
+
+interface DashboardStats {
+  totalAgents: number;
+  activeAgents: number;
+  pendingAgents: number;
+  lockedAgents: number;
+  thisWeekAgents: number;
+  communicationsThisWeek: number;
+  failedCommunications: number;
+  onboardingRate: number;
+}
 
 export const AdminDashboardHub = () => {
   const { data: dashboardStats, isLoading } = useQuery({
     queryKey: ['admin-dashboard-stats'],
-    queryFn: async () => {
+    queryFn: async (): Promise<DashboardStats> => {
       const { data: agents } = await supabase
         .from('profiles')
         .select('id, invitation_status, created_at, onboarding_completed_at')
@@ -78,7 +94,7 @@ export const AdminDashboardHub = () => {
     );
   }
 
-  const stats = dashboardStats || {
+  const stats: DashboardStats = dashboardStats || {
     totalAgents: 0,
     activeAgents: 0,
     pendingAgents: 0,

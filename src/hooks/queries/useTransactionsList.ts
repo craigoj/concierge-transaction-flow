@@ -2,14 +2,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { transactionKeys } from './useTransactionData';
+import { Database } from '@/integrations/supabase/types';
 
-type TransactionStatus = 'intake' | 'active' | 'closed' | 'cancelled';
-type ServiceTier = 'buyer_core' | 'buyer_elite' | 'white_glove_buyer' | 'listing_core' | 'listing_elite' | 'white_glove_listing';
+type TransactionStatus = Database['public']['Enums']['transaction_status'];
+type ServiceTier = Database['public']['Enums']['service_tier_type'];
+type Transaction = Database['public']['Tables']['transactions']['Row'] & {
+  clients: Database['public']['Tables']['clients']['Row'][];
+};
+
+interface TransactionFilters {
+  status?: string;
+  serviceTier?: string;
+  search?: string;
+}
 
 export const useAgentTransactions = () => {
   return useQuery({
     queryKey: ['agent-transactions'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Transaction[]> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -23,19 +33,15 @@ export const useAgentTransactions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Transaction[];
     },
   });
 };
 
-export const useTransactionsList = (filters?: {
-  status?: string;
-  serviceTier?: string;
-  search?: string;
-}) => {
+export const useTransactionsList = (filters?: TransactionFilters) => {
   return useQuery({
     queryKey: transactionKeys.list(filters),
-    queryFn: async () => {
+    queryFn: async (): Promise<Transaction[]> => {
       let query = supabase
         .from('transactions')
         .select(`
@@ -59,15 +65,16 @@ export const useTransactionsList = (filters?: {
 
       // Apply search filter client-side for simplicity
       if (filters?.search) {
-        return data?.filter(transaction => 
-          transaction.property_address?.toLowerCase().includes(filters.search!.toLowerCase()) ||
+        const searchTerm = filters.search.toLowerCase();
+        return (data as Transaction[])?.filter(transaction => 
+          transaction.property_address?.toLowerCase().includes(searchTerm) ||
           transaction.clients?.some(client => 
-            client.full_name?.toLowerCase().includes(filters.search!.toLowerCase())
+            client.full_name?.toLowerCase().includes(searchTerm)
           )
         ) || [];
       }
 
-      return data || [];
+      return (data as Transaction[]) || [];
     },
   });
 };

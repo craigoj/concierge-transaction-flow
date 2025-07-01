@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Building, Calendar, DollarSign, MapPin, Plus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { Database } from '@/integrations/supabase/types';
+
+type Transaction = Database['public']['Tables']['transactions']['Row'] & {
+  clients: Database['public']['Tables']['clients']['Row'][];
+};
+
+type TransactionStatus = Database['public']['Enums']['transaction_status'];
 
 const AgentTransactions = () => {
   const navigate = useNavigate();
@@ -17,7 +23,7 @@ const AgentTransactions = () => {
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['agent-transactions'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Transaction[]> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -31,7 +37,7 @@ const AgentTransactions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Transaction[];
     }
   });
 
@@ -42,7 +48,7 @@ const AgentTransactions = () => {
     )
   ) || [];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TransactionStatus) => {
     switch (status) {
       case 'active': return 'bg-blue-100 text-blue-800';
       case 'intake': return 'bg-yellow-100 text-yellow-800';

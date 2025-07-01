@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAutomationTriggers } from '@/hooks/useAutomationTriggers';
+import { Database } from '@/integrations/supabase/types';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
+type TaskPriority = 'low' | 'medium' | 'high';
+type FilterStatus = 'all' | 'pending' | 'completed';
+type FilterPriority = 'all' | 'high' | 'medium' | 'low';
 
 interface EnhancedTaskManagerProps {
   transactionId: string;
@@ -31,7 +38,7 @@ interface EnhancedTaskManagerProps {
 interface TaskForm {
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: TaskPriority;
   due_date: string;
   requires_agent_action: boolean;
   agent_action_prompt: string;
@@ -39,7 +46,7 @@ interface TaskForm {
 
 const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
   const [newTaskOpen, setNewTaskOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskForm, setTaskForm] = useState<TaskForm>({
     title: '',
     description: '',
@@ -48,8 +55,8 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
     requires_agent_action: false,
     agent_action_prompt: ''
   });
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
-  const [filterPriority, setFilterPriority] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterPriority, setFilterPriority] = useState<FilterPriority>('all');
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -58,7 +65,7 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['enhanced-tasks', transactionId, filterStatus, filterPriority],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from('tasks')
         .select('*')
         .eq('transaction_id', transactionId)
@@ -71,9 +78,8 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
       let filteredData = data || [];
       
       if (filterStatus !== 'all') {
-        filteredData = filteredData.filter(task => 
-          filterStatus === 'completed' ? task.is_completed : !task.is_completed
-        );
+        const isCompleted = filterStatus === 'completed';
+        filteredData = filteredData.filter(task => task.is_completed === isCompleted);
       }
       
       if (filterPriority !== 'all') {
@@ -174,12 +180,12 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
     }
   };
 
-  const startEdit = (task: any) => {
+  const startEdit = (task: Task) => {
     setEditingTask(task);
     setTaskForm({
       title: task.title,
       description: task.description || '',
-      priority: task.priority,
+      priority: task.priority as TaskPriority,
       due_date: task.due_date || '',
       requires_agent_action: task.requires_agent_action || false,
       agent_action_prompt: task.agent_action_prompt || ''
@@ -250,7 +256,7 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+              <Select value={filterStatus} onValueChange={(value: FilterStatus) => setFilterStatus(value)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -261,7 +267,7 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
                 </SelectContent>
               </Select>
               
-              <Select value={filterPriority} onValueChange={(value: any) => setFilterPriority(value)}>
+              <Select value={filterPriority} onValueChange={(value: FilterPriority) => setFilterPriority(value)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -309,7 +315,7 @@ const EnhancedTaskManager = ({ transactionId }: EnhancedTaskManagerProps) => {
                   <div className="grid grid-cols-2 gap-3">
                     <Select 
                       value={taskForm.priority} 
-                      onValueChange={(value: any) => setTaskForm(prev => ({ ...prev, priority: value }))}
+                      onValueChange={(value: TaskPriority) => setTaskForm(prev => ({ ...prev, priority: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
