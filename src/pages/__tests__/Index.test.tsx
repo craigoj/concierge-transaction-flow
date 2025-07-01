@@ -468,13 +468,15 @@ describe('Index Dashboard Component', () => {
       const menuButton = menuIcon.closest('button');
       expect(menuButton).toBeInTheDocument();
       
-      fireEvent.click(menuButton!);
+      if (menuButton) {
+        fireEvent.click(menuButton);
+      }
       // Should not crash
       expect(menuButton).toBeInTheDocument();
     });
 
     it('should handle unknown dashboard actions gracefully', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       renderComponent();
 
