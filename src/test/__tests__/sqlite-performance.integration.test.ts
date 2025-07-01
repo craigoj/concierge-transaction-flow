@@ -198,12 +198,12 @@ describe('SQLite Performance and Constraint Testing', () => {
       
       for (const indexTest of indexTests) {
         const start = performance.now()
-        const result = db.prepare(indexTest.query).all(...indexTest.params) as CountResult[]
+        const result = db.prepare(indexTest.query).get(...indexTest.params) as CountResult
         const time = performance.now() - start
         
         console.log(`${indexTest.name} query took ${time.toFixed(2)}ms`)
         expect(time).toBeLessThan(50) // Should be very fast with indexes
-        expect(result[0]).toHaveProperty('count')
+        expect(result).toHaveProperty('count')
       }
     })
 
