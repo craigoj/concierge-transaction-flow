@@ -110,51 +110,33 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("New user created:", newUserId);
     }
 
-    // Update or create profile using admin client
-    const { data: profileData, error: profileUpsertError } = await supabaseAdmin
-      .from('profiles')
-      .upsert({
-        id: newUserId,
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber || null,
-        brokerage: brokerage || null,
-        role: 'agent',
-        manual_setup: true,
-        setup_method: 'manual_creation',
-        admin_activated: true,
-        onboarding_method: 'assisted_setup',
-        invitation_status: 'completed',
-        invited_by: user.id,
-        invited_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
-      });
+    // Use the database function to create the agent instead of direct inserts
+    console.log("Calling create_manual_agent function with:", {
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      brokerage,
+      password,
+      createdBy: user.id
+    });
 
-    if (profileUpsertError) {
-      console.error("Profile upsert error:", profileUpsertError);
-      throw new Error(`Failed to create profile: ${profileUpsertError.message}`);
+    const { data: functionResult, error: functionError } = await supabaseAdmin.rpc('create_manual_agent', {
+      p_email: email,
+      p_first_name: firstName,
+      p_last_name: lastName,
+      p_phone: phoneNumber || null,
+      p_brokerage: brokerage || null,
+      p_password: password || null,
+      p_created_by: user.id
+    });
+
+    if (functionError) {
+      console.error("Database function error:", functionError);
+      throw new Error(`Failed to create agent: ${functionError.message}`);
     }
 
-    // Create invitation record using admin client
-    const { error: invitationError } = await supabaseAdmin
-      .from('agent_invitations')
-      .insert({
-        invited_by: user.id,
-        agent_id: newUserId,
-        email: email,
-        status: 'accepted',
-        creation_method: 'manual_creation',
-        invited_at: new Date().toISOString(),
-        accepted_at: new Date().toISOString(),
-        invitation_token: 'manual-' + newUserId
-      });
-
-    if (invitationError) {
-      console.error("Invitation creation error:", invitationError);
-      // Don't throw here as this is not critical
-    }
+    console.log("Database function result:", functionResult);
 
     console.log("Agent created successfully:", { newUserId, email });
 
