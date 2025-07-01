@@ -305,31 +305,6 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Invitation record created successfully");
     }
 
-    // Log the activity
-    console.log("Logging activity...");
-    const { error: activityError } = await supabaseAdmin
-      .from('enhanced_activity_logs')
-      .insert({
-        user_id: user.id,
-        target_user_id: newUserId,
-        action: 'manual_agent_creation',
-        category: 'agent_management',
-        description: `Manually created agent: ${firstName} ${lastName}`,
-        entity_type: 'profile',
-        entity_id: newUserId,
-        metadata: {
-          email: email,
-          setup_method: 'manual_creation'
-        }
-      });
-
-    if (activityError) {
-      console.error("Activity logging error:", activityError.message);
-      // Don't fail the whole operation for logging errors
-    } else {
-      console.log("Activity logged successfully");
-    }
-
     console.log("Agent creation completed successfully!");
 
     return new Response(
