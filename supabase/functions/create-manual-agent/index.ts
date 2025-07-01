@@ -96,59 +96,133 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Please enter a valid email address");
     }
 
-    console.log("Calling create_manual_agent database function...");
-    console.log("Parameters:", {
-      p_email: email,
-      p_first_name: firstName,
-      p_last_name: lastName,
-      p_phone: phoneNumber || null,
-      p_brokerage: brokerage || null,
-      p_password: password || null,
-      p_created_by: user.id
-    });
+    console.log("Creating agent manually using direct database operations...");
 
-    // Call the database function to create the agent
-    const { data: functionResult, error: functionError } = await supabaseAdmin.rpc('create_manual_agent', {
-      p_email: email,
-      p_first_name: firstName,
-      p_last_name: lastName,
-      p_phone: phoneNumber || null,
-      p_brokerage: brokerage || null,
-      p_password: password || null,
-      p_created_by: user.id
-    });
+    // Generate temporary password if none provided
+    const tempPassword = password || Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]
+    ).join('');
 
-    if (functionError) {
-      console.error("Database function error:", functionError);
-      console.error("Error details:", {
-        message: functionError.message,
-        details: functionError.details,
-        hint: functionError.hint,
-        code: functionError.code
+    console.log("Generated password:", tempPassword ? "Yes" : "No");
+
+    // Check if user already exists in auth.users
+    console.log("Checking if user already exists...");
+    const { data: existingUser, error: userCheckError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    
+    let newUserId: string;
+
+    if (existingUser?.user) {
+      console.log("User already exists:", existingUser.user.id);
+      newUserId = existingUser.user.id;
+    } else {
+      console.log("Creating new auth user...");
+      
+      // Create new user with admin privileges
+      const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: tempPassword,
+        email_confirm: true, // Auto-confirm email for manual creation
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phoneNumber,
+          brokerage: brokerage,
+          role: 'agent'
+        }
       });
-      throw new Error(`Database error: ${functionError.message}`);
+
+      if (createUserError || !newUser.user) {
+        console.error("Failed to create auth user:", createUserError);
+        throw new Error(`Failed to create user account: ${createUserError?.message}`);
+      }
+
+      newUserId = newUser.user.id;
+      console.log("New user created with ID:", newUserId);
     }
 
-    console.log("Database function result:", functionResult);
+    // Create or update profile
+    console.log("Creating/updating profile...");
+    const { data: profile, error: profileInsertError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: newUserId,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phoneNumber || null,
+        brokerage: brokerage || null,
+        role: 'agent',
+        manual_setup: true,
+        setup_method: 'manual_creation',
+        admin_activated: true,
+        onboarding_method: 'assisted_setup',
+        invitation_status: 'completed',
+        invited_by: user.id,
+        invited_at: new Date().toISOString()
+      })
+      .select()
+      .single();
 
-    if (!functionResult || !functionResult.success) {
-      console.error("Function returned failure:", functionResult);
-      throw new Error(functionResult?.message || "Failed to create agent");
+    if (profileInsertError) {
+      console.error("Profile creation error:", profileInsertError);
+      throw new Error(`Failed to create profile: ${profileInsertError.message}`);
     }
 
-    console.log("Agent created successfully:", {
-      agentId: functionResult.agent_id,
-      email: functionResult.email
-    });
+    console.log("Profile created/updated:", profile);
+
+    // Create invitation record
+    console.log("Creating invitation record...");
+    const { error: invitationError } = await supabaseAdmin
+      .from('agent_invitations')
+      .insert({
+        invited_by: user.id,
+        agent_id: newUserId,
+        email: email,
+        status: 'accepted',
+        creation_method: 'manual_creation',
+        invited_at: new Date().toISOString(),
+        accepted_at: new Date().toISOString(),
+        invitation_token: `manual-${newUserId}`
+      });
+
+    if (invitationError) {
+      console.error("Invitation creation error:", invitationError);
+      throw new Error(`Failed to create invitation record: ${invitationError.message}`);
+    }
+
+    // Log the activity
+    console.log("Logging activity...");
+    const { error: activityError } = await supabaseAdmin
+      .from('enhanced_activity_logs')
+      .insert({
+        user_id: user.id, // The coordinator creating the agent
+        target_user_id: newUserId, // The agent being created
+        action: 'manual_agent_creation',
+        category: 'agent_management',
+        description: `Manually created agent: ${firstName} ${lastName}`,
+        entity_type: 'profile',
+        entity_id: newUserId,
+        metadata: {
+          email: email,
+          setup_method: 'manual_creation'
+        }
+      });
+
+    if (activityError) {
+      console.error("Activity logging error:", activityError);
+      // Don't fail the whole operation for logging errors, just log it
+    }
+
+    console.log("Agent created successfully!");
 
     return new Response(
       JSON.stringify({ 
         success: true,
         data: {
-          agent_id: functionResult.agent_id,
-          email: functionResult.email,
-          temporary_password: functionResult.temporary_password,
-          message: functionResult.message
+          agent_id: newUserId,
+          email: email,
+          temporary_password: tempPassword,
+          message: 'Agent created manually and activated successfully'
         }
       }),
       {
