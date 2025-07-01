@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { EnhancedCreateAgentDialog } from "@/components/agents/EnhancedCreateAgentDialog";
 import { EnhancedAgentsList } from "@/components/agents/EnhancedAgentsList";
@@ -14,9 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminDashboardHub } from "@/components/agents/AdminDashboardHub";
+import { CommunicationHistoryViewer } from "@/components/agents/CommunicationHistoryViewer";
+import { ProgressCheckpointOverride } from "@/components/agents/ProgressCheckpointOverride";
 
 const Agents = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const handleAgentCreated = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -130,8 +133,9 @@ const Agents = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="list">Agent List</TabsTrigger>
           <TabsTrigger value="management">Onboarding</TabsTrigger>
           <TabsTrigger value="templates">Profile Templates</TabsTrigger>
@@ -140,16 +144,36 @@ const Agents = () => {
           <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="dashboard">
+          <AdminDashboardHub />
+        </TabsContent>
+
         <TabsContent value="list">
           <EnhancedAgentsList refreshTrigger={refreshTrigger} />
         </TabsContent>
 
         <TabsContent value="management">
           {!isLoading && (
-            <AgentOnboardingManager 
-              agents={agents} 
-              onRefresh={handleAgentCreated} 
-            />
+            <div className="space-y-6">
+              <AgentOnboardingManager 
+                agents={agents} 
+                onRefresh={handleAgentCreated} 
+              />
+              
+              {selectedAgentId && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ProgressCheckpointOverride
+                    agentId={selectedAgentId}
+                    agentName={agents.find(a => a.id === selectedAgentId)?.first_name + ' ' + agents.find(a => a.id === selectedAgentId)?.last_name || 'Agent'}
+                    onProgressUpdate={handleAgentCreated}
+                  />
+                  <CommunicationHistoryViewer
+                    agentId={selectedAgentId}
+                    agentName={agents.find(a => a.id === selectedAgentId)?.first_name + ' ' + agents.find(a => a.id === selectedAgentId)?.last_name || 'Agent'}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </TabsContent>
 

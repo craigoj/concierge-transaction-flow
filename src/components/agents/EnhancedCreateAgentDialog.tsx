@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +18,7 @@ import { Plus, Loader2, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 
 const createAgentSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -54,6 +54,7 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const { toast } = useToast();
 
   const form = useForm<CreateAgentForm>({
@@ -73,8 +74,44 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
     },
   });
 
+  // Fetch agent profile templates
+  const { data: templates } = useQuery({
+    queryKey: ['agent-profile-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_profile_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const watchSendEmail = form.watch("sendEmail");
   const watchSetupMethod = form.watch("setupMethod");
+
+  const applyTemplate = (templateId: string) => {
+    const template = templates?.find(t => t.id === templateId);
+    if (!template) return;
+
+    const templateData = template.template_data as any;
+    
+    // Apply template data to form
+    if (templateData.firstName) form.setValue("firstName", templateData.firstName);
+    if (templateData.lastName) form.setValue("lastName", templateData.lastName);
+    if (templateData.email) form.setValue("email", templateData.email);
+    if (templateData.phoneNumber) form.setValue("phoneNumber", templateData.phoneNumber);
+    if (templateData.brokerage) form.setValue("brokerage", templateData.brokerage);
+    if (templateData.setupMethod) form.setValue("setupMethod", templateData.setupMethod);
+    if (templateData.adminNotes) form.setValue("adminNotes", templateData.adminNotes);
+
+    toast({
+      title: "Template Applied",
+      description: `${template.name} template has been applied to the form.`,
+    });
+  };
 
   const generatePassword = () => {
     const password = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
@@ -165,6 +202,35 @@ export const EnhancedCreateAgentDialog = ({ onAgentCreated }: EnhancedCreateAgen
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Template Selection */}
+          {templates && templates.length > 0 && (
+            <div className="space-y-2">
+              <Label className="font-brand-body text-brand-charcoal">
+                Apply Template (Optional)
+              </Label>
+              <Select value={selectedTemplate} onValueChange={(value) => {
+                setSelectedTemplate(value);
+                if (value) applyTemplate(value);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template to pre-fill form..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                      {template.description && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          - {template.description}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

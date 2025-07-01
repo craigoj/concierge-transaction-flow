@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QuickActionsMenu } from "./QuickActionsMenu";
 
 interface Agent {
   id: string;
@@ -334,28 +334,12 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
                         <p className="text-sm text-gray-600">{agent.email}</p>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => generateSetupLinkMutation.mutate(agent.id)}>
-                          <Key className="h-4 w-4 mr-2" />
-                          Generate Setup Link
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Resend Invitation
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <QuickActionsMenu
+                      agentId={agent.id}
+                      agentName={`${agent.first_name} ${agent.last_name}`}
+                      currentStatus={agent.invitation_status}
+                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] })}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>
