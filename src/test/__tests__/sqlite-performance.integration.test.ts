@@ -212,11 +212,11 @@ describe('SQLite Performance and Constraint Testing', () => {
       
       // Test multiple concurrent read operations
       const queries = [
-        () => db.prepare('SELECT COUNT(*) as count FROM transactions WHERE status = ?').all('active'),
-        () => db.prepare('SELECT COUNT(*) as count FROM tasks WHERE is_completed = ?').all(1),
-        () => db.prepare('SELECT COUNT(*) as count FROM clients').all(),
-        () => db.prepare('SELECT AVG(purchase_price) as avg_price FROM transactions WHERE status = ?').all('closed'),
-        () => db.prepare('SELECT COUNT(*) as count FROM automation_rules WHERE is_active = ?').all(1)
+        () => db.prepare('SELECT COUNT(*) as count FROM transactions WHERE status = ?').get('active'),
+        () => db.prepare('SELECT COUNT(*) as count FROM tasks WHERE is_completed = ?').get(1),
+        () => db.prepare('SELECT COUNT(*) as count FROM clients').get(),
+        () => db.prepare('SELECT AVG(purchase_price) as avg_price FROM transactions WHERE status = ?').get('closed'),
+        () => db.prepare('SELECT COUNT(*) as count FROM automation_rules WHERE is_active = ?').get(1)
       ]
       
       const startTime = performance.now()
@@ -238,7 +238,7 @@ describe('SQLite Performance and Constraint Testing', () => {
       
       // Verify all queries returned results
       results.forEach((result: any, index) => {
-        expect(result.result.length).toBeGreaterThan(0)
+        expect(result.result).toBeDefined()
         expect(result.time).toBeLessThan(50)
         console.log(`  Query ${index + 1} took ${result.time.toFixed(2)}ms`)
       })
