@@ -34,13 +34,13 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
 
   const handleServiceFilter = (value: string) => {
     // Treat "all_tiers" as clearing the filter
-    const services = (value === 'all_tiers' || value === '') ? [] : [value];
+    const services = (value === 'all_tiers') ? [] : [value];
     onFilterChange({ ...filters, serviceFilter: services });
   };
 
   const handleStatusFilter = (value: string) => {
     // Treat "all_status" as clearing the filter
-    const statuses = (value === 'all_status' || value === '') ? [] : [value];
+    const statuses = (value === 'all_status') ? [] : [value];
     onFilterChange({ ...filters, statusFilter: statuses });
   };
 
