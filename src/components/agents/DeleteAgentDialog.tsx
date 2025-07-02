@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +39,7 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
     setError(null);
     
     try {
-      console.log("Starting agent deletion process for agent:", agent.id);
+      console.log("Starting comprehensive agent deletion process for agent:", agent.id);
 
       const { data: response, error } = await supabase.functions.invoke('delete-agent', {
         body: {
@@ -60,11 +61,17 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
 
       toast({
         title: "Agent Deleted",
-        description: `${agent.first_name} ${agent.last_name} has been removed from the system.`,
+        description: `${agent.first_name} ${agent.last_name} and all related data has been permanently removed.`,
       });
 
+      // Close dialog and refresh the agents list
       onClose();
       onAgentDeleted();
+      
+      // Force a small delay to ensure the deletion has propagated
+      setTimeout(() => {
+        onAgentDeleted();
+      }, 1000);
       
     } catch (error: any) {
       console.error("Error deleting agent:", error);
@@ -94,27 +101,30 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />
-            Delete Agent Account
+            Permanently Delete Agent Account
           </DialogTitle>
           <DialogDescription>
-            This action cannot be undone. This will permanently delete the agent account and all associated data.
+            This action cannot be undone. This will permanently delete the agent account and ALL associated data including vendors, branding preferences, transactions, and communication history.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h4 className="font-semibold text-red-800 mb-2">You are about to delete:</h4>
+            <h4 className="font-semibold text-red-800 mb-2">You are about to permanently delete:</h4>
             <div className="text-red-700">
               <p><strong>Name:</strong> {agent?.first_name} {agent?.last_name}</p>
               <p><strong>Email:</strong> {agent?.email}</p>
               <p><strong>Status:</strong> {agent?.invitation_status}</p>
               {agent?.brokerage && <p><strong>Brokerage:</strong> {agent.brokerage}</p>}
             </div>
+            <div className="mt-2 text-sm text-red-600">
+              <strong>This will also delete:</strong> All vendor preferences, branding settings, offer requests, communication history, and related data.
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmation" className="text-sm font-medium">
-              Type <code className="bg-gray-100 px-1 rounded text-sm">{expectedConfirmation}</code> to confirm deletion:
+              Type <code className="bg-gray-100 px-1 rounded text-sm">{expectedConfirmation}</code> to confirm permanent deletion:
             </Label>
             <Input
               id="confirmation"
@@ -153,12 +163,12 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Deleting...
+                Permanently Deleting...
               </>
             ) : (
               <>
                 <Trash2 className="h-4 w-4" />
-                Delete Agent
+                Permanently Delete Agent
               </>
             )}
           </Button>
