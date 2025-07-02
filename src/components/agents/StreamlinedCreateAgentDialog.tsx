@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,15 +80,6 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
       console.log('=== CLIENT SIDE: Starting agent creation ===');
       console.log('Form data:', data);
       
-      // Get current session for debugging
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
-      console.log('Current session:', {
-        hasSession: !!session.session,
-        userId: session.session?.user?.id,
-        userEmail: session.session?.user?.email,
-        sessionError: sessionError?.message
-      });
-      
       const { data: response, error } = await supabase.functions.invoke('create-manual-agent', {
         body: {
           email: data.email,
@@ -108,7 +98,6 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
       if (error) {
         console.error('Edge function error:', error);
         setError(`Function Error: ${error.message}`);
-        setDebugInfo(error);
         
         toast({
           variant: "destructive",
@@ -122,7 +111,11 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
         console.error('Edge function returned failure:', response);
         const errorMessage = response?.error || "Failed to create agent";
         setError(`Creation Failed: ${errorMessage}`);
-        setDebugInfo(response?.debug);
+        
+        // Show debug info if available
+        if (response?.details) {
+          setDebugInfo(response.details);
+        }
         
         toast({
           variant: "destructive",
@@ -141,8 +134,8 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
       });
 
       // Show password if generated
-      if (response.data?.temporary_password) {
-        setGeneratedPassword(response.data.temporary_password);
+      if (response.temporary_password) {
+        setGeneratedPassword(response.temporary_password);
         toast({
           title: "Temporary Password Generated",
           description: "Please share the temporary password with the agent securely.",
@@ -162,14 +155,7 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
     } catch (error: any) {
       console.error("=== CLIENT SIDE: Unexpected error ===", error);
       
-      let errorMessage = "An unexpected error occurred. Please try again.";
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
+      const errorMessage = error.message || "An unexpected error occurred. Please try again.";
       setError(`Unexpected Error: ${errorMessage}`);
       setDebugInfo({ 
         errorType: typeof error,

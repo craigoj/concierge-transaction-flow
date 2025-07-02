@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,30 +40,22 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
     try {
       console.log("Starting agent deletion process for agent:", agent.id);
 
-      // First, delete the profile (this should cascade properly)
-      const { error: profileDeleteError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', agent.id);
+      const { data: response, error } = await supabase.functions.invoke('delete-agent', {
+        body: {
+          agentId: agent.id,
+        },
+      });
 
-      if (profileDeleteError) {
-        console.error("Profile deletion error:", profileDeleteError);
-        throw profileDeleteError;
+      if (error) {
+        console.error("Delete function error:", error);
+        throw new Error(error.message || "Failed to delete agent");
       }
 
-      // Clean up related records
-      const { error: invitationDeleteError } = await supabase
-        .from('agent_invitations')
-        .delete()
-        .eq('agent_id', agent.id);
-
-      if (invitationDeleteError) {
-        console.warn("Invitation deletion error (non-critical):", invitationDeleteError);
+      if (!response?.success) {
+        console.error("Delete function returned failure:", response);
+        throw new Error(response?.error || "Failed to delete agent");
       }
 
-      // Try to delete from auth.users using edge function (if we create one later)
-      // For now, just mark as deleted in our system
-      
       console.log("Agent deletion completed successfully");
 
       toast({

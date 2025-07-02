@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("=== CREATE MANUAL AGENT FUNCTION START ===");
+  console.log("=== DELETE AGENT FUNCTION START ===");
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,17 +40,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    // Parse request body first
-    const requestBody = await req.json();
-    const { email, firstName, lastName, phoneNumber, brokerage, password } = requestBody;
+    // Parse request body
+    const { agentId } = await req.json();
 
-    console.log("Request data:", { email, firstName, lastName });
-
-    if (!email || !firstName || !lastName) {
+    if (!agentId) {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: "Email, first name, and last name are required"
+          error: "Agent ID is required"
         }),
         {
           status: 400,
@@ -59,10 +56,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Authentication check using the service role client
+    // Authentication check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("No authorization header");
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -79,7 +75,6 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -92,31 +87,48 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Authenticated user:", user.email);
+    // Verify coordinator role
+    const { data: coordinatorProfile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    // Use the database function to create the agent
-    console.log("Calling database function to create agent...");
+    if (profileError || coordinatorProfile?.role !== "coordinator") {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Access denied: Only coordinators can delete agents"
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Deleting agent:", agentId);
+
+    // Delete from auth.users first
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(agentId);
     
-    const { data: result, error: functionError } = await supabaseAdmin.rpc(
-      'create_manual_agent',
-      {
-        p_email: email,
-        p_first_name: firstName,
-        p_last_name: lastName,
-        p_phone: phoneNumber || null,
-        p_brokerage: brokerage || null,
-        p_password: password || null,
-        p_created_by: user.id
-      }
-    );
+    if (authDeleteError) {
+      console.error("Auth user deletion error:", authDeleteError);
+      // Continue with profile deletion even if auth deletion fails
+    }
 
-    if (functionError) {
-      console.error("Database function error:", functionError);
+    // Delete profile (this should cascade to related tables)
+    const { error: profileDeleteError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', agentId);
+
+    if (profileDeleteError) {
+      console.error("Profile deletion error:", profileDeleteError);
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `Database error: ${functionError.message}`,
-          details: functionError
+          error: `Failed to delete profile: ${profileDeleteError.message}`
         }),
         {
           status: 500,
@@ -125,27 +137,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Database function result:", result);
+    // Clean up related records
+    await supabaseAdmin.from('agent_invitations').delete().eq('agent_id', agentId);
 
-    if (!result || !result.success) {
-      console.error("Function returned failure:", result);
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: result?.error || "Failed to create agent",
-          details: result
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    console.log("=== AGENT CREATED SUCCESSFULLY ===");
+    console.log("Agent deletion completed successfully");
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({ 
+        success: true,
+        message: "Agent deleted successfully"
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -158,8 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || "An unexpected server error occurred",
-        details: error
+        error: error.message || "An unexpected server error occurred"
       }),
       {
         status: 500,
