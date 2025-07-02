@@ -93,6 +93,8 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submission
+    
     setLoading(true);
     
     logDebug('Attempting sign in...', { email });
@@ -112,9 +114,11 @@ const Auth = () => {
           title: "Sign In Error",
           description: error.message,
         });
+        setLoading(false);
       } else {
         logDebug('Sign in successful, user:', data.user?.email);
-        // Navigation will be handled by AuthGuard
+        // Don't set loading to false here - let the auth state change handle the redirect
+        // The AuthGuard will handle the navigation
       }
     } catch (error) {
       logDebug('Sign in exception:', error);
@@ -123,13 +127,14 @@ const Auth = () => {
         title: "Sign In Error",
         description: "An unexpected error occurred. Please try again.",
       });
-    } finally {
       setLoading(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submission
+    
     setLoading(true);
     
     logDebug('Attempting sign up...', { email });
@@ -336,6 +341,7 @@ const Auth = () => {
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
                 className="text-brand-charcoal/70 hover:text-brand-charcoal font-brand-body italic transition-colors duration-300"
+                disabled={loading}
               >
                 {isSignUp ? 'Already have an account? Sign in here' : "Don't have an account? Join our concierge service"}
               </button>
