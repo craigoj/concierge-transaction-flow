@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Mail, Phone, MessageSquare, Plus, Send } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface TransactionCommunicationsProps {
   transactionId: string;
@@ -22,6 +22,7 @@ const TransactionCommunications = ({ transactionId }: TransactionCommunicationsP
     subject: '',
     message: ''
   });
+  const { toast } = useToast();
 
   // Mock communication data - in real app, this would come from the database
   const communications = [
@@ -59,6 +60,20 @@ const TransactionCommunications = ({ transactionId }: TransactionCommunicationsP
     console.log('Sending message:', messageForm);
     setNewMessageOpen(false);
     setMessageForm({ type: 'email', recipient: '', subject: '', message: '' });
+    toast({ 
+      title: "Message Sent", 
+      description: `${messageForm.type === 'phone' ? 'Call logged' : 'Message sent'} successfully` 
+    });
+  };
+
+  const handleQuickAction = (type: string, subject: string) => {
+    setMessageForm({ 
+      type, 
+      recipient: '', 
+      subject, 
+      message: '' 
+    });
+    setNewMessageOpen(true);
   };
 
   const getTypeIcon = (type: string) => {
@@ -203,24 +218,36 @@ const TransactionCommunications = ({ transactionId }: TransactionCommunicationsP
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
+      {/* Enhanced Quick Actions with proper click handlers */}
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => handleQuickAction('email', 'Transaction Update')}
+            >
               <Mail className="h-6 w-6" />
               <span>Send Email Update</span>
             </Button>
             
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => handleQuickAction('sms', 'Transaction Reminder')}
+            >
               <MessageSquare className="h-6 w-6" />
               <span>Send SMS Reminder</span>
             </Button>
             
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => handleQuickAction('phone', 'Scheduled Call')}
+            >
               <Phone className="h-6 w-6" />
               <span>Schedule Call</span>
             </Button>

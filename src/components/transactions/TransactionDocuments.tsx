@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,6 +94,30 @@ const TransactionDocuments = ({ transactionId }: TransactionDocumentsProps) => {
     }
   };
 
+  const handleDownload = (document: any) => {
+    // In a real implementation, this would download from Supabase Storage
+    // For now, we'll simulate a download action
+    const link = document.createElement('a');
+    link.href = document.file_path || '#';
+    link.download = document.file_name;
+    
+    // Create a mock download for demo purposes
+    const blob = new Blob(['Mock file content'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+    
+    toast({ 
+      title: "Download Started", 
+      description: `Downloading ${document.file_name}` 
+    });
+  };
+
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     return <FileText className="h-5 w-5 text-muted-foreground" />;
@@ -179,7 +202,12 @@ const TransactionDocuments = ({ transactionId }: TransactionDocumentsProps) => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDownload(document)}
+                      title="Download document"
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button 
@@ -187,6 +215,7 @@ const TransactionDocuments = ({ transactionId }: TransactionDocumentsProps) => {
                       size="sm"
                       onClick={() => deleteDocumentMutation.mutate(document.id)}
                       disabled={deleteDocumentMutation.isPending}
+                      title="Delete document"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

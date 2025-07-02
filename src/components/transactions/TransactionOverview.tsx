@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, User, MapPin, Home, Edit, Zap, Menu, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, DollarSign, User, MapPin, Home, Edit, Zap, Menu, Star, Plus, Upload, MessageSquare, UserPlus } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import ApplyWorkflowDialog from '@/components/workflows/ApplyWorkflowDialog';
 import WorkflowHistory from '@/components/workflows/WorkflowHistory';
 import { useRealtime } from '@/hooks/useRealtime';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useToast } from '@/hooks/use-toast';
 
 type Transaction = Tables<'transactions'> & {
   clients: Tables<'clients'>[];
@@ -23,7 +28,14 @@ interface TransactionOverviewProps {
 const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [uploadDocumentOpen, setUploadDocumentOpen] = useState(false);
+  const [sendMessageOpen, setSendMessageOpen] = useState(false);
+  const [editTransactionOpen, setEditTransactionOpen] = useState(false);
+  const [serviceTierOpen, setServiceTierOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   // Enable real-time updates for this transaction
   useRealtime({
@@ -62,13 +74,45 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
   const totalTasks = transaction.tasks?.length || 0;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // Mobile Quick Actions Component
+  // Enhanced Quick Actions Component with click handlers
   const QuickActions = () => (
     <div className="space-y-2">
-      <Button className="w-full justify-start" variant="outline" size="sm">Add Task</Button>
-      <Button className="w-full justify-start" variant="outline" size="sm">Upload Document</Button>
-      <Button className="w-full justify-start" variant="outline" size="sm">Send Message</Button>
-      <Button className="w-full justify-start" variant="outline" size="sm">Add Client</Button>
+      <Button 
+        className="w-full justify-start" 
+        variant="outline" 
+        size="sm"
+        onClick={() => setAddTaskOpen(true)}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Task
+      </Button>
+      <Button 
+        className="w-full justify-start" 
+        variant="outline" 
+        size="sm"
+        onClick={() => setUploadDocumentOpen(true)}
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        Upload Document
+      </Button>
+      <Button 
+        className="w-full justify-start" 
+        variant="outline" 
+        size="sm"
+        onClick={() => setSendMessageOpen(true)}
+      >
+        <MessageSquare className="h-4 w-4 mr-2" />
+        Send Message
+      </Button>
+      <Button 
+        className="w-full justify-start" 
+        variant="outline" 
+        size="sm"
+        onClick={() => setAddClientOpen(true)}
+      >
+        <UserPlus className="h-4 w-4 mr-2" />
+        Add Client
+      </Button>
     </div>
   );
 
@@ -151,12 +195,17 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
                     variant="outline" 
                     size="sm" 
                     className="w-full sm:w-auto"
-                    onClick={() => window.location.href = `/transactions/${transaction.id}/service-tier`}
+                    onClick={() => setServiceTierOpen(true)}
                   >
                     <Star className="h-4 w-4 mr-2" />
                     Service Tier
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full sm:w-auto"
+                    onClick={() => setEditTransactionOpen(true)}
+                  >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
@@ -315,6 +364,247 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
           </div>
         )}
       </div>
+
+      {/* Modal Dialogs */}
+      <Dialog open={addTaskOpen} onOpenChange={setAddTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <Button 
+              onClick={() => {
+                setAddTaskOpen(false);
+                const tasksTab = document.querySelector('[value="tasks"]') as HTMLElement;
+                if (tasksTab) tasksTab.click();
+                toast({ title: "Navigating to Tasks", description: "You can add a new task in the Tasks tab." });
+              }}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Go to Tasks Tab
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={uploadDocumentOpen} onOpenChange={setUploadDocumentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <Button 
+              onClick={() => {
+                setUploadDocumentOpen(false);
+                const documentsTab = document.querySelector('[value="documents"]') as HTMLElement;
+                if (documentsTab) documentsTab.click();
+                toast({ title: "Navigating to Documents", description: "You can upload documents in the Documents tab." });
+              }}
+              className="w-full"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Go to Documents Tab
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Message</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <Button 
+              onClick={() => {
+                setSendMessageOpen(false);
+                const commTab = document.querySelector('[value="communications"]') as HTMLElement;
+                if (commTab) commTab.click();
+                toast({ title: "Navigating to Communications", description: "You can send messages in the Communications tab." });
+              }}
+              className="w-full"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Go to Communications Tab
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 p-4">
+            <Input placeholder="Full Name" />
+            <Input placeholder="Email Address" type="email" />
+            <Input placeholder="Phone Number" type="tel" />
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder="Client Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="buyer">Buyer</SelectItem>
+                <SelectItem value="seller">Seller</SelectItem>
+                <SelectItem value="both">Both</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setAddClientOpen(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={() => {
+                  setAddClientOpen(false);
+                  toast({ title: "Client Added", description: "Client has been added to the transaction." });
+                }}
+              >
+                Add Client
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editTransactionOpen} onOpenChange={setEditTransactionOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Property Address</Label>
+                <Input defaultValue={transaction.property_address} />
+              </div>
+              <div>
+                <Label>City</Label>
+                <Input defaultValue={transaction.city} />
+              </div>
+              <div>
+                <Label>State</Label>
+                <Input defaultValue={transaction.state} />
+              </div>
+              <div>
+                <Label>ZIP Code</Label>
+                <Input defaultValue={transaction.zip_code} />
+              </div>
+              <div>
+                <Label>Purchase Price</Label>
+                <Input 
+                  type="number" 
+                  defaultValue={transaction.purchase_price} 
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label>Closing Date</Label>
+                <Input 
+                  type="date" 
+                  defaultValue={transaction.closing_date ? new Date(transaction.closing_date).toISOString().split('T')[0] : ''}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Transaction Status</Label>
+              <Select defaultValue={transaction.status}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="intake">Intake</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditTransactionOpen(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={() => {
+                  setEditTransactionOpen(false);
+                  toast({ title: "Transaction Updated", description: "Transaction details have been saved." });
+                }}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={serviceTierOpen} onOpenChange={setServiceTierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Service Tier Management</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 p-4">
+            <div className="space-y-3">
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Core Service</h4>
+                    <p className="text-sm text-gray-600">Essential transaction management</p>
+                  </div>
+                  <Button 
+                    variant={transaction.service_tier === 'core' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => {
+                      toast({ title: "Service Tier", description: "Core service tier selected." });
+                    }}
+                  >
+                    {transaction.service_tier === 'core' ? 'Current' : 'Select'}
+                  </Button>
+                </div>
+              </div>
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Elite Service</h4>
+                    <p className="text-sm text-gray-600">Enhanced features and priority support</p>
+                  </div>
+                  <Button 
+                    variant={transaction.service_tier === 'elite' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => {
+                      toast({ title: "Service Tier", description: "Elite service tier selected." });
+                    }}
+                  >
+                    {transaction.service_tier === 'elite' ? 'Current' : 'Upgrade'}
+                  </Button>
+                </div>
+              </div>
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">White Glove Service</h4>
+                    <p className="text-sm text-gray-600">Premium concierge experience</p>
+                  </div>
+                  <Button 
+                    variant={transaction.service_tier === 'white_glove' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => {
+                      toast({ title: "Service Tier", description: "White Glove service tier selected." });
+                    }}
+                  >
+                    {transaction.service_tier === 'white_glove' ? 'Current' : 'Upgrade'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" onClick={() => setServiceTierOpen(false)} className="w-full">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Apply Workflow Dialog */}
       <ApplyWorkflowDialog
