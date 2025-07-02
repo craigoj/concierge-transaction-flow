@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Settings } from 'lucide-react';
-import { TransactionListWithBulk } from '@/components/transactions/TransactionListWithBulk';
+import { EnhancedTransactionList } from '@/components/transactions/EnhancedTransactionList';
 import { TransactionTemplateManager } from '@/components/transactions/TransactionTemplateManager';
 import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
@@ -144,46 +144,10 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Premium Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <div className="flex justify-center">
-          <TabsList className="bg-white/80 backdrop-blur-sm border border-brand-taupe/30 rounded-2xl p-2 shadow-brand-subtle">
-            <TabsTrigger 
-              value="active"
-              className="px-8 py-3 rounded-xl text-sm font-brand-heading tracking-brand-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background data-[state=active]:shadow-brand-elevation transition-all duration-300"
-            >
-              ACTIVE
-            </TabsTrigger>
-            <TabsTrigger 
-              value="pending"
-              className="px-8 py-3 rounded-xl text-sm font-brand-heading tracking-brand-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background data-[state=active]:shadow-brand-elevation transition-all duration-300"
-            >
-              PENDING
-            </TabsTrigger>
-            <TabsTrigger 
-              value="completed"
-              className="px-8 py-3 rounded-xl text-sm font-brand-heading tracking-brand-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background data-[state=active]:shadow-brand-elevation transition-all duration-300"
-            >
-              COMPLETED
-            </TabsTrigger>
-            <TabsTrigger 
-              value="all"
-              className="px-8 py-3 rounded-xl text-sm font-brand-heading tracking-brand-wide data-[state=active]:bg-brand-charcoal data-[state=active]:text-brand-background data-[state=active]:shadow-brand-elevation transition-all duration-300"
-            >
-              ALL
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value={activeTab} className="space-y-6">
-          <TransactionListWithBulk 
-            transactions={filteredTransactions} 
-            isLoading={isLoading}
-            onTransactionClick={(id) => navigate(`/transactions/${id}`)}
-            enableBulkActions={true}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Enhanced Progress Grid - Replace old tab system */}
+      <div className="space-y-8">
+        <EnhancedTransactionList className="w-full" />
+      </div>
 
       <CreateTransactionDialog
         open={createDialogOpen}
