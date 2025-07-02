@@ -20,6 +20,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables");
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -42,6 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Authentication check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header");
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -58,6 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
+      console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -78,6 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (profileError || coordinatorProfile?.role !== "coordinator") {
+      console.error("Role verification failed:", profileError);
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -119,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: createUserResult, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: tempPassword,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         first_name: firstName,
         last_name: lastName,
@@ -146,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
     const newUserId = createUserResult.user.id;
     console.log("New user created with ID:", newUserId);
 
-    // Create profile with ACTIVE status
+    // Create profile with ACTIVE status - using service role bypasses RLS
     const { error: profileInsertError } = await supabaseAdmin
       .from('profiles')
       .insert({
@@ -161,10 +165,10 @@ const handler = async (req: Request): Promise<Response> => {
         setup_method: 'manual_creation',
         admin_activated: true,
         onboarding_method: 'assisted_setup',
-        invitation_status: 'completed', // Set as completed/active
+        invitation_status: 'completed',
         invited_by: user.id,
         invited_at: new Date().toISOString(),
-        onboarding_completed_at: new Date().toISOString() // Mark as fully onboarded
+        onboarding_completed_at: new Date().toISOString()
       });
 
     if (profileInsertError) {
@@ -188,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
         invited_by: user.id,
         agent_id: newUserId,
         email: email,
-        status: 'accepted', // Mark as accepted since it's manual creation
+        status: 'accepted',
         creation_method: 'manual_creation',
         invited_at: new Date().toISOString(),
         accepted_at: new Date().toISOString(),
@@ -213,7 +217,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("=== CRITICAL ERROR ===", error);
     
     return new Response(
