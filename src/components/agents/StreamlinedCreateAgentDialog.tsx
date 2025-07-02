@@ -41,6 +41,7 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { toast } = useToast();
 
   const form = useForm<CreateAgentForm>({
@@ -58,6 +59,7 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
   const clearMessages = () => {
     setError(null);
     setSuccess(null);
+    setDebugInfo(null);
   };
 
   const generatePassword = () => {
@@ -76,7 +78,17 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
     setIsLoading(true);
     
     try {
-      console.log('Creating agent with manual creation method...');
+      console.log('=== CLIENT SIDE: Starting agent creation ===');
+      console.log('Form data:', data);
+      
+      // Get current session for debugging
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', {
+        hasSession: !!session.session,
+        userId: session.session?.user?.id,
+        userEmail: session.session?.user?.email,
+        sessionError: sessionError?.message
+      });
       
       const { data: response, error } = await supabase.functions.invoke('create-manual-agent', {
         body: {
@@ -89,18 +101,38 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
         },
       });
 
-      console.log('Edge function response:', { response, error });
+      console.log('=== CLIENT SIDE: Edge function response ===');
+      console.log('Response:', response);
+      console.log('Error:', error);
 
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error(error.message || "Failed to create agent");
+        setError(`Function Error: ${error.message}`);
+        setDebugInfo(error);
+        
+        toast({
+          variant: "destructive",
+          title: "Function Error",
+          description: error.message,
+        });
+        return;
       }
 
       if (!response?.success) {
         console.error('Edge function returned failure:', response);
-        throw new Error(response?.error || "Failed to create agent");
+        const errorMessage = response?.error || "Failed to create agent";
+        setError(`Creation Failed: ${errorMessage}`);
+        setDebugInfo(response?.debug);
+        
+        toast({
+          variant: "destructive",
+          title: "Agent Creation Failed",
+          description: errorMessage,
+        });
+        return;
       }
 
+      console.log('=== CLIENT SIDE: Agent created successfully ===');
       setSuccess(`Agent ${data.firstName} ${data.lastName} has been created and activated successfully!`);
       
       toast({
@@ -123,11 +155,12 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
         setOpen(false);
         setSuccess(null);
         setGeneratedPassword(null);
+        setDebugInfo(null);
         onAgentCreated();
       }, 3000);
       
     } catch (error: any) {
-      console.error("Error creating agent:", error);
+      console.error("=== CLIENT SIDE: Unexpected error ===", error);
       
       let errorMessage = "An unexpected error occurred. Please try again.";
       
@@ -137,11 +170,16 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
         errorMessage = error;
       }
       
-      setError(errorMessage);
+      setError(`Unexpected Error: ${errorMessage}`);
+      setDebugInfo({ 
+        errorType: typeof error,
+        errorMessage: error.message,
+        fullError: error
+      });
       
       toast({
         variant: "destructive",
-        title: "Error Creating Agent",
+        title: "Unexpected Error",
         description: errorMessage,
       });
     } finally {
@@ -157,7 +195,7 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
           Create Agent
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] bg-white border-brand-taupe/20">
+      <DialogContent className="sm:max-w-[600px] bg-white border-brand-taupe/20 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-brand-heading text-brand-charcoal">
             Create New Agent Account
@@ -183,6 +221,21 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Debug Information */}
+        {debugInfo && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <details className="mt-2">
+                <summary className="cursor-pointer font-medium">Debug Information</summary>
+                <pre className="mt-2 text-xs overflow-x-auto bg-white p-2 rounded border">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
             </AlertDescription>
           </Alert>
         )}
@@ -330,6 +383,7 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
                 setOpen(false);
                 setError(null);
                 setSuccess(null);
+                setDebugInfo(null);
               }}
               disabled={isLoading}
               className="border-brand-taupe/30 text-brand-charcoal hover:bg-brand-taupe/10"
