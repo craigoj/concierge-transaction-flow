@@ -1,22 +1,18 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar, MapPin, User, CheckCircle, Building } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import BulkActionBar from './BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
-
-type Transaction = Tables<'transactions'> & {
-  clients: Tables<'clients'>[];
-  tasks: Tables<'tasks'>[];
-};
+import { TransactionWithRelations } from './EnhancedTransactionList';
 
 interface TransactionListWithBulkProps {
-  transactions: Transaction[];
+  transactions: TransactionWithRelations[];
   isLoading: boolean;
   onTransactionClick: (id: string) => void;
   enableBulkActions?: boolean;

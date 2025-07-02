@@ -1,13 +1,8 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { TransactionFilterState } from '@/components/transactions/TransactionFilters';
-import { Database } from '@/integrations/supabase/types';
+import { TransactionWithRelations } from '@/components/transactions/EnhancedTransactionList';
 import { isWithinInterval, parseISO } from 'date-fns';
-
-type Transaction = Database['public']['Tables']['transactions']['Row'] & {
-  clients?: Database['public']['Tables']['clients']['Row'][] | null;
-  tasks?: Database['public']['Tables']['tasks']['Row'][] | null;
-};
 
 const initialFilters: TransactionFilterState = {
   search: '',
@@ -21,7 +16,7 @@ const initialFilters: TransactionFilterState = {
   state: ''
 };
 
-export const useTransactionFilters = (transactions: Transaction[] = []) => {
+export const useTransactionFilters = (transactions: TransactionWithRelations[] = []) => {
   const [filters, setFilters] = useState<TransactionFilterState>(initialFilters);
   const [savedFilters, setSavedFilters] = useState<Array<{ name: string; filters: TransactionFilterState }>>([]);
 

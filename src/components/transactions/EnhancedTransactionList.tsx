@@ -11,7 +11,7 @@ import { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
-type TransactionWithRelations = Database['public']['Tables']['transactions']['Row'] & {
+export type TransactionWithRelations = Database['public']['Tables']['transactions']['Row'] & {
   clients: Database['public']['Tables']['clients']['Row'][] | null;
   tasks: Database['public']['Tables']['tasks']['Row'][] | null;
 };
