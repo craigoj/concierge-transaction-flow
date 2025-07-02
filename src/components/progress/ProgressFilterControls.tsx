@@ -32,11 +32,15 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
     onFilterChange({ ...filters, searchQuery: value });
   };
 
-  const handleServiceFilter = (services: string[]) => {
+  const handleServiceFilter = (value: string) => {
+    // Treat "all_tiers" as clearing the filter
+    const services = (value === 'all_tiers' || value === '') ? [] : [value];
     onFilterChange({ ...filters, serviceFilter: services });
   };
 
-  const handleStatusFilter = (statuses: string[]) => {
+  const handleStatusFilter = (value: string) => {
+    // Treat "all_status" as clearing the filter
+    const statuses = (value === 'all_status' || value === '') ? [] : [value];
     onFilterChange({ ...filters, statusFilter: statuses });
   };
 
@@ -49,6 +53,10 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
     filters.serviceFilter?.length || 
     filters.statusFilter?.length || 
     filters.riskFilter?.length;
+
+  // Get current filter values for display
+  const currentServiceFilter = filters.serviceFilter?.length ? filters.serviceFilter[0] : 'all_tiers';
+  const currentStatusFilter = filters.statusFilter?.length ? filters.statusFilter[0] : 'all_status';
 
   return (
     <div className={`progress-filter-controls ${className}`}>
@@ -68,15 +76,15 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
 
           {/* Service Tier Filter */}
           <Select
-            value={filters.serviceFilter?.[0] || ''}
-            onValueChange={(value) => handleServiceFilter(value ? [value] : [])}
+            value={currentServiceFilter}
+            onValueChange={handleServiceFilter}
           >
             <SelectTrigger className="w-48">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Service Tier" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Tiers</SelectItem>
+              <SelectItem value="all_tiers">All Tiers</SelectItem>
               <SelectItem value="buyer_core">Core</SelectItem>
               <SelectItem value="buyer_elite">Elite</SelectItem>
               <SelectItem value="white_glove_buyer">White Glove</SelectItem>
@@ -85,14 +93,14 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
 
           {/* Status Filter */}
           <Select
-            value={filters.statusFilter?.[0] || ''}
-            onValueChange={(value) => handleStatusFilter(value ? [value] : [])}
+            value={currentStatusFilter}
+            onValueChange={handleStatusFilter}
           >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all_status">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="intake">Intake</SelectItem>
               <SelectItem value="closed">Closed</SelectItem>
@@ -165,7 +173,7 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
                   {service}
                   <X 
                     className="h-3 w-3 cursor-pointer" 
-                    onClick={() => handleServiceFilter([])}
+                    onClick={() => handleServiceFilter('all_tiers')}
                   />
                 </Badge>
               ))}
@@ -174,7 +182,7 @@ export const ProgressFilterControls: React.FC<ProgressFilterControlsProps> = ({
                   {status}
                   <X 
                     className="h-3 w-3 cursor-pointer" 
-                    onClick={() => handleStatusFilter([])}
+                    onClick={() => handleStatusFilter('all_status')}
                   />
                 </Badge>
               ))}
