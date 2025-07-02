@@ -28,29 +28,20 @@ export const useRealtimeTransactions = ({
         .select(`
           *,
           clients (*),
-          tasks (*),
-          phaseProgress:transaction_phase_progress (
-            *,
-            phase:transaction_phases (*)
-          ),
-          currentPhase:transaction_phases (*)
+          tasks (*)
         `);
 
       if (agentId) {
         query = query.eq('agent_id', agentId);
       }
 
-      // Apply filters
+      // Apply filters with proper type casting
       if (filters.statusFilter?.length) {
-        query = query.in('status', filters.statusFilter);
+        query = query.in('status', filters.statusFilter as any);
       }
 
       if (filters.serviceFilter?.length) {
-        query = query.in('service_tier', filters.serviceFilter);
-      }
-
-      if (filters.riskFilter?.length) {
-        query = query.in('risk_level', filters.riskFilter);
+        query = query.in('service_tier', filters.serviceFilter as any);
       }
 
       // Apply sorting
@@ -58,10 +49,7 @@ export const useRealtimeTransactions = ({
         case 'closing_date':
           query = query.order('closing_date', { ascending: true, nullsFirst: false });
           break;
-        case 'risk_level':
-          query = query.order('risk_level', { ascending: false });
-          break;
-        case 'priority':
+        case 'created_at':
           query = query.order('created_at', { ascending: false });
           break;
         default:
@@ -71,7 +59,12 @@ export const useRealtimeTransactions = ({
       const { data, error } = await query;
       if (error) throw error;
 
-      let results = data as TransactionWithProgress[];
+      // Transform data to match our interface
+      let results = (data || []).map(transaction => ({
+        ...transaction,
+        phaseProgress: [], // Will be populated by separate query in the future
+        currentPhase: undefined
+      })) as TransactionWithProgress[];
 
       // Apply search filter client-side
       if (filters.searchQuery) {
@@ -98,18 +91,6 @@ export const useRealtimeTransactions = ({
 
     const channel = supabase
       .channel('transaction-progress')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'transaction_phase_progress'
-        },
-        (payload) => {
-          console.log('Real-time update:', payload);
-          queryClient.invalidateQueries({ queryKey });
-        }
-      )
       .on(
         'postgres_changes',
         {

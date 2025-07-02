@@ -1,13 +1,52 @@
 
 import { Database } from '@/integrations/supabase/types';
 
-export type TransactionPhase = Database['public']['Tables']['transaction_phases']['Row'];
-export type TransactionPhaseProgress = Database['public']['Tables']['transaction_phase_progress']['Row'];
-export type AgentPerformanceMetrics = Database['public']['Tables']['agent_performance_metrics']['Row'];
+// Use existing database types and extend them as needed
+export type TransactionPhase = {
+  id: string;
+  phase_name: string;
+  phase_order: number;
+  transaction_type: string;
+  service_tier?: string | null;
+  description?: string | null;
+  expected_duration_days?: number | null;
+  required_milestones?: any;
+  automation_triggers?: any;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TransactionPhaseProgress = {
+  id: string;
+  transaction_id: string;
+  phase_id: string;
+  status: PhaseStatus;
+  started_at?: string | null;
+  completed_at?: string | null;
+  expected_completion?: string | null;
+  milestones_completed?: any;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  phase?: TransactionPhase;
+};
+
+export type AgentPerformanceMetrics = {
+  id: string;
+  agent_id: string;
+  metric_date: string;
+  transactions_active: number;
+  avg_phase_duration?: any;
+  completion_rate_by_phase?: any;
+  bottleneck_phases?: any;
+  service_tier_performance?: any;
+  calculated_at: string;
+};
 
 export type PhaseStatus = 'not_started' | 'in_progress' | 'blocked' | 'at_risk' | 'completed' | 'skipped';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
+// Extended transaction type with progress information
 export interface TransactionWithProgress extends Database['public']['Tables']['transactions']['Row'] {
   clients: Database['public']['Tables']['clients']['Row'][];
   tasks: Database['public']['Tables']['tasks']['Row'][];

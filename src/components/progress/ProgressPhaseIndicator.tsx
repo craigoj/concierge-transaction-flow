@@ -99,32 +99,35 @@ export const ProgressPhaseIndicator: React.FC<ProgressPhaseIndicatorProps> = ({
         {phases.filter(p => p.status === 'completed').length} / {phases.length} phases completed
       </div>
 
-      <style jsx>{`
-        .progress-core .progress-bar {
-          background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-        }
-        .progress-elite .progress-bar {
-          background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
-        }
-        .progress-white-glove .progress-bar {
-          background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
-        }
-        .current-phase {
-          position: relative;
-        }
-        .current-phase::after {
-          content: '';
-          position: absolute;
-          bottom: -8px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
-          height: 0;
-          border-left: 4px solid transparent;
-          border-right: 4px solid transparent;
-          border-bottom: 4px solid #3b82f6;
-        }
-      `}</style>
+      {/* Custom CSS styles */}
+      <style>
+        {`
+          .progress-core .progress-bar {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+          }
+          .progress-elite .progress-bar {
+            background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
+          }
+          .progress-white-glove .progress-bar {
+            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+          }
+          .current-phase {
+            position: relative;
+          }
+          .current-phase::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #3b82f6;
+          }
+        `}
+      </style>
     </div>
   );
 };

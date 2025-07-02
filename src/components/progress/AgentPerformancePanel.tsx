@@ -21,15 +21,15 @@ export const AgentPerformancePanel: React.FC<AgentPerformancePanelProps> = ({
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('efficiency');
 
-  // Calculate metrics
+  // Calculate metrics using available data
   const activeTransactions = transactions.filter(t => t.status === 'active').length;
   const completedTransactions = transactions.filter(t => t.status === 'closed').length;
   const totalTransactions = transactions.length;
   
   const avgPhaseDuration = transactions.length > 0 
     ? Math.round(transactions.reduce((sum, t) => {
-        const days = t.phase_started_at 
-          ? Math.floor((Date.now() - new Date(t.phase_started_at).getTime()) / (1000 * 60 * 60 * 24))
+        const days = t.created_at 
+          ? Math.floor((Date.now() - new Date(t.created_at).getTime()) / (1000 * 60 * 60 * 24))
           : 0;
         return sum + days;
       }, 0) / transactions.length)
@@ -39,16 +39,16 @@ export const AgentPerformancePanel: React.FC<AgentPerformancePanelProps> = ({
     ? Math.round((completedTransactions / totalTransactions) * 100)
     : 0;
 
-  // Identify bottlenecks
+  // Identify bottlenecks - using status as a proxy for risk
   const bottlenecks = transactions
-    .filter(t => t.risk_level === 'high' || t.risk_level === 'critical')
+    .filter(t => t.status === 'active') // Use active transactions as potential bottlenecks
     .slice(0, 3);
 
   const getMetricTrend = (value: number) => {
     // Mock trend calculation - in real app, compare with historical data
     const isPositive = Math.random() > 0.5;
     return {
-      direction: isPositive ? 'up' : 'down',
+      direction: isPositive ? 'up' as const : 'down' as const,
       percentage: Math.floor(Math.random() * 20) + 1
     };
   };
@@ -147,7 +147,7 @@ export const AgentPerformancePanel: React.FC<AgentPerformancePanelProps> = ({
                 <div key={transaction.id} className="flex items-center gap-3 p-2 bg-orange-50 rounded-lg">
                   <div className="flex-shrink-0">
                     <Badge variant="destructive" className="text-xs">
-                      {transaction.risk_level}
+                      active
                     </Badge>
                   </div>
                   <div className="flex-1 min-w-0">

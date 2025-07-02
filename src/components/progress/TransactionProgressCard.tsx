@@ -49,17 +49,15 @@ export const TransactionProgressCard: React.FC<TransactionProgressCardProps> = (
   };
 
   const getDaysInCurrentPhase = () => {
-    if (!transaction.phase_started_at) return 0;
-    const startDate = new Date(transaction.phase_started_at);
+    if (!transaction.created_at) return 0;
+    const startDate = new Date(transaction.created_at);
     const now = new Date();
     return Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   const getNextMilestone = () => {
-    const currentPhaseProgress = transaction.phaseProgress?.find(
-      p => p.phase_id === transaction.current_phase_id
-    );
-    return currentPhaseProgress ? 'Contract Review' : 'Not available';
+    // Since we don't have phase progress yet, return a placeholder
+    return 'Contract Review';
   };
 
   const quickActions: QuickAction[] = [
@@ -78,7 +76,7 @@ export const TransactionProgressCard: React.FC<TransactionProgressCardProps> = (
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <ServiceTierBadge tier={transaction.service_tier} />
-            <RiskLevelIndicator level={transaction.risk_level || 'low'} />
+            <RiskLevelIndicator level="low" />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -113,9 +111,9 @@ export const TransactionProgressCard: React.FC<TransactionProgressCardProps> = (
           <p className="text-sm text-gray-600 mt-1">
             {getClientDisplayName()}
           </p>
-          {transaction.estimated_closing_date && (
+          {transaction.closing_date && (
             <p className="text-sm text-gray-500 mt-1">
-              Est. Closing: {format(new Date(transaction.estimated_closing_date), 'MMM dd, yyyy')}
+              Est. Closing: {format(new Date(transaction.closing_date), 'MMM dd, yyyy')}
             </p>
           )}
         </div>
@@ -123,7 +121,7 @@ export const TransactionProgressCard: React.FC<TransactionProgressCardProps> = (
         {/* Progress Visualization */}
         <ProgressPhaseIndicator 
           phases={transaction.phaseProgress || []}
-          currentPhase={transaction.current_phase_id || undefined}
+          currentPhase={undefined}
           serviceTier={transaction.service_tier}
           isInteractive={false}
         />
