@@ -2070,6 +2070,14 @@ export type Database = {
         Args: { p_user_id: string; p_reason?: string }
         Returns: boolean
       }
+      reassign_transaction: {
+        Args: {
+          transaction_id: string
+          new_agent_id: string
+          reassigned_by?: string
+        }
+        Returns: boolean
+      }
       unlock_user_account: {
         Args: { p_user_id: string }
         Returns: boolean
