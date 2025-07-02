@@ -45,7 +45,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
   const [deleteAgent, setDeleteAgent] = useState<Profile | null>(null);
   const { toast } = useToast();
 
-  const { data: agents = [], isLoading, error } = useQuery({
+  const { data: agents = [], isLoading, error, refetch } = useQuery({
     queryKey: ['simplified-agents', refreshTrigger, searchTerm, statusFilter],
     queryFn: async (): Promise<Profile[]> => {
       let query = supabase
@@ -90,11 +90,42 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
       });
 
       setSelectedAgents([]);
+      // Refresh the data
+      await refetch();
       onRefresh();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Bulk Update Failed",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleSingleAgentStatusUpdate = async (agentId: string, newStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          admin_activated: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status Updated",
+        description: `Agent ${newStatus ? 'activated' : 'deactivated'} successfully`,
+      });
+
+      // Refresh the data
+      await refetch();
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Status Update Failed",
         description: error.message,
       });
     }
@@ -258,7 +289,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleBulkStatusUpdate(!agent.admin_activated)}
+                          onClick={() => handleSingleAgentStatusUpdate(agent.id, !agent.admin_activated)}
                         >
                           {agent.admin_activated ? (
                             <>
@@ -333,6 +364,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
           onClose={() => setDeleteAgent(null)}
           onAgentDeleted={() => {
             setDeleteAgent(null);
+            refetch();
             onRefresh();
           }}
         />
