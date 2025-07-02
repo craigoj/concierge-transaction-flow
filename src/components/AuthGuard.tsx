@@ -48,7 +48,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           setSession(session);
           setUser(session.user);
           
-          // Fetch user role
+          // Fetch user role with better error handling
           try {
             logDebug('Fetching user profile...');
             const { data: profile, error: profileError } = await supabase
@@ -60,8 +60,15 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
             if (!mounted) return;
 
             if (profileError) {
-              logDebug('Profile error, using fallback role:', profileError);
-              setUserRole('agent'); // Default fallback
+              logDebug('Profile error:', profileError);
+              // Check if it's a missing profile vs permission issue
+              if (profileError.code === 'PGRST116') {
+                logDebug('Profile not found, using default role');
+                setUserRole('agent'); // Default fallback
+              } else {
+                logDebug('Profile access denied, using fallback role');
+                setUserRole('agent'); // Default fallback
+              }
             } else {
               logDebug('Profile found, role:', profile?.role);
               setUserRole(profile?.role || 'agent');
