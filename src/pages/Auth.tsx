@@ -235,13 +235,6 @@ const Auth = () => {
           </p>
         </div>
 
-        {/* Debug info for testing */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-          <p className="font-semibold text-blue-800">Test Account:</p>
-          <p className="text-blue-600">Email: admin@demo.com</p>
-          <p className="text-blue-600">Password: (any password)</p>
-        </div>
-
         {/* Authentication Card */}
         <Card className="card-brand border-0 shadow-brand-glass">
           <CardHeader className="text-center pb-6">
