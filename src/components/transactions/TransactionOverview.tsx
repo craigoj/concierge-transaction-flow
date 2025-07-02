@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,21 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
   const getServiceTierDisplay = (tier: string | null) => {
     if (!tier) return 'Standard';
     return tier.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Helper function to check service tier levels
+  const isServiceTierLevel = (tier: string | null, level: string) => {
+    if (!tier) return false;
+    switch (level) {
+      case 'core':
+        return tier === 'buyer_core' || tier === 'listing_core';
+      case 'elite':
+        return tier === 'buyer_elite' || tier === 'listing_elite';
+      case 'white_glove':
+        return tier === 'white_glove_buyer' || tier === 'white_glove_listing';
+      default:
+        return false;
+    }
   };
 
   const completedTasks = transaction.tasks?.filter(task => task.is_completed).length || 0;
@@ -554,13 +570,13 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
                     <p className="text-sm text-gray-600">Essential transaction management</p>
                   </div>
                   <Button 
-                    variant={transaction.service_tier === 'core' ? 'default' : 'outline'} 
+                    variant={isServiceTierLevel(transaction.service_tier, 'core') ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => {
                       toast({ title: "Service Tier", description: "Core service tier selected." });
                     }}
                   >
-                    {transaction.service_tier === 'core' ? 'Current' : 'Select'}
+                    {isServiceTierLevel(transaction.service_tier, 'core') ? 'Current' : 'Select'}
                   </Button>
                 </div>
               </div>
@@ -571,13 +587,13 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
                     <p className="text-sm text-gray-600">Enhanced features and priority support</p>
                   </div>
                   <Button 
-                    variant={transaction.service_tier === 'elite' ? 'default' : 'outline'} 
+                    variant={isServiceTierLevel(transaction.service_tier, 'elite') ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => {
                       toast({ title: "Service Tier", description: "Elite service tier selected." });
                     }}
                   >
-                    {transaction.service_tier === 'elite' ? 'Current' : 'Upgrade'}
+                    {isServiceTierLevel(transaction.service_tier, 'elite') ? 'Current' : 'Upgrade'}
                   </Button>
                 </div>
               </div>
@@ -588,13 +604,13 @@ const TransactionOverview = ({ transaction }: TransactionOverviewProps) => {
                     <p className="text-sm text-gray-600">Premium concierge experience</p>
                   </div>
                   <Button 
-                    variant={transaction.service_tier === 'white_glove' ? 'default' : 'outline'} 
+                    variant={isServiceTierLevel(transaction.service_tier, 'white_glove') ? 'default' : 'outline'} 
                     size="sm"
                     onClick={() => {
                       toast({ title: "Service Tier", description: "White Glove service tier selected." });
                     }}
                   >
-                    {transaction.service_tier === 'white_glove' ? 'Current' : 'Upgrade'}
+                    {isServiceTierLevel(transaction.service_tier, 'white_glove') ? 'Current' : 'Upgrade'}
                   </Button>
                 </div>
               </div>
