@@ -117,8 +117,12 @@ const Auth = () => {
         setLoading(false);
       } else {
         logDebug('Sign in successful, user:', data.user?.email);
-        // Don't set loading to false here - let the auth state change handle the redirect
-        // The AuthGuard will handle the navigation
+        // Reset loading and let AuthGuard handle the navigation
+        setLoading(false);
+        toast({
+          title: "Success!",
+          description: "Signed in successfully. Redirecting...",
+        });
       }
     } catch (error) {
       logDebug('Sign in exception:', error);

@@ -118,8 +118,8 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           setUser(session.user);
           setAuthState('authenticated');
           
-          // Fetch role for signed in user
-          setTimeout(async () => {
+          // Fetch role for signed in user - use a small delay to prevent conflicts
+          const fetchRole = async () => {
             try {
               logDebug('Fetching role for signed in user...');
               const { data: profile, error } = await supabase
@@ -139,7 +139,10 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
               logDebug('Error in role fetch:', err);
               setUserRole('agent');
             }
-          }, 100);
+          };
+          
+          // Small delay to ensure state is stable
+          setTimeout(fetchRole, 100);
         }
       }
     );
