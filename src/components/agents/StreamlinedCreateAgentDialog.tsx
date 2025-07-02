@@ -1,33 +1,21 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-const createAgentSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Valid email is required"),
-  phoneNumber: z.string().optional(),
-  brokerage: z.string().optional(),
-  password: z.string().optional(),
-});
-
-type CreateAgentForm = z.infer<typeof createAgentSchema>;
+import { Loader2, UserPlus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StreamlinedCreateAgentDialogProps {
   onAgentCreated: () => void;
@@ -36,136 +24,70 @@ interface StreamlinedCreateAgentDialogProps {
 export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCreateAgentDialogProps) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    brokerage: "",
+  });
   const { toast } = useToast();
 
-  const form = useForm<CreateAgentForm>({
-    resolver: zodResolver(createAgentSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNumber: "",
-      brokerage: "",
-      password: "",
-    },
-  });
-
-  const clearMessages = () => {
-    setError(null);
-    setSuccess(null);
-    setDebugInfo(null);
-  };
-
-  const generatePassword = () => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-      password += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    form.setValue("password", password);
-    setGeneratedPassword(password);
-    setShowPassword(true);
-  };
-
-  const onSubmit = async (data: CreateAgentForm) => {
-    clearMessages();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
-    
-    try {
-      console.log('=== CLIENT SIDE: Starting agent creation ===');
-      console.log('Form data:', data);
-      
-      const { data: response, error } = await supabase.functions.invoke('create-manual-agent', {
-        body: {
-          email: data.email,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phoneNumber: data.phoneNumber || null,
-          brokerage: data.brokerage || null,
-          password: data.password || null,
-        },
-      });
+    setError(null);
 
-      console.log('=== CLIENT SIDE: Edge function response ===');
-      console.log('Response:', response);
-      console.log('Error:', error);
+    try {
+      console.log("Creating agent with data:", formData);
+
+      const { data, error } = await supabase.functions.invoke('create-manual-agent', {
+        body: {
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber,
+          brokerage: formData.brokerage,
+        }
+      });
 
       if (error) {
-        console.error('Edge function error:', error);
-        setError(`Function Error: ${error.message}`);
-        
-        toast({
-          variant: "destructive",
-          title: "Function Error",
-          description: error.message,
-        });
-        return;
+        console.error("Function error:", error);
+        throw new Error(error.message || "Failed to create agent");
       }
 
-      if (!response?.success) {
-        console.error('Edge function returned failure:', response);
-        const errorMessage = response?.error || "Failed to create agent";
-        setError(`Creation Failed: ${errorMessage}`);
-        
-        // Show debug info if available
-        if (response?.details) {
-          setDebugInfo(response.details);
-        }
-        
-        toast({
-          variant: "destructive",
-          title: "Agent Creation Failed",
-          description: errorMessage,
-        });
-        return;
+      if (!data?.success) {
+        console.error("Function returned failure:", data);
+        throw new Error(data?.error || "Failed to create agent");
       }
 
-      console.log('=== CLIENT SIDE: Agent created successfully ===');
-      setSuccess(`Agent ${data.firstName} ${data.lastName} has been created and activated successfully!`);
-      
+      console.log("Agent created successfully:", data);
+
       toast({
         title: "Agent Created Successfully",
-        description: `${data.firstName} ${data.lastName} has been created and activated.`,
+        description: `${formData.firstName} ${formData.lastName} has been created and activated.`,
       });
 
-      // Show password if generated
-      if (response.temporary_password) {
-        setGeneratedPassword(response.temporary_password);
-        toast({
-          title: "Temporary Password Generated",
-          description: "Please share the temporary password with the agent securely.",
-        });
-      }
+      // Reset form and close dialog
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        brokerage: "",
+      });
+      setOpen(false);
+      onAgentCreated();
 
-      // Reset form and close dialog after successful creation
-      setTimeout(() => {
-        form.reset();
-        setOpen(false);
-        setSuccess(null);
-        setGeneratedPassword(null);
-        setDebugInfo(null);
-        onAgentCreated();
-      }, 3000);
-      
     } catch (error: any) {
-      console.error("=== CLIENT SIDE: Unexpected error ===", error);
-      
-      const errorMessage = error.message || "An unexpected error occurred. Please try again.";
-      setError(`Unexpected Error: ${errorMessage}`);
-      setDebugInfo({ 
-        errorType: typeof error,
-        errorMessage: error.message,
-        fullError: error
-      });
+      console.error("Error creating agent:", error);
+      const errorMessage = error.message || "An unexpected error occurred while creating the agent.";
+      setError(errorMessage);
       
       toast({
         variant: "destructive",
-        title: "Unexpected Error",
+        title: "Error Creating Agent",
         description: errorMessage,
       });
     } finally {
@@ -173,224 +95,120 @@ export const StreamlinedCreateAgentDialog = ({ onAgentCreated }: StreamlinedCrea
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-xl shadow-brand-subtle font-brand-heading font-medium tracking-wide">
-          <Plus className="h-4 w-4 mr-2" />
+        <Button className="gap-2">
+          <UserPlus className="h-4 w-4" />
           Create Agent
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] bg-white border-brand-taupe/20 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-brand-heading text-brand-charcoal">
-            Create New Agent Account
-          </DialogTitle>
+          <DialogTitle>Create New Agent</DialogTitle>
           <DialogDescription>
-            Create and activate a new agent account immediately.
+            Create a new agent account. The agent will be automatically activated and ready to use.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Success Message */}
-        {success && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {success}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Debug Information */}
-        {debugInfo && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              <details className="mt-2">
-                <summary className="cursor-pointer font-medium">Debug Information</summary>
-                <pre className="mt-2 text-xs overflow-x-auto bg-white p-2 rounded border">
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              </details>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Basic Information */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName" className="font-brand-body text-brand-charcoal">
-                First Name *
-              </Label>
+              <Label htmlFor="firstName">First Name *</Label>
               <Input
                 id="firstName"
-                {...form.register("firstName")}
-                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange("firstName", e.target.value)}
+                placeholder="John"
+                required
                 disabled={isLoading}
-                onChange={(e) => {
-                  form.setValue("firstName", e.target.value);
-                  clearMessages();
-                }}
               />
-              {form.formState.errors.firstName && (
-                <p className="text-sm text-red-500">{form.formState.errors.firstName.message}</p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName" className="font-brand-body text-brand-charcoal">
-                Last Name *
-              </Label>
+              <Label htmlFor="lastName">Last Name *</Label>
               <Input
                 id="lastName"
-                {...form.register("lastName")}
-                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange("lastName", e.target.value)}
+                placeholder="Doe"
+                required
                 disabled={isLoading}
-                onChange={(e) => {
-                  form.setValue("lastName", e.target.value);
-                  clearMessages();
-                }}
               />
-              {form.formState.errors.lastName && (
-                <p className="text-sm text-red-500">{form.formState.errors.lastName.message}</p>
-              )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="font-brand-body text-brand-charcoal">
-              Email Address *
-            </Label>
+            <Label htmlFor="email">Email Address *</Label>
             <Input
               id="email"
               type="email"
-              {...form.register("email")}
-              className="border-brand-taupe/30 focus:border-brand-charcoal"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              placeholder="john.doe@example.com"
+              required
               disabled={isLoading}
-              onChange={(e) => {
-                form.setValue("email", e.target.value);
-                clearMessages();
-              }}
             />
-            {form.formState.errors.email && (
-              <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber" className="font-brand-body text-brand-charcoal">
-                Phone Number
-              </Label>
-              <Input
-                id="phoneNumber"
-                {...form.register("phoneNumber")}
-                className="border-brand-taupe/30 focus:border-brand-charcoal"
-                disabled={isLoading}
-                onChange={(e) => {
-                  form.setValue("phoneNumber", e.target.value);
-                  clearMessages();
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="brokerage" className="font-brand-body text-brand-charcoal">
-                Brokerage
-              </Label>
-              <Input
-                id="brokerage"
-                {...form.register("brokerage")}
-                className="border-brand-taupe/30 focus:border-brand-charcoal"
-                disabled={isLoading}
-                onChange={(e) => {
-                  form.setValue("brokerage", e.target.value);
-                  clearMessages();
-                }}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+              placeholder="(555) 123-4567"
+              disabled={isLoading}
+            />
           </div>
 
-          {/* Password Section */}
-          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-            <Label className="text-base font-medium text-brand-charcoal">Initial Password</Label>
-            <div className="space-y-2">
-              <div className="flex space-x-2">
-                <div className="relative flex-1">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    {...form.register("password")}
-                    className="border-brand-taupe/30 focus:border-brand-charcoal pr-10"
-                    disabled={isLoading}
-                    placeholder="Leave empty to auto-generate"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-charcoal/40 hover:text-brand-charcoal"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generatePassword}
-                  disabled={isLoading}
-                >
-                  Generate
-                </Button>
-              </div>
-              {generatedPassword && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded text-sm">
-                  <strong>Generated Password:</strong> {generatedPassword}
-                  <br />
-                  <em className="text-green-700">Make sure to share this with the agent securely.</em>
-                </div>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="brokerage">Brokerage</Label>
+            <Input
+              id="brokerage"
+              value={formData.brokerage}
+              onChange={(e) => handleInputChange("brokerage", e.target.value)}
+              placeholder="Real Estate Brokerage"
+              disabled={isLoading}
+            />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setOpen(false);
-                setError(null);
-                setSuccess(null);
-                setDebugInfo(null);
-              }}
+              onClick={() => setOpen(false)}
               disabled={isLoading}
-              className="border-brand-taupe/30 text-brand-charcoal hover:bg-brand-taupe/10"
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-brand-charcoal hover:bg-brand-charcoal/90 text-white rounded-xl font-brand-heading font-medium"
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Agent...
                 </>
               ) : (
-                "Create & Activate Agent"
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create Agent
+                </>
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
