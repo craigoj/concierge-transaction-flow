@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { StreamlinedCreateAgentDialog } from "@/components/agents/StreamlinedCreateAgentDialog";
 import { EnhancedAgentAccountController } from "@/components/agents/EnhancedAgentAccountController";
@@ -8,16 +7,17 @@ import { AgentProfileTemplateManager } from "@/components/agents/AgentProfileTem
 import { CommunicationSettingsPanel } from "@/components/agents/CommunicationSettingsPanel";
 import { RealTimeAgentUpdates } from "@/components/agents/RealTimeAgentUpdates";
 import { AgentCreationTest } from "@/components/agents/AgentCreationTest";
-import { Users, Settings, Download, BarChart3, Mail, MessageSquare, TestTube, UserCog } from "lucide-react";
+import { AdminDashboardHub } from "@/components/agents/AdminDashboardHub";
+import { CommunicationHistoryViewer } from "@/components/agents/CommunicationHistoryViewer";
+import { ProgressCheckpointOverride } from "@/components/agents/ProgressCheckpointOverride";
+import { AgentAnalyticsDashboard } from "@/components/agents/AgentAnalyticsDashboard";
+import { Users, Settings, Download, BarChart3, Mail, MessageSquare, TestTube, UserCog, Activity, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminDashboardHub } from "@/components/agents/AdminDashboardHub";
-import { CommunicationHistoryViewer } from "@/components/agents/CommunicationHistoryViewer";
-import { ProgressCheckpointOverride } from "@/components/agents/ProgressCheckpointOverride";
 
 const Agents = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -63,10 +63,10 @@ const Agents = () => {
             </div>
             <div>
               <h1 className="text-3xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
-                Streamlined Agent Management
+                Advanced Agent Management Suite
               </h1>
               <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Create, manage, and monitor agent accounts with comprehensive controls
+                Complete agent lifecycle management with real-time analytics and advanced automation
               </p>
             </div>
           </div>
@@ -136,13 +136,20 @@ const Agents = () => {
       </div>
 
       <Tabs defaultValue="management" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="management">Agent Management</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="management">Management</TabsTrigger>
+          <TabsTrigger value="analytics">
+            <TrendingUp className="h-4 w-4 mr-1" />
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="realtime">
+            <Activity className="h-4 w-4 mr-1" />
+            Real-time
+          </TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="communication">Communication</TabsTrigger>
-          <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
           <TabsTrigger value="testing">
             <TestTube className="h-4 w-4 mr-1" />
             Testing
@@ -154,6 +161,14 @@ const Agents = () => {
             refreshTrigger={refreshTrigger} 
             onRefresh={handleAgentCreated}
           />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AgentAnalyticsDashboard />
+        </TabsContent>
+
+        <TabsContent value="realtime">
+          <RealTimeAgentUpdates />
         </TabsContent>
 
         <TabsContent value="dashboard">
@@ -191,10 +206,6 @@ const Agents = () => {
 
         <TabsContent value="communication">
           <CommunicationSettingsPanel />
-        </TabsContent>
-
-        <TabsContent value="activity">
-          <RealTimeAgentUpdates />
         </TabsContent>
 
         <TabsContent value="testing">

@@ -1,14 +1,11 @@
-
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, 
   User, 
   Mail, 
   Phone, 
@@ -18,7 +15,6 @@ import {
   CheckCircle, 
   XCircle,
   MoreHorizontal,
-  Filter,
   Users
 } from "lucide-react";
 import {
@@ -39,6 +35,19 @@ import {
 import { EditAgentDialog } from "./EditAgentDialog";
 import { DeleteAgentDialog } from "./DeleteAgentDialog";
 import { BulkActionsDialog } from "./BulkActionsDialog";
+import { AdvancedAgentSearch } from "./AdvancedAgentSearch";
+
+interface SearchFilters {
+  searchTerm: string;
+  status: string;
+  brokerage: string;
+  dateRange: {
+    from: Date | null;
+    to: Date | null;
+  };
+  experience: string;
+  location: string;
+}
 
 interface EnhancedAgentAccountControllerProps {
   refreshTrigger: number;
@@ -48,6 +57,14 @@ interface EnhancedAgentAccountControllerProps {
 export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: EnhancedAgentAccountControllerProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [filters, setFilters] = useState<SearchFilters>({
+    searchTerm: '',
+    status: 'all',
+    brokerage: 'all',
+    dateRange: { from: null, to: null },
+    experience: 'all',
+    location: ''
+  });
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [editingAgent, setEditingAgent] = useState<any>(null);
   const [deletingAgent, setDeletingAgent] = useState<any>(null);
@@ -68,16 +85,72 @@ export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: En
     },
   });
 
-  const filteredAgents = agents.filter(agent => {
-    const matchesSearch = 
-      agent.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || agent.invitation_status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Get unique brokerages for filter options
+  const availableBrokerages = useMemo(() => {
+    const brokerages = agents
+      .map(agent => agent.brokerage)
+      .filter((brokerage, index, arr) => brokerage && arr.indexOf(brokerage) === index);
+    return brokerages;
+  }, [agents]);
+
+  // Apply advanced filtering
+  const filteredAgents = useMemo(() => {
+    return agents.filter(agent => {
+      // Basic search
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const matchesName = `${agent.first_name} ${agent.last_name}`.toLowerCase().includes(searchLower);
+        const matchesEmail = agent.email?.toLowerCase().includes(searchLower);
+        const matchesPhone = agent.phone_number?.toLowerCase().includes(searchLower);
+        
+        if (!matchesName && !matchesEmail && !matchesPhone) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (filters.status !== 'all' && agent.invitation_status !== filters.status) {
+        return false;
+      }
+
+      // Brokerage filter
+      if (filters.brokerage !== 'all' && agent.brokerage !== filters.brokerage) {
+        return false;
+      }
+
+      // Date range filter
+      if (filters.dateRange.from || filters.dateRange.to) {
+        const agentDate = new Date(agent.created_at);
+        if (filters.dateRange.from && agentDate < filters.dateRange.from) {
+          return false;
+        }
+        if (filters.dateRange.to && agentDate > filters.dateRange.to) {
+          return false;
+        }
+      }
+
+      // Experience filter
+      if (filters.experience !== 'all' && agent.years_experience) {
+        const experience = agent.years_experience;
+        switch (filters.experience) {
+          case '0-2':
+            if (experience > 2) return false;
+            break;
+          case '3-5':
+            if (experience < 3 || experience > 5) return false;
+            break;
+          case '6-10':
+            if (experience < 6 || experience > 10) return false;
+            break;
+          case '10+':
+            if (experience < 10) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [agents, filters]);
 
   const selectedAgentObjects = filteredAgents.filter(agent => selectedAgents.includes(agent.id));
 
@@ -184,7 +257,7 @@ export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: En
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Agent Account Management</span>
+            <span>Enhanced Agent Management</span>
             <div className="flex items-center space-x-2">
               {selectedAgents.length > 0 && (
                 <div className="flex items-center space-x-2">
@@ -206,36 +279,23 @@ export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: En
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Search and Filter Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search agents by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="completed">Active</SelectItem>
-                  <SelectItem value="sent">Invited</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          {/* Advanced Search Component */}
+          <AdvancedAgentSearch
+            onFiltersChange={setFilters}
+            availableBrokerages={availableBrokerages}
+          />
 
-          {/* Bulk Selection Controls */}
-          {filteredAgents.length > 0 && (
-            <div className="flex items-center justify-between mb-4 p-2 bg-gray-50 rounded">
+          {/* Results Summary */}
+          <div className="flex items-center justify-between my-6 p-4 bg-gray-50 rounded-lg">
+            <div className="text-sm text-gray-600">
+              Showing {filteredAgents.length} of {agents.length} agents
+              {filters.searchTerm && (
+                <span className="ml-2 font-medium">
+                  matching "{filters.searchTerm}"
+                </span>
+              )}
+            </div>
+            {filteredAgents.length > 0 && (
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -244,16 +304,11 @@ export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: En
                   className="rounded"
                 />
                 <span className="text-sm text-gray-600">
-                  Select All ({filteredAgents.length} agents)
+                  Select All
                 </span>
               </div>
-              {selectedAgents.length > 0 && (
-                <span className="text-sm font-medium text-blue-600">
-                  {selectedAgents.length} selected
-                </span>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Agent List */}
           <div className="space-y-4">
@@ -364,7 +419,7 @@ export const EnhancedAgentAccountController = ({ refreshTrigger, onRefresh }: En
               <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No agents found</h3>
               <p className="text-gray-500">
-                {searchTerm || statusFilter !== "all" 
+                {filters.searchTerm || Object.values(filters).some(f => f !== 'all' && f !== '' && f !== null)
                   ? "No agents match your current filters." 
                   : "No agents have been created yet."}
               </p>
