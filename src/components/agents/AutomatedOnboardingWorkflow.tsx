@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,41 +95,41 @@ export const AutomatedOnboardingWorkflow = () => {
   };
 
   const generateWorkflowSteps = (agent: any): WorkflowStep[] => {
-    const baseSteps = [
+    const baseSteps: WorkflowStep[] = [
       {
         id: 'invitation-sent',
         name: 'Welcome Email Sent',
         description: 'Initial welcome email with setup instructions',
         status: agent.invitation_status === 'sent' ? 'completed' : 'pending',
-        automationType: 'email' as const,
+        automationType: 'email',
       },
       {
         id: 'profile-setup',
         name: 'Profile Setup Reminder',
         description: 'Remind agent to complete profile information',
-        status: agent.phone_number && agent.brokerage ? 'completed' : 'pending',
-        automationType: 'reminder' as const,
+        status: (agent.phone_number && agent.brokerage) ? 'completed' : 'pending',
+        automationType: 'reminder',
       },
       {
         id: 'document-upload',
         name: 'Document Upload Request',
         description: 'Request license and certification documents',
-        status: 'pending',
-        automationType: 'task' as const,
+        status: 'pending' as const,
+        automationType: 'task',
       },
       {
         id: 'calendar-integration',
         name: 'Calendar Integration',
         description: 'Set up calendar sync and availability',
-        status: 'pending',
-        automationType: 'integration' as const,
+        status: 'pending' as const,
+        automationType: 'integration',
       },
       {
         id: 'onboarding-complete',
         name: 'Onboarding Complete',
         description: 'Final confirmation and activation',
         status: agent.onboarding_completed_at ? 'completed' : 'pending',
-        automationType: 'email' as const,
+        automationType: 'email',
       },
     ];
 
