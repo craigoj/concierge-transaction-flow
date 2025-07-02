@@ -55,7 +55,7 @@ function App() {
           {/* Public auth route */}
           <Route path="/auth" element={<Auth />} />
           
-          {/* Coordinator routes */}
+          {/* Root route - will redirect based on role in AuthGuard */}
           <Route path="/" element={
             <AuthGuard>
               <AppLayout>
@@ -63,6 +63,8 @@ function App() {
               </AppLayout>
             </AuthGuard>
           } />
+          
+          {/* Coordinator routes */}
           <Route path="/dashboard" element={
             <AuthGuard>
               <AppLayout>

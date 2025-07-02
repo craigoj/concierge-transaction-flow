@@ -178,6 +178,17 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         return;
       }
 
+      // Handle root path redirection
+      if (location.pathname === '/') {
+        logDebug('User on root path, redirecting based on role');
+        if (userRole === 'agent') {
+          navigate('/agent/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+        return;
+      }
+
       // Role-based route protection
       if (userRole === 'agent') {
         const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
