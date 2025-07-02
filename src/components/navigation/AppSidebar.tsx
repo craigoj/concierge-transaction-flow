@@ -26,7 +26,7 @@ const agentItems = [
 // Coordinator navigation items
 const coordinatorItems = [
   { title: "Dashboard", url: "/", icon: Building2 },
-  { title: "Transactions", url: "/transactions", icon: Building2 },
+  { title: "All Transactions", url: "/transactions", icon: Building2 },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Agents", url: "/agents", icon: User },
   { title: "Documents", url: "/documents", icon: FileText },

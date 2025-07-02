@@ -110,6 +110,15 @@ function App() {
             </AuthGuard>
           } />
           
+          {/* Admin routes */}
+          <Route path="/admin/transactions" element={
+            <AuthGuard>
+              <AppLayout>
+                <Transactions />
+              </AppLayout>
+            </AuthGuard>
+          } />
+          
           {/* Workflow and automation routes */}
           <Route path="/workflows" element={
             <AuthGuard>
