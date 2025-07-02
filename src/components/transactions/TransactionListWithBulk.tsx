@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,13 +20,15 @@ interface TransactionListWithBulkProps {
   isLoading: boolean;
   onTransactionClick: (id: string) => void;
   enableBulkActions?: boolean;
+  onSuccess?: () => void;
 }
 
 export const TransactionListWithBulk = ({ 
   transactions, 
   isLoading, 
   onTransactionClick,
-  enableBulkActions = true
+  enableBulkActions = true,
+  onSuccess
 }: TransactionListWithBulkProps) => {
   const isMobile = useIsMobile();
   const {
@@ -40,6 +41,12 @@ export const TransactionListWithBulk = ({
   } = useBulkSelection();
 
   const transactionIds = transactions.map(t => t.id);
+
+  const handleSuccess = () => {
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -226,7 +233,7 @@ export const TransactionListWithBulk = ({
         <BulkActionBar
           selectedTransactionIds={selectedIds}
           onClearSelection={clearSelection}
-          onSuccess={onSuccess}
+          onSuccess={handleSuccess}
         />
       )}
     </>
