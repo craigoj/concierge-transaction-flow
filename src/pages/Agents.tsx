@@ -18,10 +18,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BulkAgentImporter } from "@/components/agents/BulkAgentImporter";
+import { AutomatedOnboardingWorkflow } from "@/components/agents/AutomatedOnboardingWorkflow";
+import { Import, Workflow } from "lucide-react";
 
 const Agents = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const handleAgentCreated = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -71,9 +75,13 @@ const Agents = () => {
             </div>
           </div>
           <div className="flex space-x-3">
-            <Button variant="outline" className="border-brand-taupe/30">
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
+            <Button 
+              variant="outline" 
+              className="border-brand-taupe/30"
+              onClick={() => setBulkImportOpen(true)}
+            >
+              <Import className="h-4 w-4 mr-2" />
+              Bulk Import
             </Button>
             <Button variant="outline" className="border-brand-taupe/30">
               <Settings className="h-4 w-4 mr-2" />
@@ -136,7 +144,7 @@ const Agents = () => {
       </div>
 
       <Tabs defaultValue="management" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="management">Management</TabsTrigger>
           <TabsTrigger value="analytics">
             <TrendingUp className="h-4 w-4 mr-1" />
@@ -153,6 +161,14 @@ const Agents = () => {
           <TabsTrigger value="testing">
             <TestTube className="h-4 w-4 mr-1" />
             Testing
+          </TabsTrigger>
+          <TabsTrigger value="workflows">
+            <Workflow className="h-4 w-4 mr-1" />
+            Workflows
+          </TabsTrigger>
+          <TabsTrigger value="import">
+            <Import className="h-4 w-4 mr-1" />
+            Import
           </TabsTrigger>
         </TabsList>
 
@@ -217,6 +233,34 @@ const Agents = () => {
               </p>
             </div>
             <AgentCreationTest />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="workflows">
+          <AutomatedOnboardingWorkflow />
+        </TabsContent>
+
+        <TabsContent value="import">
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2">Bulk Agent Import</h2>
+              <p className="text-gray-600 mb-6">
+                Import multiple agents at once using CSV upload or manual entry
+              </p>
+            </div>
+            <BulkAgentImporter 
+              open={bulkImportOpen}
+              onClose={() => setBulkImportOpen(false)}
+              onSuccess={handleAgentCreated}
+            />
+            {!bulkImportOpen && (
+              <div className="text-center">
+                <Button onClick={() => setBulkImportOpen(true)} size="lg">
+                  <Import className="h-5 w-5 mr-2" />
+                  Start Bulk Import
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
