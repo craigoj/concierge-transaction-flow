@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +43,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [deleteAgent, setDeleteAgent] = useState<Profile | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: agents = [], isLoading, error, refetch } = useQuery({
     queryKey: ['simplified-agents', refreshTrigger, searchTerm, statusFilter],
@@ -90,7 +90,8 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
       });
 
       setSelectedAgents([]);
-      // Refresh the data
+      // Invalidate and refetch query
+      await queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
       await refetch();
       onRefresh();
     } catch (error: any) {
@@ -104,6 +105,8 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
 
   const handleSingleAgentStatusUpdate = async (agentId: string, newStatus: boolean) => {
     try {
+      console.log(`Updating agent ${agentId} to ${newStatus ? 'active' : 'inactive'}`);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -112,17 +115,25 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
         })
         .eq('id', agentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
+
+      console.log('Update successful');
 
       toast({
         title: "Status Updated",
         description: `Agent ${newStatus ? 'activated' : 'deactivated'} successfully`,
       });
 
-      // Refresh the data
+      // Force refresh with multiple strategies
+      await queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
+      await queryClient.refetchQueries({ queryKey: ['simplified-agents'] });
       await refetch();
       onRefresh();
     } catch (error: any) {
+      console.error('Status update failed:', error);
       toast({
         variant: "destructive",
         title: "Status Update Failed",
@@ -148,6 +159,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
   };
 
   const getStatusBadge = (agent: Profile) => {
+    console.log(`Agent ${agent.email}: admin_activated = ${agent.admin_activated}`);
     if (agent.admin_activated) {
       return <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>;
     } else {
@@ -364,6 +376,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
           onClose={() => setDeleteAgent(null)}
           onAgentDeleted={() => {
             setDeleteAgent(null);
+            queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
             refetch();
             onRefresh();
           }}
