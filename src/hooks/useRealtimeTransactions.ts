@@ -3,12 +3,16 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TransactionWithProgress, ProgressFilters, SortBy } from '@/types/progress';
+import { Database } from '@/integrations/supabase/types';
 
 interface UseRealtimeTransactionsProps {
   agentId?: string;
   filters?: ProgressFilters;
   sortBy?: SortBy;
 }
+
+type TransactionStatus = Database['public']['Enums']['transaction_status'];
+type ServiceTierType = Database['public']['Enums']['service_tier_type'];
 
 export const useRealtimeTransactions = ({ 
   agentId, 
@@ -37,11 +41,11 @@ export const useRealtimeTransactions = ({
 
       // Apply filters with proper type casting
       if (filters.statusFilter?.length) {
-        query = query.in('status', filters.statusFilter as any);
+        query = query.in('status', filters.statusFilter as TransactionStatus[]);
       }
 
       if (filters.serviceFilter?.length) {
-        query = query.in('service_tier', filters.serviceFilter as any);
+        query = query.in('service_tier', filters.serviceFilter as ServiceTierType[]);
       }
 
       // Apply sorting

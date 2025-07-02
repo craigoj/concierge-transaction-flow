@@ -1,6 +1,9 @@
 
 import { Database } from '@/integrations/supabase/types';
 
+// Base transaction type from database
+export type Transaction = Database['public']['Tables']['transactions']['Row'];
+
 // Use existing database types and extend them as needed
 export type TransactionPhase = {
   id: string;
@@ -47,7 +50,7 @@ export type PhaseStatus = 'not_started' | 'in_progress' | 'blocked' | 'at_risk' 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 // Extended transaction type with progress information
-export interface TransactionWithProgress extends Database['public']['Tables']['transactions']['Row'] {
+export interface TransactionWithProgress extends Transaction {
   clients: Database['public']['Tables']['clients']['Row'][];
   tasks: Database['public']['Tables']['tasks']['Row'][];
   phaseProgress: TransactionPhaseProgress[];
