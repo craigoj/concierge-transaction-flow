@@ -1,14 +1,14 @@
 
 import { useState } from "react";
-import { EnhancedCreateAgentDialog } from "@/components/agents/EnhancedCreateAgentDialog";
-import { EnhancedAgentsList } from "@/components/agents/EnhancedAgentsList";
+import { StreamlinedCreateAgentDialog } from "@/components/agents/StreamlinedCreateAgentDialog";
+import { EnhancedAgentAccountController } from "@/components/agents/EnhancedAgentAccountController";
 import { AgentOnboardingManager } from "@/components/agents/AgentOnboardingManager";
 import { EmailTemplateManager } from "@/components/agents/EmailTemplateManager";
 import { AgentProfileTemplateManager } from "@/components/agents/AgentProfileTemplateManager";
 import { CommunicationSettingsPanel } from "@/components/agents/CommunicationSettingsPanel";
 import { RealTimeAgentUpdates } from "@/components/agents/RealTimeAgentUpdates";
 import { AgentCreationTest } from "@/components/agents/AgentCreationTest";
-import { Users, Settings, UserPlus, Download, BarChart3, Mail, FileText, MessageSquare, TestTube } from "lucide-react";
+import { Users, Settings, Download, BarChart3, Mail, MessageSquare, TestTube, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +27,7 @@ const Agents = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Fetch agents data for the onboarding manager
+  // Fetch agents data for stats
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', refreshTrigger],
     queryFn: async () => {
@@ -63,10 +63,10 @@ const Agents = () => {
             </div>
             <div>
               <h1 className="text-3xl font-brand-heading font-semibold text-brand-charcoal tracking-brand-wide">
-                Enhanced Agent Management
+                Streamlined Agent Management
               </h1>
               <p className="text-brand-charcoal/60 font-brand-body mt-1">
-                Complete agent lifecycle management with advanced controls
+                Create, manage, and monitor agent accounts with comprehensive controls
               </p>
             </div>
           </div>
@@ -79,7 +79,7 @@ const Agents = () => {
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
-            <EnhancedCreateAgentDialog onAgentCreated={handleAgentCreated} />
+            <StreamlinedCreateAgentDialog onAgentCreated={handleAgentCreated} />
           </div>
         </div>
       </div>
@@ -99,7 +99,7 @@ const Agents = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <UserPlus className="h-4 w-4 text-green-600" />
+            <UserCog className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.active}</div>
@@ -135,12 +135,11 @@ const Agents = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+      <Tabs defaultValue="management" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="management">Agent Management</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="list">Agent List</TabsTrigger>
-          <TabsTrigger value="management">Onboarding</TabsTrigger>
-          <TabsTrigger value="templates">Profile Templates</TabsTrigger>
+          <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="communication">Communication</TabsTrigger>
           <TabsTrigger value="activity">Real-time Activity</TabsTrigger>
@@ -150,15 +149,18 @@ const Agents = () => {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="management">
+          <EnhancedAgentAccountController 
+            refreshTrigger={refreshTrigger} 
+            onRefresh={handleAgentCreated}
+          />
+        </TabsContent>
+
         <TabsContent value="dashboard">
           <AdminDashboardHub />
         </TabsContent>
 
-        <TabsContent value="list">
-          <EnhancedAgentsList refreshTrigger={refreshTrigger} />
-        </TabsContent>
-
-        <TabsContent value="management">
+        <TabsContent value="onboarding">
           {!isLoading && (
             <div className="space-y-6">
               <AgentOnboardingManager 
@@ -181,10 +183,6 @@ const Agents = () => {
               )}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="templates">
-          <AgentProfileTemplateManager />
         </TabsContent>
 
         <TabsContent value="email-templates">
