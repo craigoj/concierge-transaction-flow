@@ -5,8 +5,8 @@ import { Database } from '@/integrations/supabase/types';
 import { isWithinInterval, parseISO } from 'date-fns';
 
 type Transaction = Database['public']['Tables']['transactions']['Row'] & {
-  clients?: Database['public']['Tables']['clients']['Row'][];
-  tasks?: Database['public']['Tables']['tasks']['Row'][];
+  clients?: Database['public']['Tables']['clients']['Row'][] | null;
+  tasks?: Database['public']['Tables']['tasks']['Row'][] | null;
 };
 
 const initialFilters: TransactionFilterState = {

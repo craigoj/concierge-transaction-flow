@@ -11,9 +11,9 @@ import { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
-type Transaction = Database['public']['Tables']['transactions']['Row'] & {
-  clients: Database['public']['Tables']['clients']['Row'][];
-  tasks: Database['public']['Tables']['tasks']['Row'][];
+type TransactionWithRelations = Database['public']['Tables']['transactions']['Row'] & {
+  clients: Database['public']['Tables']['clients']['Row'][] | null;
+  tasks: Database['public']['Tables']['tasks']['Row'][] | null;
 };
 
 interface EnhancedTransactionListProps {
@@ -29,7 +29,7 @@ export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = (
   // Fetch all transactions
   const { data: transactions = [], isLoading, refetch } = useQuery({
     queryKey: ['transactions-enhanced'],
-    queryFn: async (): Promise<Transaction[]> => {
+    queryFn: async (): Promise<TransactionWithRelations[]> => {
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -47,7 +47,7 @@ export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = (
         });
         throw error;
       }
-      return data as Transaction[];
+      return data as TransactionWithRelations[];
     },
   });
 
