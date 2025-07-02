@@ -17,6 +17,7 @@ import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useEffect } from "react";
 
 const editAgentSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -107,7 +108,7 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
   };
 
   // Reset form when agent changes
-  useState(() => {
+  useEffect(() => {
     if (agent) {
       form.reset({
         firstName: agent.first_name || "",
