@@ -39,13 +39,39 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
     setError(null);
     
     try {
-      // First, delete from profiles table (this will cascade to related tables due to foreign keys)
-      const { error: deleteError } = await supabase
+      console.log("Starting agent deletion process for agent:", agent.id);
+
+      // First, delete from auth.users using admin privileges
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(agent.id);
+      
+      if (authDeleteError) {
+        console.error("Auth user deletion error:", authDeleteError);
+        // Continue with profile deletion even if auth deletion fails
+      }
+
+      // Delete from profiles table (this should cascade to related tables)
+      const { error: profileDeleteError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', agent.id);
 
-      if (deleteError) throw deleteError;
+      if (profileDeleteError) {
+        console.error("Profile deletion error:", profileDeleteError);
+        throw profileDeleteError;
+      }
+
+      // Also delete from agent_invitations to clean up
+      const { error: invitationDeleteError } = await supabase
+        .from('agent_invitations')
+        .delete()
+        .eq('agent_id', agent.id);
+
+      if (invitationDeleteError) {
+        console.warn("Invitation deletion error (non-critical):", invitationDeleteError);
+        // This is non-critical, continue
+      }
+
+      console.log("Agent deletion completed successfully");
 
       toast({
         title: "Agent Deleted",
