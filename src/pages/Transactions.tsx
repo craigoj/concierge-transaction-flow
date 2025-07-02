@@ -1,30 +1,18 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Settings } from 'lucide-react';
 import { EnhancedTransactionList } from '@/components/transactions/EnhancedTransactionList';
 import { TransactionTemplateManager } from '@/components/transactions/TransactionTemplateManager';
+import { QuickSearch } from '@/components/transactions/QuickSearch';
 import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
-
-type Transaction = Database['public']['Tables']['transactions']['Row'] & {
-  clients: Database['public']['Tables']['clients']['Row'][];
-  tasks: Database['public']['Tables']['tasks']['Row'][];
-};
-
-type TransactionStatus = 'active' | 'intake' | 'closed';
 
 const Transactions = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('active');
-  const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
@@ -37,46 +25,7 @@ const Transactions = () => {
     }
   }, [location.pathname]);
 
-  const { data: transactions, isLoading, refetch } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: async (): Promise<Transaction[]> => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          clients (*),
-          tasks (*)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load transactions",
-        });
-        throw error;
-      }
-      return data as Transaction[];
-    },
-  });
-
-  const filteredTransactions = transactions?.filter(transaction => {
-    const status = transaction.status as TransactionStatus;
-    switch (activeTab) {
-      case 'active':
-        return status === 'active';
-      case 'pending':
-        return status === 'intake';
-      case 'completed':
-        return status === 'closed';
-      default:
-        return true;
-    }
-  }) || [];
-
   const handleTransactionCreate = () => {
-    refetch();
     setCreateDialogOpen(false);
     toast({
       title: "Success",
@@ -125,6 +74,14 @@ const Transactions = () => {
         <div className="w-24 h-px bg-brand-taupe"></div>
       </div>
 
+      {/* Quick Search Bar */}
+      <div className="mb-8">
+        <QuickSearch 
+          className="max-w-md"
+          placeholder="Quick search transactions, clients, or addresses..."
+        />
+      </div>
+
       {/* Template Manager Modal */}
       {templateManagerOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -144,7 +101,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Enhanced Progress Grid - Replace old tab system */}
+      {/* Enhanced Transaction List with Filtering */}
       <div className="space-y-8">
         <EnhancedTransactionList className="w-full" />
       </div>
