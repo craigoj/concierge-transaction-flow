@@ -9,6 +9,7 @@ import TransactionTimeline from '@/components/transactions/TransactionTimeline';
 import TransactionDocuments from '@/components/transactions/TransactionDocuments';
 import TransactionTasks from '@/components/transactions/TransactionTasks';
 import TransactionCommunications from '@/components/transactions/TransactionCommunications';
+import { TransactionReassignButton } from '@/components/transactions/TransactionReassignButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ const TransactionDetail = () => {
   const { role, loading: roleLoading } = useUserRole();
 
   // Use the existing hook that properly handles authentication
-  const { data: transaction, isLoading, error } = useTransactionData(transactionId || '');
+  const { data: transaction, isLoading, error, refetch } = useTransactionData(transactionId || '');
 
   // Show loading while checking user role
   if (roleLoading) {
@@ -140,18 +141,28 @@ const TransactionDetail = () => {
           <Breadcrumb items={customBreadcrumbs} />
         </div>
 
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/transactions')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Transactions
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-              {transaction.property_address}
-            </h1>
-            <p className="text-muted-foreground">
-              {transaction.city}, {transaction.state} {transaction.zip_code}
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/transactions')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Transactions
+            </Button>
+            <div>
+              <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+                {transaction.property_address}
+              </h1>
+              <p className="text-muted-foreground">
+                {transaction.city}, {transaction.state} {transaction.zip_code}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex gap-2">
+            <TransactionReassignButton 
+              transaction={transaction}
+              onSuccess={() => refetch()}
+            />
           </div>
         </div>
 

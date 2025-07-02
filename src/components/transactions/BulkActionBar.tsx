@@ -1,138 +1,133 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Users, Workflow, Download, X } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Trash2, Archive, CheckCircle, Users, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
-
-type TransactionStatus = Database['public']['Enums']['transaction_status'];
+import { supabase } from '@/integrations/supabase/client';
+import { useUserRole } from '@/hooks/useUserRole';
+import { BulkReassignDialog } from './BulkReassignDialog';
 
 interface BulkActionBarProps {
   selectedTransactionIds: string[];
+  onSuccess: () => void;
   onClearSelection: () => void;
 }
 
-export const BulkActionBar = ({ selectedTransactionIds, onClearSelection }: BulkActionBarProps) => {
+const BulkActionBar = ({ selectedTransactionIds, onSuccess, onClearSelection }: BulkActionBarProps) => {
+  const [loading, setLoading] = useState(false);
+  const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { role } = useUserRole();
 
-  const bulkStatusUpdateMutation = useMutation({
-    mutationFn: async ({ status }: { status: TransactionStatus }) => {
-      const { data, error } = await supabase.rpc('bulk_update_transaction_status', {
-        transaction_ids: selectedTransactionIds,
-        new_status: status
-      });
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (updatedCount) => {
-      toast({
-        title: "Bulk Update Successful",
-        description: `Updated ${updatedCount} transactions`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      onClearSelection();
-    },
-    onError: (error) => {
+  const isCoordinator = role === 'coordinator';
+
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    if (!isCoordinator) {
       toast({
         variant: "destructive",
-        title: "Bulk Update Failed",
+        title: "Access Denied",
+        description: "Only coordinators can perform bulk status updates.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('bulk_update_transaction_status', {
+        transaction_ids: selectedTransactionIds,
+        new_status: newStatus
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Updated ${selectedTransactionIds.length} transactions to ${newStatus}.`,
+      });
+
+      onSuccess();
+      onClearSelection();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
         description: error.message,
       });
+    } finally {
+      setLoading(false);
     }
-  });
-
-  const handleStatusUpdate = (status: string) => {
-    bulkStatusUpdateMutation.mutate({ status: status as TransactionStatus });
   };
 
-  if (selectedTransactionIds.length === 0) return null;
+  if (selectedTransactionIds.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white border border-brand-taupe/30 rounded-2xl shadow-brand-elevation p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-brand-charcoal text-white">
-              {selectedTransactionIds.length} selected
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearSelection}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+    <>
+      <Card className="mb-6 border-blue-200 bg-blue-50/50">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-blue-600" />
+              <span className="font-medium text-blue-900">
+                {selectedTransactionIds.length} transaction{selectedTransactionIds.length !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {isCoordinator && (
+                <>
+                  {/* Status Update */}
+                  <Select onValueChange={handleBulkStatusUpdate} disabled={loading}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Update Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="intake">Set to Intake</SelectItem>
+                      <SelectItem value="active">Set to Active</SelectItem>
+                      <SelectItem value="closed">Set to Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Bulk Reassign */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setBulkReassignOpen(true)}
+                    disabled={loading}
+                    className="gap-2"
+                  >
+                    <UserX className="h-4 w-4" />
+                    Reassign
+                  </Button>
+                </>
+              )}
+
+              {/* Clear Selection */}
+              <Button
+                variant="outline"
+                onClick={onClearSelection}
+                disabled={loading}
+              >
+                Clear Selection
+              </Button>
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="h-6 w-px bg-brand-taupe/30" />
-
-          <div className="flex items-center gap-2">
-            <Select onValueChange={handleStatusUpdate}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Update Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="intake">Set to Intake</SelectItem>
-                <SelectItem value="active">Set to Active</SelectItem>
-                <SelectItem value="closed">Set to Closed</SelectItem>
-                <SelectItem value="cancelled">Set to Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // TODO: Implement bulk agent assignment
-                toast({
-                  title: "Coming Soon",
-                  description: "Bulk agent assignment will be available soon",
-                });
-              }}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Assign Agent
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // TODO: Implement bulk workflow application
-                toast({
-                  title: "Coming Soon",
-                  description: "Bulk workflow application will be available soon",
-                });
-              }}
-            >
-              <Workflow className="h-4 w-4 mr-2" />
-              Apply Workflow
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // TODO: Implement bulk export
-                toast({
-                  title: "Coming Soon",
-                  description: "Bulk export will be available soon",
-                });
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <BulkReassignDialog
+        open={bulkReassignOpen}
+        onOpenChange={setBulkReassignOpen}
+        selectedTransactionIds={selectedTransactionIds}
+        onSuccess={() => {
+          onSuccess();
+          onClearSelection();
+        }}
+      />
+    </>
   );
 };
+
+export default BulkActionBar;
