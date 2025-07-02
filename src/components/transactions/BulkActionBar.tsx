@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { BulkReassignDialog } from './BulkReassignDialog';
+import { Database } from '@/integrations/supabase/types';
+
+type TransactionStatus = Database['public']['Enums']['transaction_status'];
 
 interface BulkActionBarProps {
   selectedTransactionIds: string[];
@@ -23,7 +26,7 @@ const BulkActionBar = ({ selectedTransactionIds, onSuccess, onClearSelection }: 
 
   const isCoordinator = role === 'coordinator';
 
-  const handleBulkStatusUpdate = async (newStatus: string) => {
+  const handleBulkStatusUpdate = async (newStatus: TransactionStatus) => {
     if (!isCoordinator) {
       toast({
         variant: "destructive",

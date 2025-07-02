@@ -8,7 +8,7 @@ import { Calendar, MapPin, User, CheckCircle, Building } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BulkActionBar } from './BulkActionBar';
+import BulkActionBar from './BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 
 type Transaction = Tables<'transactions'> & {
@@ -226,6 +226,7 @@ export const TransactionListWithBulk = ({
         <BulkActionBar
           selectedTransactionIds={selectedIds}
           onClearSelection={clearSelection}
+          onSuccess={onSuccess}
         />
       )}
     </>
