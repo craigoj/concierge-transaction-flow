@@ -19,7 +19,8 @@ import {
   User,
   Users,
   Filter,
-  Trash2
+  Trash2,
+  Edit
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteAgentDialog } from "./DeleteAgentDialog";
+import { EditAgentDialog } from "./EditAgentDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -42,6 +44,7 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [deleteAgent, setDeleteAgent] = useState<Profile | null>(null);
+  const [editAgent, setEditAgent] = useState<Profile | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -90,7 +93,6 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
       });
 
       setSelectedAgents([]);
-      // Invalidate and refetch query
       await queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
       await refetch();
       onRefresh();
@@ -127,7 +129,6 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
         description: `Agent ${newStatus ? 'activated' : 'deactivated'} successfully`,
       });
 
-      // Force refresh with multiple strategies
       await queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
       await queryClient.refetchQueries({ queryKey: ['simplified-agents'] });
       await refetch();
@@ -301,6 +302,12 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          onClick={() => setEditAgent(agent)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Agent
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => handleSingleAgentStatusUpdate(agent.id, !agent.admin_activated)}
                         >
                           {agent.admin_activated ? (
@@ -344,6 +351,22 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
                         <span className="text-sm">{agent.phone_number}</span>
                       </div>
                     )}
+                    {agent.license_number && (
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm">License: {agent.license_number}</span>
+                      </div>
+                    )}
+                    {agent.years_experience && (
+                      <div className="text-sm text-gray-600">
+                        Experience: {agent.years_experience} years
+                      </div>
+                    )}
+                    {agent.specialties && agent.specialties.length > 0 && (
+                      <div className="text-sm text-gray-600">
+                        Specialties: {agent.specialties.join(', ')}
+                      </div>
+                    )}
                     <div className="text-xs text-gray-500">
                       Created: {new Date(agent.created_at).toLocaleDateString()}
                     </div>
@@ -376,6 +399,20 @@ export const SimplifiedAgentsList = ({ refreshTrigger, onRefresh }: SimplifiedAg
           onClose={() => setDeleteAgent(null)}
           onAgentDeleted={() => {
             setDeleteAgent(null);
+            queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
+            refetch();
+            onRefresh();
+          }}
+        />
+      )}
+
+      {editAgent && (
+        <EditAgentDialog
+          agent={editAgent}
+          open={!!editAgent}
+          onClose={() => setEditAgent(null)}
+          onAgentUpdated={() => {
+            setEditAgent(null);
             queryClient.invalidateQueries({ queryKey: ['simplified-agents'] });
             refetch();
             onRefresh();

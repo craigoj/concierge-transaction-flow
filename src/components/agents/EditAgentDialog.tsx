@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,9 +26,15 @@ const editAgentSchema = z.object({
   email: z.string().email("Valid email is required"),
   phoneNumber: z.string().optional(),
   brokerage: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  yearsExperience: z.number().min(0).max(50).optional().or(z.literal("")),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  specialties: z.string().optional(),
 });
 
-type EditAgentForm = z.infer<typeof editAgentSchema>;
+type EditAgentForm = z.infer<typeof editAgentSchema> & {
+  yearsExperience: number | "";
+};
 
 interface EditAgentDialogProps {
   agent: any;
@@ -50,6 +57,10 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
       email: agent?.email || "",
       phoneNumber: agent?.phone_number || "",
       brokerage: agent?.brokerage || "",
+      licenseNumber: agent?.license_number || "",
+      yearsExperience: agent?.years_experience || "",
+      bio: agent?.bio || "",
+      specialties: agent?.specialties?.join(", ") || "",
     },
   });
 
@@ -63,6 +74,11 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
     setIsLoading(true);
     
     try {
+      // Process specialties - convert comma-separated string to array
+      const specialtiesArray = data.specialties 
+        ? data.specialties.split(',').map(s => s.trim()).filter(s => s.length > 0)
+        : null;
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -71,6 +87,10 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
           email: data.email,
           phone_number: data.phoneNumber || null,
           brokerage: data.brokerage || null,
+          license_number: data.licenseNumber || null,
+          years_experience: data.yearsExperience || null,
+          bio: data.bio || null,
+          specialties: specialtiesArray,
           updated_at: new Date().toISOString(),
         })
         .eq('id', agent.id);
@@ -116,19 +136,23 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
         email: agent.email || "",
         phoneNumber: agent.phone_number || "",
         brokerage: agent.brokerage || "",
+        licenseNumber: agent.license_number || "",
+        yearsExperience: agent.years_experience || "",
+        bio: agent.bio || "",
+        specialties: agent.specialties?.join(", ") || "",
       });
     }
   }, [agent, form]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-white border-brand-taupe/20">
+      <DialogContent className="sm:max-w-[600px] bg-white border-brand-taupe/20 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-brand-heading text-brand-charcoal">
-            Edit Agent Account
+            Edit Agent Profile
           </DialogTitle>
           <DialogDescription>
-            Update agent information and account details.
+            Update agent information and professional details.
           </DialogDescription>
         </DialogHeader>
 
@@ -244,6 +268,86 @@ export const EditAgentDialog = ({ agent, open, onClose, onAgentUpdated }: EditAg
                 }}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="licenseNumber" className="font-brand-body text-brand-charcoal">
+                License Number
+              </Label>
+              <Input
+                id="licenseNumber"
+                {...form.register("licenseNumber")}
+                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                disabled={isLoading}
+                onChange={(e) => {
+                  form.setValue("licenseNumber", e.target.value);
+                  clearMessages();
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="yearsExperience" className="font-brand-body text-brand-charcoal">
+                Years of Experience
+              </Label>
+              <Input
+                id="yearsExperience"
+                type="number"
+                min="0"
+                max="50"
+                {...form.register("yearsExperience", { 
+                  setValueAs: (value) => value === "" ? "" : parseInt(value) 
+                })}
+                className="border-brand-taupe/30 focus:border-brand-charcoal"
+                disabled={isLoading}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? "" : parseInt(e.target.value);
+                  form.setValue("yearsExperience", value);
+                  clearMessages();
+                }}
+              />
+              {form.formState.errors.yearsExperience && (
+                <p className="text-sm text-red-500">{form.formState.errors.yearsExperience.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="specialties" className="font-brand-body text-brand-charcoal">
+              Specialties <span className="text-sm text-gray-500">(comma-separated)</span>
+            </Label>
+            <Input
+              id="specialties"
+              {...form.register("specialties")}
+              placeholder="e.g., Luxury Homes, First-Time Buyers, Commercial"
+              className="border-brand-taupe/30 focus:border-brand-charcoal"
+              disabled={isLoading}
+              onChange={(e) => {
+                form.setValue("specialties", e.target.value);
+                clearMessages();
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bio" className="font-brand-body text-brand-charcoal">
+              Bio <span className="text-sm text-gray-500">(max 500 characters)</span>
+            </Label>
+            <Textarea
+              id="bio"
+              {...form.register("bio")}
+              placeholder="Professional bio and background..."
+              className="border-brand-taupe/30 focus:border-brand-charcoal min-h-[100px]"
+              disabled={isLoading}
+              maxLength={500}
+              onChange={(e) => {
+                form.setValue("bio", e.target.value);
+                clearMessages();
+              }}
+            />
+            {form.formState.errors.bio && (
+              <p className="text-sm text-red-500">{form.formState.errors.bio.message}</p>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
