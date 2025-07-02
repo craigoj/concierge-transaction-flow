@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { ServiceTierComparison } from '@/components/forms/components/ServiceTierCard';
+import { AgentSelector } from '@/components/agents/AgentSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfileSync } from '@/hooks/useProfileSync';
@@ -39,25 +40,52 @@ export const EnhancedCreateTransactionDialog = ({
     client_name: '',
     client_email: '',
     client_phone: '',
-    client_type: ''
+    client_type: '',
+    agent_id: ''
   });
 
   const { toast } = useToast();
   const { user } = useAuth();
   const { syncVendorsToTransaction, activateServiceTierAutomations } = useProfileSync();
 
+  // Get current user's role to determine if they can assign to other agents
+  const { data: currentUserProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const isCoordinator = currentUserProfile?.role === 'coordinator';
+
+  // Set default agent to current user when dialog opens
+  useEffect(() => {
+    if (open && user?.id && !formData.agent_id) {
+      setFormData(prev => ({ ...prev, agent_id: user.id }));
+    }
+  }, [open, user?.id]);
+
   // Get agent vendors for auto-population
   const { data: agentVendors } = useQuery({
-    queryKey: ['agent_vendors', user?.id],
+    queryKey: ['agent_vendors', formData.agent_id || user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      const targetAgentId = formData.agent_id || user?.id;
+      if (!targetAgentId) return [];
       const { data } = await supabase
         .from('agent_vendors')
         .select('*')
-        .eq('agent_id', user.id);
+        .eq('agent_id', targetAgentId);
       return data || [];
     },
-    enabled: !!user?.id && open
+    enabled: !!(formData.agent_id || user?.id) && open
   });
 
   const serviceTiers = [
@@ -117,6 +145,8 @@ export const EnhancedCreateTransactionDialog = ({
     try {
       if (!user) throw new Error('Not authenticated');
 
+      const selectedAgentId = formData.agent_id || user.id;
+
       // Create transaction
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -129,7 +159,7 @@ export const EnhancedCreateTransactionDialog = ({
           service_tier: selectedTier,
           purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
           closing_date: formData.closing_date || null,
-          agent_id: user.id,
+          agent_id: selectedAgentId,
           status: 'intake'
         })
         .select()
@@ -152,7 +182,7 @@ export const EnhancedCreateTransactionDialog = ({
         if (clientError) throw clientError;
       }
 
-      // Sync vendors to transaction
+      // Sync vendors to transaction for the assigned agent
       if (agentVendors && agentVendors.length > 0) {
         await syncVendorsToTransaction({
           transactionId: transaction.id,
@@ -180,7 +210,8 @@ export const EnhancedCreateTransactionDialog = ({
         client_name: '',
         client_email: '',
         client_phone: '',
-        client_type: ''
+        client_type: '',
+        agent_id: ''
       });
       setSelectedTier(null);
       setCurrentStep(1);
@@ -219,7 +250,34 @@ export const EnhancedCreateTransactionDialog = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {currentStep === 1 && (
             <>
-              {/* Property Information */}
+              {/* Agent Assignment - Only show for coordinators */}
+              {isCoordinator ? (
+                <>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Assignment</h3>
+                    <AgentSelector
+                      selectedAgentId={formData.agent_id}
+                      onAgentSelect={(agentId) => setFormData(prev => ({ ...prev, agent_id: agentId }))}
+                      label="Assign to Agent"
+                      placeholder="Select agent to assign this transaction to..."
+                      currentUserId={user?.id}
+                      showCurrentUserFirst={true}
+                    />
+                  </div>
+                  <Separator />
+                </>
+              ) : (
+                <>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      This transaction will be assigned to you.
+                    </p>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* Property & Transaction Details */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Property & Transaction Details</h3>
                 

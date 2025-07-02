@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AgentSelector } from '@/components/agents/AgentSelector';
+import { useAuth } from '@/integrations/supabase/auth';
+import { useQuery } from '@tanstack/react-query';
 
 interface CreateTransactionDialogProps {
   open: boolean;
@@ -29,17 +32,45 @@ const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransa
     client_name: '',
     client_email: '',
     client_phone: '',
-    client_type: ''
+    client_type: '',
+    agent_id: ''
   });
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Get current user's role to determine if they can assign to other agents
+  const { data: currentUserProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const isCoordinator = currentUserProfile?.role === 'coordinator';
+
+  // Set default agent to current user when dialog opens
+  React.useEffect(() => {
+    if (open && user?.id && !formData.agent_id) {
+      setFormData(prev => ({ ...prev, agent_id: user.id }));
+    }
+  }, [open, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      const selectedAgentId = formData.agent_id || user.id;
 
       // Create transaction
       const { data: transaction, error: transactionError } = await supabase
@@ -53,7 +84,7 @@ const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransa
           service_tier: formData.service_tier as any,
           purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
           closing_date: formData.closing_date || null,
-          agent_id: user.id,
+          agent_id: selectedAgentId,
           status: 'intake'
         })
         .select()
@@ -89,7 +120,8 @@ const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransa
         client_name: '',
         client_email: '',
         client_phone: '',
-        client_type: ''
+        client_type: '',
+        agent_id: ''
       });
     } catch (error: any) {
       toast({
@@ -110,6 +142,27 @@ const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransa
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Agent Assignment - Only show for coordinators or make it clear for agents */}
+          {isCoordinator ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Assignment</h3>
+              <AgentSelector
+                selectedAgentId={formData.agent_id}
+                onAgentSelect={(agentId) => setFormData(prev => ({ ...prev, agent_id: agentId }))}
+                label="Assign to Agent"
+                placeholder="Select agent to assign this transaction to..."
+                currentUserId={user?.id}
+                showCurrentUserFirst={true}
+              />
+            </div>
+          ) : (
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                This transaction will be assigned to you.
+              </p>
+            </div>
+          )}
+
           {/* Property Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Property Information</h3>
