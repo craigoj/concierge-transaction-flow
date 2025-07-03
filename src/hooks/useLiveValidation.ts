@@ -1,146 +1,71 @@
-
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/integrations/supabase/auth';
 
-interface ValidationRule {
-  field: string;
-  validator: (value: any, allData?: Record<string, any>) => Promise<string | null>;
+interface ValidationResult {
+  isValid: boolean | null;
+  message: string | null;
+  isLoading: boolean;
 }
 
-interface LiveValidationOptions {
-  rules: ValidationRule[];
-  debounceMs?: number;
-}
-
-export const useLiveValidation = ({ rules, debounceMs = 500 }: LiveValidationOptions) => {
+export const useLiveValidation = (
+  tableName: string,
+  columnName: string,
+  value: string,
+  debounceTime: number = 500
+): ValidationResult => {
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isValidating, setIsValidating] = useState<Record<string, boolean>>({});
 
-  const validateField = useCallback(async (field: string, value: any, allData?: Record<string, any>) => {
-    const rule = rules.find(r => r.field === field);
-    if (!rule) return;
+  const validate = useCallback(
+    (currentValue: string) => {
+      if (!currentValue || !user?.id) {
+        setIsValid(null);
+        setMessage(null);
+        return;
+      }
 
-    setIsValidating(prev => ({ ...prev, [field]: true }));
+      setIsLoading(true);
+      supabase
+        .from(tableName)
+        .select(columnName)
+        .eq('created_by', user.id)
+        .eq(columnName, currentValue)
+        .then((response) => {
+          const { data, error } = response;
+          setIsLoading(false);
 
-    try {
-      const error = await rule.validator(value, allData);
-      setErrors(prev => ({
-        ...prev,
-        [field]: error || ''
-      }));
-    } catch (error) {
-      console.error(`Validation error for field ${field}:`, error);
-      setErrors(prev => ({ ...prev, [field]: 'Validation failed' }));
-    } finally {
-      setIsValidating(prev => ({ ...prev, [field]: false }));
-    }
-  }, [rules]);
-
-  const validateAllFields = useCallback(async (data: Record<string, any>) => {
-    const validationPromises = rules.map(rule => 
-      validateField(rule.field, data[rule.field], data)
-    );
-    
-    await Promise.all(validationPromises);
-  }, [rules, validateField]);
-
-  const clearErrors = useCallback(() => {
-    setErrors({});
-    setIsValidating({});
-  }, []);
-
-  const hasErrors = useMemo(() => 
-    Object.values(errors).some(error => error && error.length > 0),
-    [errors]
+          if (error) {
+            setIsValid(false);
+            setMessage(`Validation error: ${error.message}`);
+          } else {
+            // Assuming that if data exists, the value is not unique
+            const isUnique = data === null || data.length === 0;
+            setIsValid(isUnique);
+            setMessage(isUnique ? 'Value is unique' : 'Value already exists');
+          }
+        });
+    },
+    [tableName, columnName, user?.id]
   );
 
-  return {
-    errors,
-    isValidating,
-    validateField,
-    validateAllFields,
-    clearErrors,
-    hasErrors
-  };
-};
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
 
-// Common validation functions
-export const createEmailValidator = () => async (email: string): Promise<string | null> => {
-  if (!email) return null;
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return 'Invalid email format';
-  }
-  
-  return null;
-};
-
-export const createPhoneValidator = () => async (phone: string): Promise<string | null> => {
-  if (!phone) return null;
-  
-  const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
-  if (!phoneRegex.test(phone)) {
-    return 'Invalid phone format';
-  }
-  
-  return null;
-};
-
-export const createDuplicateVendorValidator = (userId: string) => async (
-  vendorData: any,
-  allData?: Record<string, any>
-): Promise<string | null> => {
-  if (!vendorData?.company_name || !vendorData?.vendor_type) return null;
-
-  try {
-    const { data, error } = await supabase
-      .from('agent_vendors')
-      .select('id')
-      .eq('agent_id', userId)
-      .eq('vendor_type', vendorData.vendor_type)
-      .eq('company_name', vendorData.company_name)
-      .limit(1);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      return 'This vendor is already in your list';
+    if (value) {
+      timeoutId = setTimeout(() => {
+        validate(value);
+      }, debounceTime);
+    } else {
+      setIsValid(null);
+      setMessage(null);
     }
 
-    return null;
-  } catch (error) {
-    console.error('Duplicate vendor validation error:', error);
-    return null;
-  }
+    return () => clearTimeout(timeoutId);
+  }, [value, debounceTime, validate]);
+
+  return { isValid, message, isLoading };
 };
 
-export const createTransactionConflictValidator = (userId: string) => async (
-  propertyAddress: string,
-  allData?: Record<string, any>
-): Promise<string | null> => {
-  if (!propertyAddress) return null;
-
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('id, status')
-      .eq('agent_id', userId)
-      .eq('property_address', propertyAddress)
-      .in('status', ['active', 'intake'])
-      .limit(1);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      return 'An active transaction already exists for this property';
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Transaction conflict validation error:', error);
-    return null;
-  }
-};

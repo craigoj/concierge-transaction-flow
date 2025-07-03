@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus, Trash2, DollarSign, FileText, Home, CreditCard, Building, Wifi, WifiOff } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/integrations/supabase/auth';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Save, Send, FileText, DollarSign, Calendar, Home, AlertCircle, Plus, Minus } from 'lucide-react';
+import { CurrencyInput } from '@/components/forms/components/CurrencyInput';
+import { ContactArrayInput } from '@/components/forms/components/ContactArrayInput';
+import { FormTransitions } from '@/components/forms/components/FormTransitions';
+import { LoadingStates } from '@/components/forms/components/LoadingStates';
+import { ProgressIndicator } from '@/components/forms/components/ProgressIndicator';
 import { useFormAutoSave } from '@/hooks/useFormAutoSave';
-import { useLiveValidation, createEmailValidator, createPhoneValidator, createTransactionConflictValidator } from '@/hooks/useLiveValidation';
 import { useRealtimeOfferUpdates } from '@/hooks/useRealtimeOfferUpdates';
 
 // Form validation schema

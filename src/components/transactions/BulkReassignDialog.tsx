@@ -1,169 +1,145 @@
-
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { AgentSelector } from '@/components/agents/AgentSelector';
-import { useAuth } from '@/integrations/supabase/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Users } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, UserCheck } from 'lucide-react';
 
 interface BulkReassignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedTransactionIds: string[];
-  onSuccess: () => void;
+  transactionIds: string[];
+  onSuccess?: () => void;
 }
 
-export const BulkReassignDialog = ({
+export const BulkReassignDialog: React.FC<BulkReassignDialogProps> = ({
   open,
   onOpenChange,
-  selectedTransactionIds,
-  onSuccess
-}: BulkReassignDialogProps) => {
-  const [loading, setLoading] = useState(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  transactionIds,
+  onSuccess,
+}) => {
+  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
+  const [isReassigning, setIsReassigning] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Get current user's role to ensure they're a coordinator
-  const { data: currentUserProfile } = useQuery({
-    queryKey: ['profile', user?.id],
+  const { data: agents, isLoading } = useQuery({
+    queryKey: ['agents'],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      if (error) throw error;
+        .select('id, first_name, last_name, email')
+        .eq('role', 'agent');
+
+      if (error) {
+        throw error;
+      }
+
       return data;
     },
-    enabled: !!user?.id,
   });
 
-  const isCoordinator = currentUserProfile?.role === 'coordinator';
-
-  const handleBulkReassign = async () => {
+  const handleReassign = async () => {
     if (!selectedAgentId) {
       toast({
-        variant: "destructive",
-        title: "No Agent Selected",
-        description: "Please select an agent to assign the transactions to.",
+        title: 'Error',
+        description: 'Please select an agent to reassign to.',
+        variant: 'destructive',
       });
       return;
     }
 
-    setLoading(true);
+    setIsReassigning(true);
 
     try {
-      // Perform bulk reassignment using Promise.all for concurrent operations
-      const reassignPromises = selectedTransactionIds.map(transactionId =>
-        supabase.rpc('reassign_transaction', {
-          transaction_id: transactionId,
-          new_agent_id: selectedAgentId,
-          reassigned_by: user?.id
-        })
-      );
+      const { error } = await supabase
+        .from('transactions')
+        .update({ agent_id: selectedAgentId })
+        .in('id', transactionIds);
 
-      const results = await Promise.all(reassignPromises);
-      
-      // Check for any errors
-      const errors = results.filter(result => result.error);
-      
-      if (errors.length > 0) {
-        throw new Error(`Failed to reassign ${errors.length} transactions`);
+      if (error) {
+        throw error;
       }
 
       toast({
-        title: "Success",
-        description: `Successfully reassigned ${selectedTransactionIds.length} transactions.`,
+        title: 'Success',
+        description: 'Transactions reassigned successfully.',
       });
-
-      onSuccess();
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to reassign transactions.",
+        title: 'Error',
+        description: error.message || 'Failed to reassign transactions.',
+        variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setIsReassigning(false);
     }
   };
 
-  if (!isCoordinator) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Access Denied
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground">
-              Only coordinators can perform bulk reassignments.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Bulk Reassign Transactions
-          </DialogTitle>
+          <DialogTitle>Reassign Transactions</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-6 py-4">
-          {/* Selection Info */}
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="font-medium text-sm text-muted-foreground mb-2">Selected Transactions</h4>
-            <p className="font-semibold">
-              {selectedTransactionIds.length} transaction{selectedTransactionIds.length !== 1 ? 's' : ''} selected
-            </p>
-            <p className="text-sm text-muted-foreground">
-              All selected transactions will be assigned to the chosen agent.
-            </p>
-          </div>
-
-          {/* Agent Selection */}
-          <div className="space-y-2">
-            <AgentSelector
-              selectedAgentId={selectedAgentId}
-              onAgentSelect={setSelectedAgentId}
-              label="Assign To Agent"
-              placeholder="Select agent for all transactions..."
-              currentUserId={user?.id}
-              showCurrentUserFirst={false}
-            />
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label htmlFor="agent" className="text-right font-medium">
+              Agent
+            </label>
+            <div className="col-span-3">
+              <Select onValueChange={setSelectedAgentId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading agents...
+                    </SelectItem>
+                  ) : (
+                    agents?.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.first_name} {agent.last_name} ({agent.email})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex justify-end">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleBulkReassign} 
-            disabled={loading || !selectedAgentId}
+          <Button
+            type="button"
+            onClick={handleReassign}
+            disabled={isReassigning || isLoading || !selectedAgentId}
+            className="ml-2"
           >
-            {loading ? 'Reassigning...' : `Reassign ${selectedTransactionIds.length} Transactions`}
+            {isReassigning ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Reassigning...
+              </>
+            ) : (
+              <>
+                <UserCheck className="mr-2 h-4 w-4" />
+                Reassign
+              </>
+            )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

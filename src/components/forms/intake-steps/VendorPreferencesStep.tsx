@@ -1,475 +1,633 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/integrations/supabase/auth';
-import { ChevronDown, ChevronRight, Plus, Trash2, Building2, AlertCircle } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus, Minus, Star, Building, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
 
-const vendorTypes = [
-  { key: 'lender', label: 'Lender', required: true, icon: Building2 },
-  { key: 'settlement', label: 'Settlement Company', required: true, icon: Building2 },
-  { key: 'home_inspection', label: 'Home Inspection', required: true, icon: Building2 },
-  { key: 'termite_inspection', label: 'Termite Inspection', required: false, icon: Building2 },
-  { key: 'photography', label: 'Photography', required: false, icon: Building2 },
-  { key: 'staging', label: 'Staging', required: false, icon: Building2 },
-  { key: 'cleaning', label: 'Cleaning', required: false, icon: Building2 },
-  { key: 'lawn_care', label: 'Lawn Care', required: false, icon: Building2 }
-];
-
-const vendorSchema = z.object({
-  id: z.string().optional(),
-  company_name: z.string().min(1, 'Company name is required'),
-  contact_name: z.string().optional(),
-  email: z.string().email('Invalid email format').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-  is_primary: z.boolean().default(false)
-});
-
-type VendorFormData = z.infer<typeof vendorSchema>;
-
-interface VendorsData {
-  [key: string]: VendorFormData[];
+interface Vendor {
+  type: string;
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  address: string;
+  notes: string;
 }
-
-const formSchema = z.object({
-  vendors: z.record(z.string(), z.array(vendorSchema))
-}).refine((data) => {
-  // Check required vendor types have at least one vendor
-  const requiredTypes = vendorTypes.filter(t => t.required).map(t => t.key);
-  return requiredTypes.every(type => 
-    data.vendors[type] && data.vendors[type].length > 0
-  );
-}, {
-  message: 'Lender, Settlement Company, and Home Inspection are required',
-  path: ['vendors']
-});
-
-type FormData = z.infer<typeof formSchema>;
 
 interface VendorPreferencesStepProps {
-  onComplete: (data: VendorsData) => void;
   onNext: () => void;
-  initialData?: VendorsData;
+  onPrevious: () => void;
+  onSubmit: (data: any) => void;
+  initialData?: any;
 }
 
-export const VendorPreferencesStep = ({ onComplete, onNext, initialData }: VendorPreferencesStepProps) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [openSections, setOpenSections] = useState<string[]>(['lender']);
-  const [isLoading, setIsLoading] = useState(false);
-  const [vendorsData, setVendorsData] = useState<VendorsData>(
-    vendorTypes.reduce((acc, type) => ({
-      ...acc,
-      [type.key]: initialData?.[type.key] || []
-    }), {} as VendorsData)
-  );
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      vendors: vendorsData
-    }
+const VendorPreferencesStep: React.FC<VendorPreferencesStepProps> = ({ 
+  onNext, 
+  onPrevious, 
+  onSubmit, 
+  initialData 
+}) => {
+  const [titleCompany, setTitleCompany] = useState<Vendor>(initialData?.titleCompany || {
+    type: 'Title Company',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
   });
+  const [homeInspector, setHomeInspector] = useState<Vendor>(initialData?.homeInspector || {
+    type: 'Home Inspector',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [termiteInspector, setTermiteInspector] = useState<Vendor>(initialData?.termiteInspector || {
+    type: 'Termite Inspector',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [lender, setLender] = useState<Vendor>(initialData?.lender || {
+    type: 'Lender',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [photographer, setPhotographer] = useState<Vendor>(initialData?.photographer || {
+    type: 'Photographer',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [stagingCompany, setStagingCompany] = useState<Vendor>(initialData?.stagingCompany || {
+    type: 'Staging Company',
+    name: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [otherVendors, setOtherVendors] = useState<Vendor[]>(initialData?.otherVendors || []);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Load existing vendor data
-  useEffect(() => {
-    const loadVendorData = async () => {
-      if (!user?.id) return;
+  const handleAddOtherVendor = () => {
+    setOtherVendors([
+      ...otherVendors,
+      {
+        type: '',
+        name: '',
+        contactName: '',
+        phone: '',
+        email: '',
+        address: '',
+        notes: '',
+      },
+    ]);
+  };
 
-      try {
-        const { data, error } = await supabase
-          .from('agent_vendors')
-          .select('*')
-          .eq('agent_id', user.id);
+  const handleRemoveOtherVendor = (index: number) => {
+    const newVendors = [...otherVendors];
+    newVendors.splice(index, 1);
+    setOtherVendors(newVendors);
+  };
 
-        if (error) throw error;
+  const handleOtherVendorChange = (index: number, field: string, value: string) => {
+    const newVendors = [...otherVendors];
+    newVendors[index][field] = value;
+    setOtherVendors(newVendors);
+  };
 
-        if (data && data.length > 0) {
-          const groupedVendors: VendorsData = data.reduce((acc, vendor) => {
-            if (!acc[vendor.vendor_type]) {
-              acc[vendor.vendor_type] = [];
-            }
-            acc[vendor.vendor_type].push({
-              id: vendor.id,
-              company_name: vendor.company_name,
-              contact_name: vendor.contact_name || '',
-              email: vendor.email || '',
-              phone: vendor.phone || '',
-              address: vendor.address || '',
-              notes: vendor.notes || '',
-              is_primary: vendor.is_primary
-            });
-            return acc;
-          }, {} as VendorsData);
-
-          setVendorsData({ ...vendorsData, ...groupedVendors });
-          form.reset({ vendors: { ...vendorsData, ...groupedVendors } });
-        }
-      } catch (error) {
-        console.error('Error loading vendor data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load existing vendor data',
-          variant: 'destructive'
-        });
-      }
+  const handleSubmit = () => {
+    const data = {
+      titleCompany,
+      homeInspector,
+      termiteInspector,
+      lender,
+      photographer,
+      stagingCompany,
+      otherVendors,
     };
-
-    loadVendorData();
-  }, [user?.id, toast]);
-
-  const toggleSection = (sectionKey: string) => {
-    setOpenSections(prev => 
-      prev.includes(sectionKey) 
-        ? prev.filter(key => key !== sectionKey)
-        : [...prev, sectionKey]
-    );
-  };
-
-  const addVendor = (vendorType: string) => {
-    const currentVendors = vendorsData[vendorType] || [];
-    const newVendor: VendorFormData = {
-      company_name: '',
-      contact_name: '',
-      email: '',
-      phone: '',
-      address: '',
-      notes: '',
-      is_primary: currentVendors.length === 0
-    };
-    
-    const updatedVendors = [...currentVendors, newVendor];
-    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
-    
-    setVendorsData(newVendorsData);
-    form.setValue('vendors', newVendorsData);
-    
-    // Open the section if it's not already open
-    if (!openSections.includes(vendorType)) {
-      setOpenSections(prev => [...prev, vendorType]);
-    }
-  };
-
-  const removeVendor = (vendorType: string, index: number) => {
-    const currentVendors = vendorsData[vendorType] || [];
-    const updatedVendors = currentVendors.filter((_, i) => i !== index);
-    
-    // If we're removing the primary vendor, make the first remaining vendor primary
-    if (currentVendors[index]?.is_primary && updatedVendors.length > 0) {
-      updatedVendors[0].is_primary = true;
-    }
-    
-    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
-    setVendorsData(newVendorsData);
-    form.setValue('vendors', newVendorsData);
-  };
-
-  const setPrimaryVendor = (vendorType: string, index: number) => {
-    const currentVendors = vendorsData[vendorType] || [];
-    const updatedVendors = currentVendors.map((vendor, i) => ({
-      ...vendor,
-      is_primary: i === index
-    }));
-    
-    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
-    setVendorsData(newVendorsData);
-    form.setValue('vendors', newVendorsData);
-  };
-
-  const updateVendorField = (vendorType: string, index: number, field: keyof VendorFormData, value: string | boolean) => {
-    const currentVendors = vendorsData[vendorType] || [];
-    const updatedVendors = [...currentVendors];
-    updatedVendors[index] = { ...updatedVendors[index], [field]: value };
-    
-    const newVendorsData = { ...vendorsData, [vendorType]: updatedVendors };
-    setVendorsData(newVendorsData);
-    form.setValue('vendors', newVendorsData);
-  };
-
-  const handleSave = async (data: FormData) => {
-    if (!user?.id) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to save vendor preferences',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Delete existing vendors for this agent
-      await supabase
-        .from('agent_vendors')
-        .delete()
-        .eq('agent_id', user.id);
-
-      // Insert new vendor data
-      const vendorInserts = [];
-      Object.entries(data.vendors).forEach(([vendorType, vendors]) => {
-        vendors.forEach(vendor => {
-          if (vendor.company_name.trim()) {
-            vendorInserts.push({
-              agent_id: user.id,
-              vendor_type: vendorType,
-              company_name: vendor.company_name,
-              contact_name: vendor.contact_name || null,
-              email: vendor.email || null,
-              phone: vendor.phone || null,
-              address: vendor.address || null,
-              notes: vendor.notes || null,
-              is_primary: vendor.is_primary
-            });
-          }
-        });
-      });
-
-      if (vendorInserts.length > 0) {
-        const { error } = await supabase
-          .from('agent_vendors')
-          .insert(vendorInserts);
-
-        if (error) throw error;
-      }
-
-      onComplete(data.vendors);
-      onNext();
-      
-      toast({
-        title: 'Success',
-        description: 'Vendor preferences saved successfully',
-      });
-    } catch (error) {
-      console.error('Error saving vendor data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save vendor preferences',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Check if we have validation errors for required vendor types
-  const hasRequiredVendorErrors = () => {
-    const requiredTypes = vendorTypes.filter(t => t.required);
-    return requiredTypes.some(type => {
-      const vendors = vendorsData[type.key] || [];
-      return vendors.length === 0;
-    });
+    onSubmit(data);
+    onNext();
   };
 
   return (
-    <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-      <CardHeader>
-        <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
-          <Building2 className="h-6 w-6" />
-          Vendor Preferences
-        </CardTitle>
-        <p className="text-brand-charcoal/70 font-brand-body">
-          Set up your preferred vendors for different services. Required vendors are marked with an asterisk (*).
-        </p>
+    <Card className="card-brand border-0 shadow-brand-glass">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold">Vendor Preferences</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
-          <div className="space-y-4">
-            {vendorTypes.map((vendorType) => {
-              const vendors = vendorsData[vendorType.key] || [];
-              const isOpen = openSections.includes(vendorType.key);
-              const hasError = vendors.length === 0 && vendorType.required;
+      <CardContent className="space-y-4">
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="title-company">
+            <AccordionTrigger>
+              <Building className="mr-2 h-4 w-4" />
+              Title Company
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyName">Name</Label>
+                  <Input
+                    type="text"
+                    id="titleCompanyName"
+                    value={titleCompany.name}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="titleCompanyContactName"
+                    value={titleCompany.contactName}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="titleCompanyPhone"
+                    value={titleCompany.phone}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="titleCompanyEmail"
+                    value={titleCompany.email}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="titleCompanyAddress"
+                    value={titleCompany.address}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleCompanyNotes">Notes</Label>
+                  <Textarea
+                    id="titleCompanyNotes"
+                    value={titleCompany.notes}
+                    onChange={(e) => setTitleCompany({ ...titleCompany, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-              return (
-                <Collapsible key={vendorType.key} open={isOpen} onOpenChange={() => toggleSection(vendorType.key)}>
-                  <CollapsibleTrigger asChild>
-                    <div className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                      hasError 
-                        ? 'border-red-300 bg-red-50' 
-                        : isOpen 
-                        ? 'border-brand-charcoal bg-brand-charcoal text-brand-background' 
-                        : 'border-brand-taupe/30 bg-brand-background hover:border-brand-taupe hover:bg-brand-taupe/10'
-                    }`}>
-                      <div className="flex items-center gap-3">
-                        <vendorType.icon className="h-5 w-5" />
-                        <div>
-                          <h4 className="font-brand-heading tracking-wide uppercase text-base">
-                            {vendorType.label}
-                            {vendorType.required && <span className="text-red-500 ml-1">*</span>}
-                          </h4>
-                          <p className="text-sm opacity-80">
-                            {vendors.length} vendor{vendors.length !== 1 ? 's' : ''} configured
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {hasError && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    <div className="space-y-4 pl-4">
-                      {vendors.map((vendor, index) => (
-                        <div key={index} className="border border-brand-taupe/30 rounded-lg p-4 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h5 className="font-brand-heading text-sm tracking-wide uppercase text-brand-charcoal">
-                              Vendor #{index + 1}
-                            </h5>
-                            <div className="flex items-center gap-2">
-                              {vendors.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeVendor(vendorType.key, index)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
+          <AccordionItem value="home-inspector">
+            <AccordionTrigger>
+              <Home className="mr-2 h-4 w-4" />
+              Home Inspector
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorName">Name</Label>
+                  <Input
+                    type="text"
+                    id="homeInspectorName"
+                    value={homeInspector.name}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="homeInspectorContactName"
+                    value={homeInspector.contactName}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="homeInspectorPhone"
+                    value={homeInspector.phone}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="homeInspectorEmail"
+                    value={homeInspector.email}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="homeInspectorAddress"
+                    value={homeInspector.address}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homeInspectorNotes">Notes</Label>
+                  <Textarea
+                    id="homeInspectorNotes"
+                    value={homeInspector.notes}
+                    onChange={(e) => setHomeInspector({ ...homeInspector, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Company Name <span className="text-red-500">*</span>
-                              </Label>
-                              <Input
-                                value={vendor.company_name}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'company_name', e.target.value)}
-                                placeholder="Enter company name"
-                              />
-                            </div>
+          <AccordionItem value="termite-inspector">
+            <AccordionTrigger>
+              <FileText className="mr-2 h-4 w-4" />
+              Termite Inspector
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorName">Name</Label>
+                  <Input
+                    type="text"
+                    id="termiteInspectorName"
+                    value={termiteInspector.name}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="termiteInspectorContactName"
+                    value={termiteInspector.contactName}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="termiteInspectorPhone"
+                    value={termiteInspector.phone}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="termiteInspectorEmail"
+                    value={termiteInspector.email}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="termiteInspectorAddress"
+                    value={termiteInspector.address}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="termiteInspectorNotes">Notes</Label>
+                  <Textarea
+                    id="termiteInspectorNotes"
+                    value={termiteInspector.notes}
+                    onChange={(e) => setTermiteInspector({ ...termiteInspector, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-                            <div className="space-y-2">
-                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Contact Name
-                              </Label>
-                              <Input
-                                value={vendor.contact_name}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'contact_name', e.target.value)}
-                                placeholder="Enter contact name"
-                              />
-                            </div>
+          <AccordionItem value="lender">
+            <AccordionTrigger>
+              <DollarSign className="mr-2 h-4 w-4" />
+              Lender
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lenderName">Name</Label>
+                  <Input
+                    type="text"
+                    id="lenderName"
+                    value={lender.name}
+                    onChange={(e) => setLender({ ...lender, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lenderContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="lenderContactName"
+                    value={lender.contactName}
+                    onChange={(e) => setLender({ ...lender, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lenderPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="lenderPhone"
+                    value={lender.phone}
+                    onChange={(e) => setLender({ ...lender, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lenderEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="lenderEmail"
+                    value={lender.email}
+                    onChange={(e) => setLender({ ...lender, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lenderAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="lenderAddress"
+                    value={lender.address}
+                    onChange={(e) => setLender({ ...lender, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lenderNotes">Notes</Label>
+                  <Textarea
+                    id="lenderNotes"
+                    value={lender.notes}
+                    onChange={(e) => setLender({ ...lender, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-                            <div className="space-y-2">
-                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Email
-                              </Label>
-                              <Input
-                                type="email"
-                                value={vendor.email}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'email', e.target.value)}
-                                placeholder="Enter email address"
-                              />
-                            </div>
+          <AccordionItem value="photographer">
+            <AccordionTrigger>
+              <Camera className="mr-2 h-4 w-4" />
+              Photographer
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="photographerName">Name</Label>
+                  <Input
+                    type="text"
+                    id="photographerName"
+                    value={photographer.name}
+                    onChange={(e) => setPhotographer({ ...photographer, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photographerContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="photographerContactName"
+                    value={photographer.contactName}
+                    onChange={(e) => setPhotographer({ ...photographer, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photographerPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="photographerPhone"
+                    value={photographer.phone}
+                    onChange={(e) => setPhotographer({ ...photographer, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photographerEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="photographerEmail"
+                    value={photographer.email}
+                    onChange={(e) => setPhotographer({ ...photographer, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photographerAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="photographerAddress"
+                    value={photographer.address}
+                    onChange={(e) => setPhotographer({ ...photographer, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="photographerNotes">Notes</Label>
+                  <Textarea
+                    id="photographerNotes"
+                    value={photographer.notes}
+                    onChange={(e) => setPhotographer({ ...photographer, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-                            <div className="space-y-2">
-                              <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                                Phone
-                              </Label>
-                              <Input
-                                type="tel"
-                                value={vendor.phone}
-                                onChange={(e) => updateVendorField(vendorType.key, index, 'phone', e.target.value)}
-                                placeholder="Enter phone number"
-                              />
-                            </div>
-                          </div>
+          <AccordionItem value="staging-company">
+            <AccordionTrigger>
+              <Layout className="mr-2 h-4 w-4" />
+              Staging Company
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyName">Name</Label>
+                  <Input
+                    type="text"
+                    id="stagingCompanyName"
+                    value={stagingCompany.name}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyContactName">Contact Name</Label>
+                  <Input
+                    type="text"
+                    id="stagingCompanyContactName"
+                    value={stagingCompany.contactName}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, contactName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyPhone">Phone</Label>
+                  <Input
+                    type="tel"
+                    id="stagingCompanyPhone"
+                    value={stagingCompany.phone}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyEmail">Email</Label>
+                  <Input
+                    type="email"
+                    id="stagingCompanyEmail"
+                    value={stagingCompany.email}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyAddress">Address</Label>
+                  <Input
+                    type="text"
+                    id="stagingCompanyAddress"
+                    value={stagingCompany.address}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stagingCompanyNotes">Notes</Label>
+                  <Textarea
+                    id="stagingCompanyNotes"
+                    value={stagingCompany.notes}
+                    onChange={(e) => setStagingCompany({ ...stagingCompany, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-                          <div className="space-y-2">
-                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                              Address
-                            </Label>
-                            <Input
-                              value={vendor.address}
-                              onChange={(e) => updateVendorField(vendorType.key, index, 'address', e.target.value)}
-                              placeholder="Enter full address"
-                            />
-                          </div>
+        <Separator className="my-4" />
 
-                          <div className="space-y-2">
-                            <Label className="font-brand-heading text-sm tracking-wide uppercase">
-                              Notes
-                            </Label>
-                            <Textarea
-                              rows={2}
-                              value={vendor.notes}
-                              onChange={(e) => updateVendorField(vendorType.key, index, 'notes', e.target.value)}
-                              placeholder="Any additional notes..."
-                            />
-                          </div>
-
-                          {vendors.length > 1 && (
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id={`primary-${vendorType.key}-${index}`}
-                                name={`primary-${vendorType.key}`}
-                                checked={vendor.is_primary}
-                                onChange={() => setPrimaryVendor(vendorType.key, index)}
-                                className="h-4 w-4 text-brand-charcoal"
-                              />
-                              <Label 
-                                htmlFor={`primary-${vendorType.key}-${index}`}
-                                className="font-brand-heading text-sm tracking-wide uppercase cursor-pointer"
-                              >
-                                Primary Vendor
-                              </Label>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => addVendor(vendorType.key)}
-                        className="w-full flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add {vendorType.label}
-                      </Button>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              );
-            })}
-          </div>
-
-          {hasRequiredVendorErrors() && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <p className="text-sm text-red-600 font-brand-body">
-                Lender, Settlement Company, and Home Inspection are required
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-6">
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="min-w-32"
-            >
-              {isLoading ? 'Saving...' : 'Save & Continue'}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Other Vendors</h4>
+            <Button type="button" variant="outline" size="sm" onClick={handleAddOtherVendor}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Vendor
             </Button>
           </div>
-        </form>
+          {otherVendors.map((vendor, index) => (
+            <Card key={index} className="mb-4">
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorType-${index}`}>Type</Label>
+                    <Input
+                      type="text"
+                      id={`otherVendorType-${index}`}
+                      value={vendor.type}
+                      onChange={(e) => handleOtherVendorChange(index, 'type', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorName-${index}`}>Name</Label>
+                    <Input
+                      type="text"
+                      id={`otherVendorName-${index}`}
+                      value={vendor.name}
+                      onChange={(e) => handleOtherVendorChange(index, 'name', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorContactName-${index}`}>Contact Name</Label>
+                    <Input
+                      type="text"
+                      id={`otherVendorContactName-${index}`}
+                      value={vendor.contactName}
+                      onChange={(e) => handleOtherVendorChange(index, 'contactName', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorPhone-${index}`}>Phone</Label>
+                    <Input
+                      type="tel"
+                      id={`otherVendorPhone-${index}`}
+                      value={vendor.phone}
+                      onChange={(e) => handleOtherVendorChange(index, 'phone', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorEmail-${index}`}>Email</Label>
+                    <Input
+                      type="email"
+                      id={`otherVendorEmail-${index}`}
+                      value={vendor.email}
+                      onChange={(e) => handleOtherVendorChange(index, 'email', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorAddress-${index}`}>Address</Label>
+                    <Input
+                      type="text"
+                      id={`otherVendorAddress-${index}`}
+                      value={vendor.address}
+                      onChange={(e) => handleOtherVendorChange(index, 'address', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`otherVendorNotes-${index}`}>Notes</Label>
+                    <Textarea
+                      id={`otherVendorNotes-${index}`}
+                      value={vendor.notes}
+                      onChange={(e) => handleOtherVendorChange(index, 'notes', e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemoveOtherVendor(index)}
+                    className="mt-4"
+                  >
+                    <Minus className="mr-2 h-4 w-4" />
+                    Remove Vendor
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex justify-between">
+          <Button variant="secondary" onClick={onPrevious}>
+            Previous
+          </Button>
+          <Button onClick={handleSubmit}>Next</Button>
+        </div>
       </CardContent>
     </Card>
   );
 };
+
+export default VendorPreferencesStep;

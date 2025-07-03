@@ -1,423 +1,254 @@
-
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { ServiceTierComparison } from '@/components/forms/components/ServiceTierCard';
-import { AgentSelector } from '@/components/agents/AgentSelector';
-import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useProfileSync } from '@/hooks/useProfileSync';
-import { useAuth } from '@/integrations/supabase/auth';
-import { useQuery } from '@tanstack/react-query';
-import { ServiceTierType } from '@/types/serviceTiers';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus, Loader2, AlertTriangle, Users, DollarSign, Calendar, Home } from 'lucide-react';
 
 interface EnhancedCreateTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
-export const EnhancedCreateTransactionDialog = ({ 
-  open, 
-  onOpenChange, 
-  onSuccess 
-}: EnhancedCreateTransactionDialogProps) => {
-  const [loading, setLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedTier, setSelectedTier] = useState<ServiceTierType | null>(null);
-  const [formData, setFormData] = useState({
-    property_address: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    transaction_type: '',
-    purchase_price: '',
-    closing_date: '',
-    client_name: '',
-    client_email: '',
-    client_phone: '',
-    client_type: '',
-    agent_id: ''
-  });
-
+const EnhancedCreateTransactionDialog: React.FC<EnhancedCreateTransactionDialogProps> = ({
+  open,
+  onOpenChange,
+  onSuccess,
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [agentId, setAgentId] = useState('');
+  const [closingDate, setClosingDate] = useState('');
+  const [earnestMoney, setEarnestMoney] = useState('');
+  const [status, setStatus] = useState('active');
+  const [notes, setNotes] = useState('');
+  const [agentList, setAgentList] = useState<{ value: string; label: string }[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { syncVendorsToTransaction, activateServiceTierAutomations } = useProfileSync();
 
-  // Get current user's role to determine if they can assign to other agents
-  const { data: currentUserProfile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  const isCoordinator = currentUserProfile?.role === 'coordinator';
-
-  // Set default agent to current user when dialog opens
   useEffect(() => {
-    if (open && user?.id && !formData.agent_id) {
-      setFormData(prev => ({ ...prev, agent_id: user.id }));
-    }
-  }, [open, user?.id]);
+    const fetchAgents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('role', 'agent');
 
-  // Get agent vendors for auto-population
-  const { data: agentVendors } = useQuery({
-    queryKey: ['agent_vendors', formData.agent_id || user?.id],
-    queryFn: async () => {
-      const targetAgentId = formData.agent_id || user?.id;
-      if (!targetAgentId) return [];
-      const { data } = await supabase
-        .from('agent_vendors')
-        .select('*')
-        .eq('agent_id', targetAgentId);
-      return data || [];
-    },
-    enabled: !!(formData.agent_id || user?.id) && open
-  });
+        if (error) {
+          console.error('Error fetching agents:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to fetch agents.',
+          });
+          return;
+        }
 
-  const serviceTiers = [
-    {
-      id: 'buyer_core' as ServiceTierType,
-      name: 'Core Buyer Service',
-      description: 'Essential transaction coordination and support',
-      price: 500,
-      features: [
-        { name: 'Transaction coordination', included: true },
-        { name: 'Document management', included: true },
-        { name: 'Basic communication', included: true },
-        { name: 'Timeline tracking', included: true },
-        { name: 'Premium marketing', included: false },
-        { name: 'Concierge services', included: false }
-      ]
-    },
-    {
-      id: 'buyer_elite' as ServiceTierType,
-      name: 'Elite Buyer Service',
-      description: 'Enhanced service with premium features',
-      price: 1200,
-      popular: true,
-      features: [
-        { name: 'Transaction coordination', included: true },
-        { name: 'Document management', included: true },
-        { name: 'Premium communication', included: true },
-        { name: 'Timeline tracking', included: true },
-        { name: 'Premium marketing', included: true },
-        { name: 'Professional photography', included: true },
-        { name: 'Concierge services', included: false }
-      ]
-    },
-    {
-      id: 'white_glove_buyer' as ServiceTierType,
-      name: 'White Glove Buyer',
-      description: 'Ultimate luxury service experience',
-      price: 2500,
-      premium: true,
-      features: [
-        { name: 'Transaction coordination', included: true },
-        { name: 'Document management', included: true },
-        { name: 'Premium communication', included: true },
-        { name: 'Timeline tracking', included: true },
-        { name: 'Premium marketing', included: true },
-        { name: 'Professional photography', included: true },
-        { name: 'Concierge services', included: true },
-        { name: 'Dedicated support', included: true }
-      ]
-    }
-  ];
+        const formattedAgents = data.map((agent) => ({
+          value: agent.id,
+          label: `${agent.first_name} ${agent.last_name}`,
+        }));
+        setAgentList(formattedAgents);
+      } catch (error: any) {
+        console.error('Error fetching agents:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to fetch agents.',
+        });
+      }
+    };
+
+    fetchAgents();
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      if (!user) throw new Error('Not authenticated');
+      if (!user?.id) {
+        throw new Error('User ID not found. Please ensure you are logged in.');
+      }
 
-      const selectedAgentId = formData.agent_id || user.id;
+      if (!agentId) {
+        throw new Error('Please select an agent for this transaction.');
+      }
 
-      // Create transaction
-      const { data: transaction, error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          property_address: formData.property_address,
-          city: formData.city,
-          state: formData.state,
-          zip_code: formData.zip_code,
-          transaction_type: formData.transaction_type as any,
-          service_tier: selectedTier,
-          purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
-          closing_date: formData.closing_date || null,
-          agent_id: selectedAgentId,
-          status: 'intake'
-        })
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .insert([{
+          full_name: clientName,
+          created_by: user.id,
+        }])
         .select()
         .single();
 
-      if (transactionError) throw transactionError;
-
-      // Create client if provided
-      if (formData.client_name) {
-        const { error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            transaction_id: transaction.id,
-            full_name: formData.client_name,
-            email: formData.client_email || null,
-            phone: formData.client_phone || null,
-            type: formData.client_type as any
-          });
-
-        if (clientError) throw clientError;
+      if (clientError) {
+        throw new Error(`Client creation error: ${clientError.message}`);
       }
 
-      // Sync vendors to transaction for the assigned agent
-      if (agentVendors && agentVendors.length > 0) {
-        await syncVendorsToTransaction({
-          transactionId: transaction.id,
-          vendors: agentVendors
-        });
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert([{
+          property_address: propertyAddress,
+          client_id: clientData.id,
+          agent_id: agentId,
+          closing_date: closingDate,
+          earnest_money_amount: parseFloat(earnestMoney),
+          status: status,
+          notes: notes,
+          created_by: user.id,
+        }])
+        .select()
+        .single();
+
+      if (transactionError) {
+        throw new Error(`Transaction creation error: ${transactionError.message}`);
       }
 
-      // Activate service tier automations
-      if (selectedTier) {
-        await activateServiceTierAutomations({
-          transactionId: transaction.id,
-          serviceTier: selectedTier
-        });
-      }
-
-      onSuccess();
-      setFormData({
-        property_address: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        transaction_type: '',
-        purchase_price: '',
-        closing_date: '',
-        client_name: '',
-        client_email: '',
-        client_phone: '',
-        client_type: '',
-        agent_id: ''
-      });
-      setSelectedTier(null);
-      setCurrentStep(1);
-      
-    } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
+        title: 'Transaction Created',
+        description: 'The transaction has been successfully created.',
+      });
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error creating transaction:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create transaction.',
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const canProceedToStep2 = formData.property_address && 
-                            formData.city && 
-                            formData.state && 
-                            formData.zip_code && 
-                            formData.transaction_type;
-
-  const canSubmit = canProceedToStep2 && selectedTier;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Create New Transaction
-            <span className="text-sm font-normal text-muted-foreground">
-              Step {currentStep} of 2
-            </span>
-          </DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">Create New Transaction</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {currentStep === 1 && (
-            <>
-              {/* Agent Assignment - Only show for coordinators */}
-              {isCoordinator ? (
-                <>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Assignment</h3>
-                    <AgentSelector
-                      selectedAgentId={formData.agent_id}
-                      onAgentSelect={(agentId) => setFormData(prev => ({ ...prev, agent_id: agentId }))}
-                      label="Assign to Agent"
-                      placeholder="Select agent to assign this transaction to..."
-                      currentUserId={user?.id}
-                      showCurrentUserFirst={true}
-                    />
-                  </div>
-                  <Separator />
-                </>
-              ) : (
-                <>
-                  <div className="bg-muted/50 p-4 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      This transaction will be assigned to you.
-                    </p>
-                  </div>
-                  <Separator />
-                </>
-              )}
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="propertyAddress">Property Address</Label>
+              <Input
+                type="text"
+                id="propertyAddress"
+                placeholder="123 Main St, Anytown"
+                value={propertyAddress}
+                onChange={(e) => setPropertyAddress(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="clientName">Client Name</Label>
+              <Input
+                type="text"
+                id="clientName"
+                placeholder="John Doe"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-              {/* Property & Transaction Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Property & Transaction Details</h3>
-                
-                <div>
-                  <Label htmlFor="property_address">Property Address *</Label>
-                  <Input
-                    id="property_address"
-                    value={formData.property_address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, property_address: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="zip_code">Zip Code *</Label>
-                    <Input
-                      id="zip_code"
-                      value={formData.zip_code}
-                      onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="agentId">Assigned Agent</Label>
+              <Select value={agentId} onValueChange={setAgentId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agentList.map((agent) => (
+                    <SelectItem key={agent.value} value={agent.value}>
+                      {agent.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="closingDate">Closing Date</Label>
+              <Input
+                type="date"
+                id="closingDate"
+                value={closingDate}
+                onChange={(e) => setClosingDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="transaction_type">Transaction Type *</Label>
-                    <Select value={formData.transaction_type} onValueChange={(value) => setFormData(prev => ({ ...prev, transaction_type: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer">Buyer</SelectItem>
-                        <SelectItem value="seller">Seller</SelectItem>
-                        <SelectItem value="dual">Dual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="purchase_price">Purchase Price</Label>
-                    <Input
-                      id="purchase_price"
-                      type="number"
-                      value={formData.purchase_price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purchase_price: e.target.value }))}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="earnestMoney">Earnest Money Amount</Label>
+              <Input
+                type="number"
+                id="earnestMoney"
+                placeholder="5000"
+                value={earnestMoney}
+                onChange={(e) => setEarnestMoney(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-                {/* Client Information */}
-                <Separator />
-                <h3 className="text-lg font-semibold">Client Information (Optional)</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="client_name">Client Name</Label>
-                    <Input
-                      id="client_name"
-                      value={formData.client_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="client_type">Client Type</Label>
-                    <Select value={formData.client_type} onValueChange={(value) => setFormData(prev => ({ ...prev, client_type: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer">Buyer</SelectItem>
-                        <SelectItem value="seller">Seller</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+          <div>
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              placeholder="Additional notes about the transaction"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
 
-              <div className="flex gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-                  Cancel
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={() => setCurrentStep(2)} 
-                  disabled={!canProceedToStep2}
-                  className="flex-1"
-                >
-                  Next: Choose Service Tier
-                </Button>
-              </div>
-            </>
-          )}
-
-          {currentStep === 2 && (
-            <>
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Select Service Tier</h3>
-                <ServiceTierComparison
-                  tiers={serviceTiers}
-                  selectedTierId={selectedTier}
-                  onSelect={(tierId) => setSelectedTier(tierId as ServiceTierType)}
-                />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => setCurrentStep(1)} className="flex-1">
-                  Back
-                </Button>
-                <Button type="submit" disabled={loading || !canSubmit} className="flex-1">
-                  {loading ? 'Creating...' : 'Create Transaction'}
-                </Button>
-              </div>
-            </>
-          )}
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Transaction
+              </>
+            )}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default EnhancedCreateTransactionDialog;

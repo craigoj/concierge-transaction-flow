@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/integrations/supabase/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { AlertCircle, CheckCircle2, TestTube, Bug } from "lucide-react";
 
 export const AgentCreationTest = () => {

@@ -1,7 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/integrations/supabase/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface OfferRequest {
   id: string;

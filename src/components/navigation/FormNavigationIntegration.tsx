@@ -1,186 +1,126 @@
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  UserPlus, 
-  FileText, 
-  Settings, 
-  CheckCircle,
-  ArrowRight,
-  Clock
-} from 'lucide-react';
-import { useAuth } from '@/integrations/supabase/auth';
+import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Users, 
+  FileText, 
+  Settings, 
+  CheckCircle2, 
+  Circle, 
+  ArrowRight,
+  Clock,
+  Star,
+  Briefcase
+} from 'lucide-react';
 
-interface NavigationCard {
+interface QuickAction {
   title: string;
   description: string;
+  href: string;
   icon: React.ReactNode;
-  path: string;
-  status: 'completed' | 'pending' | 'available';
-  badge?: string;
+  status?: 'complete' | 'incomplete';
+  progress?: number;
 }
 
-export const FormNavigationIntegration = () => {
+export const FormNavigationIntegration: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Check agent onboarding status
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
+  // Fetch user profile data
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile-navigation', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('onboarding_completed_at')
+        .select('first_name, last_name, phone, brokerage, onboarding_completed_at')
         .eq('id', user.id)
         .single();
       return data;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
-  // Check intake session status
-  const { data: intakeSession } = useQuery({
-    queryKey: ['intake_session', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data } = await supabase
-        .from('agent_intake_sessions')
-        .select('status, completion_percentage')
-        .eq('agent_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
+  const isProfileComplete = !!(profile?.first_name && profile?.last_name && profile?.phone && profile?.brokerage);
   const isOnboardingComplete = !!profile?.onboarding_completed_at;
-  const intakeStatus = intakeSession?.status || 'not_started';
 
-  const navigationCards: NavigationCard[] = [
+  const quickActions: QuickAction[] = [
     {
-      title: 'Agent Setup',
-      description: 'Complete your profile and vendor preferences',
-      icon: <UserPlus className="h-5 w-5" />,
-      path: '/agent/intake',
-      status: intakeStatus === 'completed' ? 'completed' : 
-              intakeStatus === 'in_progress' ? 'pending' : 'available',
-      badge: intakeStatus === 'completed' ? 'Complete' : 
-             intakeStatus === 'in_progress' ? `${intakeSession?.completion_percentage || 0}%` : 'Start'
+      title: 'Complete Your Profile',
+      description: 'Add your contact information',
+      href: '/profile',
+      icon: <Users className="h-4 w-4 mr-2 text-blue-500" />,
+      status: isProfileComplete ? 'complete' : 'incomplete',
+      progress: isProfileComplete ? 100 : 50,
     },
     {
-      title: 'Create Transaction',
-      description: 'Start a new transaction with service tier selection',
-      icon: <FileText className="h-5 w-5" />,
-      path: '/transactions',
-      status: isOnboardingComplete ? 'available' : 'pending',
-      badge: 'Available'
+      title: 'Set Up Transaction Defaults',
+      description: 'Configure your preferred vendors',
+      href: '/settings',
+      icon: <Settings className="h-4 w-4 mr-2 text-green-500" />,
+      status: isOnboardingComplete ? 'complete' : 'incomplete',
+      progress: isOnboardingComplete ? 100 : 75,
     },
     {
-      title: 'Offer Drafting',
-      description: 'Create professional offer requests',
-      icon: <Settings className="h-5 w-5" />,
-      path: '/offer-drafting',
-      status: isOnboardingComplete ? 'available' : 'pending',
-      badge: 'New'
-    }
+      title: 'Explore Offer Drafting',
+      description: 'Create your first offer request',
+      href: '/offer-drafting',
+      icon: <FileText className="h-4 w-4 mr-2 text-orange-500" />,
+    },
+    {
+      title: 'Manage Transactions',
+      description: 'View and manage your transactions',
+      href: '/transactions',
+      icon: <Briefcase className="h-4 w-4 mr-2 text-purple-500" />,
+    },
   ];
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'pending':
-        return <Clock className="h-4 w-4 text-amber-600" />;
-      default:
-        return <ArrowRight className="h-4 w-4 text-brand-charcoal" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      default:
-        return 'bg-brand-taupe/20 text-brand-charcoal border-brand-taupe/30';
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-brand-heading tracking-wide text-brand-charcoal uppercase mb-2">
-          Get Started
-        </h2>
-        <p className="text-brand-charcoal/70 font-brand-body">
-          Complete these steps to set up your agent profile and start managing transactions
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {navigationCards.map((card, index) => (
-          <Card 
-            key={index}
-            className={`cursor-pointer transition-all duration-300 hover:shadow-brand-elevation border ${
-              card.status === 'pending' ? 'opacity-75' : ''
-            }`}
-            onClick={() => {
-              if (card.status === 'pending' && card.path !== '/agent/intake') {
-                // Don't navigate if prerequisites aren't met
-                return;
-              }
-              navigate(card.path);
-            }}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    card.status === 'completed' ? 'bg-green-100 text-green-600' :
-                    card.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                    'bg-brand-taupe/20 text-brand-charcoal'
-                  }`}>
-                    {card.icon}
-                  </div>
-                  <div>
-                    <CardTitle className="text-base font-brand-heading tracking-wide">
-                      {card.title}
-                    </CardTitle>
-                  </div>
-                </div>
-                {getStatusIcon(card.status)}
+    <Card className="border-0 shadow-md">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Star className="h-5 w-5 text-yellow-500" />
+          Quick Actions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {quickActions.map((action, index) => (
+          <div key={index} className="border rounded-md p-3 hover:bg-gray-50 transition-colors duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {action.icon}
+                <h3 className="text-sm font-medium text-gray-800">{action.title}</h3>
               </div>
-            </CardHeader>
-            
-            <CardContent className="pt-0">
-              <p className="text-sm text-brand-charcoal/70 font-brand-body mb-3">
-                {card.description}
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <Badge className={`text-xs px-2 py-1 ${getStatusColor(card.status)}`}>
-                  {card.badge}
+              {action.status === 'complete' && (
+                <Badge variant="secondary" className="opacity-75">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Complete
                 </Badge>
-                
-                {card.status === 'pending' && card.path !== '/agent/intake' && (
-                  <span className="text-xs text-brand-charcoal/50">
-                    Complete setup first
-                  </span>
-                )}
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{action.description}</p>
+            {action.progress !== undefined && (
+              <div className="mt-2">
+                <Progress value={action.progress} className="h-2" />
               </div>
-            </CardContent>
-          </Card>
+            )}
+            <Button
+              variant="link"
+              size="sm"
+              className="justify-start mt-2 pl-0 hover:underline"
+              onClick={() => navigate(action.href)}
+            >
+              Go <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
