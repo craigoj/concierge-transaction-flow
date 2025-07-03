@@ -23,6 +23,30 @@ export const useTransactionData = (transactionId: string) => {
   return useQuery({
     queryKey: transactionKeys.detail(transactionId),
     queryFn: async (): Promise<Transaction> => {
+      console.log('Fetching transaction data for ID:', transactionId);
+      
+      // First, let's check the current user and their role
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('Auth error:', userError);
+        throw new Error('Authentication required');
+      }
+      
+      console.log('Current user ID:', user.id);
+      
+      // Check user role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+      } else {
+        console.log('User role:', profile?.role);
+      }
+
       // Fetch the transaction with related data
       const { data, error } = await supabase
         .from('transactions')
@@ -35,7 +59,10 @@ export const useTransactionData = (transactionId: string) => {
         .eq('id', transactionId)
         .maybeSingle();
 
+      console.log('Transaction query result:', { data, error });
+
       if (error) {
+        console.error('Transaction fetch error:', error);
         // Provide more specific error messages
         if (error.code === 'PGRST116') {
           throw new Error(`Transaction not found: ${transactionId}`);
@@ -47,13 +74,16 @@ export const useTransactionData = (transactionId: string) => {
       }
 
       if (!data) {
+        console.log('No transaction data returned for ID:', transactionId);
         throw new Error(`Transaction not found: ${transactionId}`);
       }
 
+      console.log('Successfully fetched transaction:', data);
       return data as Transaction;
     },
     enabled: !!transactionId,
     retry: (failureCount, error) => {
+      console.log('Query retry attempt:', failureCount, 'Error:', error.message);
       // Don't retry on authentication or permission errors
       if (error.message.includes('Authentication') || 
           error.message.includes('Access denied') || 
