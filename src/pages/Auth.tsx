@@ -36,7 +36,7 @@ const Auth = () => {
           title: "Sign In Error",
           description: error.message,
         });
-      } else {
+      } else if (data.user) {
         toast({
           title: "Success!",
           description: "Signed in successfully. Redirecting...",

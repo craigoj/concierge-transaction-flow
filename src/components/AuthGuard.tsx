@@ -60,59 +60,66 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       return;
     }
 
-    navigationInProgress.current = true;
+    const currentPath = location.pathname;
+    logDebug('Handling navigation', { session: !!session, role, currentPath });
 
-    try {
-      const currentPath = location.pathname;
-      logDebug('Handling navigation', { session: !!session, role, currentPath });
+    // If no session, redirect to auth (but not if already on auth)
+    if (!session) {
+      if (currentPath !== '/auth') {
+        logDebug('No session, redirecting to auth');
+        navigationInProgress.current = true;
+        navigate('/auth', { replace: true });
+        setTimeout(() => {
+          navigationInProgress.current = false;
+        }, 100);
+      }
+      return;
+    }
 
-      // If no session, redirect to auth
-      if (!session) {
-        if (currentPath !== '/auth') {
-          logDebug('No session, redirecting to auth');
-          navigate('/auth', { replace: true });
+    // If session exists and we have role, handle role-based routing
+    if (role) {
+      navigationInProgress.current = true;
+      
+      try {
+        // If on auth page with session, redirect based on role
+        if (currentPath === '/auth') {
+          logDebug('User on auth page with session, redirecting based on role');
+          const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+          navigate(destination, { replace: true });
+          return;
         }
-        return;
-      }
 
-      // If session exists but we're on auth page, redirect based on role
-      if (currentPath === '/auth' && role) {
-        logDebug('User on auth page with session, redirecting based on role');
-        const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
-        navigate(destination, { replace: true });
-        return;
-      }
-
-      // Handle root path redirection
-      if (currentPath === '/' && role) {
-        logDebug('User on root path, redirecting based on role');
-        const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
-        navigate(destination, { replace: true });
-        return;
-      }
-
-      // Role-based route protection
-      if (role === 'agent') {
-        const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
-        const isOnCoordinatorRoute = coordinatorOnlyRoutes.some(route => 
-          currentPath.startsWith(route)
-        );
-        
-        if (isOnCoordinatorRoute) {
-          logDebug('Agent on coordinator route, redirecting to agent dashboard');
-          navigate('/agent/dashboard', { replace: true });
+        // Handle root path redirection
+        if (currentPath === '/') {
+          logDebug('User on root path, redirecting based on role');
+          const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+          navigate(destination, { replace: true });
+          return;
         }
-      } else if (role === 'coordinator') {
-        if (currentPath.startsWith('/agent/')) {
-          logDebug('Coordinator on agent route, redirecting to main dashboard');
-          navigate('/dashboard', { replace: true });
+
+        // Role-based route protection
+        if (role === 'agent') {
+          const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
+          const isOnCoordinatorRoute = coordinatorOnlyRoutes.some(route => 
+            currentPath.startsWith(route)
+          );
+          
+          if (isOnCoordinatorRoute) {
+            logDebug('Agent on coordinator route, redirecting to agent dashboard');
+            navigate('/agent/dashboard', { replace: true });
+          }
+        } else if (role === 'coordinator') {
+          if (currentPath.startsWith('/agent/')) {
+            logDebug('Coordinator on agent route, redirecting to main dashboard');
+            navigate('/dashboard', { replace: true });
+          }
         }
+      } finally {
+        // Reset navigation flag after a short delay
+        setTimeout(() => {
+          navigationInProgress.current = false;
+        }, 100);
       }
-    } finally {
-      // Reset navigation flag after a short delay
-      setTimeout(() => {
-        navigationInProgress.current = false;
-      }, 100);
     }
   };
 
@@ -124,7 +131,37 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       try {
         logDebug('Initializing authentication...');
 
-        // Set up auth listener first
+        // Get initial session first
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (error) {
+          logDebug('Session error:', error);
+          setAuthState('unauthenticated');
+          await handleNavigation(null, null);
+          return;
+        }
+
+        // Set initial state
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
+          if (mounted) {
+            setUserRole(role);
+            setAuthState('authenticated');
+            await handleNavigation(session, role);
+          }
+        } else {
+          if (mounted) {
+            setAuthState('unauthenticated');
+            await handleNavigation(null, null);
+          }
+        }
+
+        // Set up auth listener after initial state is set
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!mounted) return;
@@ -156,35 +193,6 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           }
         );
 
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (error) {
-          logDebug('Session error:', error);
-          setAuthState('unauthenticated');
-          return;
-        }
-
-        // Set initial state
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setUserRole(role);
-            setAuthState('authenticated');
-            await handleNavigation(session, role);
-          }
-        } else {
-          if (mounted) {
-            setAuthState('unauthenticated');
-            await handleNavigation(null, null);
-          }
-        }
-
         return () => {
           subscription.unsubscribe();
         };
@@ -192,6 +200,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         logDebug('Auth initialization error:', error);
         if (mounted) {
           setAuthState('unauthenticated');
+          await handleNavigation(null, null);
         }
       }
     };
