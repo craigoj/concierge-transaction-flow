@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,30 +19,45 @@ const Auth = () => {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [brokerage, setBrokerage] = useState('');
+  const [authState, setAuthState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  
   const { toast } = useToast();
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect authenticated users with clean logic
+  // Clean redirect logic
   useEffect(() => {
-    if (user && userRole) {
+    if (user && userRole && authState !== 'loading') {
       const from = location.state?.from?.pathname;
       if (from && from !== '/auth') {
         navigate(from, { replace: true });
       } else {
-        // Simple role-based redirect
         const redirectPath = userRole === 'agent' ? '/agent/dashboard' : '/dashboard';
         navigate(redirectPath, { replace: true });
       }
     }
-  }, [user, userRole, navigate, location]);
+  }, [user, userRole, navigate, location, authState]);
+
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setFirstName('');
+    setLastName('');
+    setPhone('');
+    setBrokerage('');
+    setErrorMessage('');
+    setAuthState('idle');
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || authState === 'loading') return;
     
     setLoading(true);
+    setAuthState('loading');
+    setErrorMessage('');
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -50,22 +66,27 @@ const Auth = () => {
       });
 
       if (error) {
+        setAuthState('error');
+        setErrorMessage(getErrorMessage(error.message));
         toast({
           variant: "destructive",
-          title: "Sign In Error",
-          description: error.message,
+          title: "Sign In Failed",
+          description: getErrorMessage(error.message),
         });
       } else {
+        setAuthState('success');
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         });
       }
     } catch (error) {
+      setAuthState('error');
+      setErrorMessage("Network error. Please check your connection and try again.");
       toast({
         variant: "destructive",
-        title: "Sign In Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Connection Error",
+        description: "Please check your connection and try again.",
       });
     } finally {
       setLoading(false);
@@ -74,9 +95,11 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || authState === 'loading') return;
     
     setLoading(true);
+    setAuthState('loading');
+    setErrorMessage('');
 
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
@@ -97,26 +120,55 @@ const Auth = () => {
       });
 
       if (error) {
+        setAuthState('error');
+        setErrorMessage(getErrorMessage(error.message));
         toast({
           variant: "destructive",
-          title: "Sign Up Error",
-          description: error.message,
+          title: "Sign Up Failed",
+          description: getErrorMessage(error.message),
         });
       } else {
+        setAuthState('success');
         toast({
           title: "Account Created!",
           description: "Please check your email to confirm your account.",
         });
       }
     } catch (error) {
+      setAuthState('error');
+      setErrorMessage("Network error. Please check your connection and try again.");
       toast({
         variant: "destructive",
-        title: "Sign Up Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Connection Error",
+        description: "Please check your connection and try again.",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const getErrorMessage = (error: string) => {
+    if (error.includes('Invalid login credentials')) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+    if (error.includes('Email not confirmed')) {
+      return 'Please check your email and click the confirmation link before signing in.';
+    }
+    if (error.includes('User already registered')) {
+      return 'This email is already registered. Please sign in instead.';
+    }
+    if (error.includes('Password should be at least')) {
+      return 'Password must be at least 6 characters long.';
+    }
+    if (error.includes('Invalid email')) {
+      return 'Please enter a valid email address.';
+    }
+    return error;
+  };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    resetForm();
   };
 
   return (
@@ -167,15 +219,26 @@ const Auth = () => {
         {/* Authentication Card */}
         <Card className="card-brand border-0 shadow-brand-glass">
           <CardHeader className="text-center pb-6">
-            <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal">
+            <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal flex items-center justify-center gap-2">
+              {authState === 'loading' && <Loader2 className="h-5 w-5 animate-spin" />}
+              {authState === 'success' && <CheckCircle className="h-5 w-5 text-green-600" />}
+              {authState === 'error' && <AlertCircle className="h-5 w-5 text-red-600" />}
               {isSignUp ? 'CREATE YOUR ACCOUNT' : 'SIGN IN TO CONTINUE'}
             </CardTitle>
             <CardDescription className="text-brand-charcoal/60 font-brand-body">
-              {isSignUp 
-                ? 'Begin your journey with white-glove service' 
-                : 'Access your personalized transaction coordination'
+              {authState === 'success' 
+                ? (isSignUp ? 'Account created! Redirecting...' : 'Welcome back! Redirecting...')
+                : (isSignUp 
+                  ? 'Begin your journey with white-glove service' 
+                  : 'Access your personalized transaction coordination'
+                )
               }
             </CardDescription>
+            {errorMessage && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{errorMessage}</p>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-5">
@@ -190,6 +253,7 @@ const Auth = () => {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         required
+                        disabled={loading}
                         className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                       />
                     </div>
@@ -201,6 +265,7 @@ const Auth = () => {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         required
+                        disabled={loading}
                         className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                       />
                     </div>
@@ -212,6 +277,7 @@ const Auth = () => {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      disabled={loading}
                       className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                     />
                   </div>
@@ -222,6 +288,7 @@ const Auth = () => {
                       type="text"
                       value={brokerage}
                       onChange={(e) => setBrokerage(e.target.value)}
+                      disabled={loading}
                       className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                     />
                   </div>
@@ -236,6 +303,7 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                   className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                 />
               </div>
@@ -249,6 +317,7 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
+                  disabled={loading}
                   className="border-brand-taupe/30 focus:border-brand-taupe bg-white/70 font-brand-body"
                 />
               </div>
@@ -256,18 +325,27 @@ const Auth = () => {
               <Button 
                 type="submit" 
                 className="w-full btn-brand text-base py-6 mt-8" 
-                disabled={loading}
+                disabled={loading || authState === 'loading' || authState === 'success'}
               >
-                {loading ? 'PLEASE WAIT...' : (isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN')}
+                {loading || authState === 'loading' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isSignUp ? 'CREATING ACCOUNT...' : 'SIGNING IN...'}
+                  </>
+                ) : authState === 'success' ? (
+                  'REDIRECTING...'
+                ) : (
+                  isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN'
+                )}
               </Button>
             </form>
 
             <div className="text-center pt-6 border-t border-brand-taupe/20">
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={toggleMode}
                 className="text-brand-charcoal/70 hover:text-brand-charcoal font-brand-body italic transition-colors duration-300"
-                disabled={loading}
+                disabled={loading || authState === 'loading'}
               >
                 {isSignUp ? 'Already have an account? Sign in here' : "Don't have an account? Join our concierge service"}
               </button>

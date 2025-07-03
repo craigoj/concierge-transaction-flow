@@ -16,7 +16,7 @@ interface CreateTransactionDialogProps {
 }
 
 type ServiceTier = 'buyer_core' | 'buyer_elite' | 'white_glove_buyer' | 'listing_core' | 'listing_elite' | 'white_glove_listing';
-type TransactionType = 'buyer_representation' | 'listing' | 'referral';
+type TransactionType = 'buyer' | 'seller' | 'dual';
 
 export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransactionDialogProps) => {
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
     state: '',
     zip_code: '',
     purchase_price: '',
-    transaction_type: 'buyer_representation' as TransactionType,
+    transaction_type: 'buyer' as TransactionType,
     service_tier: 'buyer_core' as ServiceTier
   });
   const { toast } = useToast();
@@ -64,7 +64,7 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
         state: '',
         zip_code: '',
         purchase_price: '',
-        transaction_type: 'buyer_representation',
+        transaction_type: 'buyer',
         service_tier: 'buyer_core'
       });
       onOpenChange(false);
@@ -149,9 +149,9 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="buyer_representation">Buyer Representation</SelectItem>
-                <SelectItem value="listing">Listing</SelectItem>
-                <SelectItem value="referral">Referral</SelectItem>
+                <SelectItem value="buyer">Buyer</SelectItem>
+                <SelectItem value="seller">Seller</SelectItem>
+                <SelectItem value="dual">Dual</SelectItem>
               </SelectContent>
             </Select>
           </div>
