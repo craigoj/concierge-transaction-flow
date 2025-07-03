@@ -26,7 +26,7 @@ export const useFormState = (options: FormStateOptions) => {
     setLoading(true);
     try {
       const { data: fetchedData, error: fetchError } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .select('*')
         .eq('id', recordId)
         .single();
@@ -51,7 +51,7 @@ export const useFormState = (options: FormStateOptions) => {
 
       if (recordId) {
         const { data: updateResult, error: updateError } = await supabase
-          .from(tableName)
+          .from(tableName as any)
           .update(data)
           .eq('id', recordId)
           .select()
@@ -61,7 +61,7 @@ export const useFormState = (options: FormStateOptions) => {
         result = updateResult;
       } else {
         const { data: insertResult, error: insertError } = await supabase
-          .from(tableName)
+          .from(tableName as any)
           .insert(data)
           .select()
           .single();

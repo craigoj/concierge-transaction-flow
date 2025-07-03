@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,14 +16,24 @@ export interface OfferFormData {
   // Property Details
   property_address: string;
   buyer_names: string;
+  listing_price: string;
+  mls_number: string;
+  property_type: string;
+  lot_size: string;
+  square_footage: string;
   
   // Offer Terms
+  offer_price: string;
+  earnest_money_amount: string;
+  down_payment_percentage: string;
+  financing_type: string;
+  closing_date_preference: string;
+  
+  // Financing Details (keep existing names for database compatibility)
   purchase_price: string;
   emd_amount: string;
   exchange_fee: string;
   projected_closing_date: string;
-  
-  // Financing Details
   loan_type: string;
   lending_company: string;
   settlement_company: string;
@@ -47,6 +56,16 @@ export interface OfferFormData {
 const initialFormData: OfferFormData = {
   property_address: '',
   buyer_names: '',
+  listing_price: '',
+  mls_number: '',
+  property_type: '',
+  lot_size: '',
+  square_footage: '',
+  offer_price: '',
+  earnest_money_amount: '',
+  down_payment_percentage: '',
+  financing_type: '',
+  closing_date_preference: '',
   purchase_price: '',
   emd_amount: '',
   exchange_fee: '',
@@ -94,7 +113,6 @@ export const OfferDraftingForm = () => {
     const autoSave = async () => {
       setAutoSaving(true);
       try {
-        // Auto-save to local storage for now
         localStorage.setItem('offerDraftFormData', JSON.stringify(formData));
       } catch (error) {
         console.error('Auto-save failed:', error);
@@ -140,11 +158,11 @@ export const OfferDraftingForm = () => {
         agent_id: user.id,
         property_address: formData.property_address,
         buyer_names: formData.buyer_names,
-        purchase_price: parseFloat(formData.purchase_price) || 0,
-        emd_amount: parseFloat(formData.emd_amount) || 0,
+        purchase_price: parseFloat(formData.offer_price || formData.purchase_price) || 0,
+        emd_amount: parseFloat(formData.earnest_money_amount || formData.emd_amount) || 0,
         exchange_fee: parseFloat(formData.exchange_fee) || 0,
-        projected_closing_date: formData.projected_closing_date,
-        loan_type: formData.loan_type,
+        projected_closing_date: formData.closing_date_preference || formData.projected_closing_date,
+        loan_type: formData.financing_type || formData.loan_type,
         lending_company: formData.lending_company,
         settlement_company: formData.settlement_company,
         closing_cost_assistance: formData.closing_cost_assistance || null,
@@ -164,7 +182,6 @@ export const OfferDraftingForm = () => {
         description: "Offer request submitted successfully",
       });
 
-      // Clear saved data
       localStorage.removeItem('offerDraftFormData');
       setFormData(initialFormData);
       setCurrentStep(1);

@@ -15,6 +15,9 @@ interface CreateTransactionDialogProps {
   onSuccess?: () => void;
 }
 
+type ServiceTier = 'buyer_core' | 'buyer_elite' | 'white_glove_buyer' | 'listing_core' | 'listing_elite' | 'white_glove_listing';
+type TransactionType = 'buyer_representation' | 'listing' | 'referral';
+
 export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: CreateTransactionDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,8 +26,8 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
     state: '',
     zip_code: '',
     purchase_price: '',
-    transaction_type: 'buyer_representation',
-    service_tier: 'buyer_core'
+    transaction_type: 'buyer_representation' as TransactionType,
+    service_tier: 'buyer_core' as ServiceTier
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -38,9 +41,14 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
       const { error } = await supabase
         .from('transactions')
         .insert({
-          ...formData,
           agent_id: user.id,
+          property_address: formData.property_address,
+          city: formData.city,
+          state: formData.state,
+          zip_code: formData.zip_code,
           purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
+          transaction_type: formData.transaction_type,
+          service_tier: formData.service_tier,
         });
 
       if (error) throw error;
@@ -135,7 +143,7 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
             <Label htmlFor="transaction_type">Transaction Type</Label>
             <Select
               value={formData.transaction_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, transaction_type: value }))}
+              onValueChange={(value: TransactionType) => setFormData(prev => ({ ...prev, transaction_type: value }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -152,7 +160,7 @@ export const CreateTransactionDialog = ({ open, onOpenChange, onSuccess }: Creat
             <Label htmlFor="service_tier">Service Tier</Label>
             <Select
               value={formData.service_tier}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, service_tier: value }))}
+              onValueChange={(value: ServiceTier) => setFormData(prev => ({ ...prev, service_tier: value }))}
             >
               <SelectTrigger>
                 <SelectValue />

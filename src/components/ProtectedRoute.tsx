@@ -1,17 +1,16 @@
 
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  requiredRole?: 'coordinator' | 'agent';
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, userRole, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -24,23 +23,27 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     );
   }
 
+  // Redirect unauthenticated users to auth page
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  // Role-based redirect logic
-  if (userRole === 'agent' && location.pathname === '/dashboard') {
-    return <Navigate to="/agent/dashboard" replace />;
-  }
-
-  if (userRole === 'coordinator' && location.pathname.startsWith('/agent/')) {
+  // Simple role-based redirects
+  if (userRole === 'coordinator' && requiredRole === 'agent') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Check required role
-  if (requiredRole && userRole !== requiredRole) {
-    const redirectPath = userRole === 'agent' ? '/agent/dashboard' : '/dashboard';
-    return <Navigate to={redirectPath} replace />;
+  if (userRole === 'agent' && requiredRole === 'coordinator') {
+    return <Navigate to="/agent/dashboard" replace />;
+  }
+
+  // Default role-based redirects for root access
+  if (userRole === 'agent' && window.location.pathname === '/dashboard') {
+    return <Navigate to="/agent/dashboard" replace />;
+  }
+
+  if (userRole === 'coordinator' && window.location.pathname.startsWith('/agent/')) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       return profile?.role || 'agent';
     } catch (error) {
-      return 'agent'; // Default fallback
+      return 'agent';
     }
   };
 
@@ -49,50 +49,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await supabase.auth.signOut();
   };
 
+  const handleSession = async (newSession: Session | null) => {
+    setSession(newSession);
+    setUser(newSession?.user ?? null);
+    
+    if (newSession?.user) {
+      const role = await fetchUserRole(newSession.user.id);
+      setUserRole(role);
+    } else {
+      setUserRole(null);
+    }
+    
+    setLoading(false);
+  };
+
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          throw error;
-        }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          setUserRole(role);
-        }
-      } catch (error) {
-        // Clear any corrupted session
-        setSession(null);
-        setUser(null);
-        setUserRole(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          setUserRole(role);
-        } else {
+        if (event === 'SIGNED_OUT' || !session) {
+          setSession(null);
+          setUser(null);
           setUserRole(null);
+          setLoading(false);
+          return;
         }
         
-        setLoading(false);
+        await handleSession(session);
       }
     );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        setLoading(false);
+        return;
+      }
+      handleSession(session);
+    });
 
     return () => subscription.unsubscribe();
   }, []);

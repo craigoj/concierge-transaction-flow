@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,7 +31,7 @@ export const useLiveValidation = (
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from(tableName)
+          .from(tableName as any)
           .select(columnName)
           .eq(columnName, currentValue);
 
@@ -53,21 +53,6 @@ export const useLiveValidation = (
     },
     [tableName, columnName, user?.id]
   );
-
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    if (value) {
-      timeoutId = setTimeout(() => {
-        validate(value);
-      }, debounceTime);
-    } else {
-      setIsValid(null);
-      setMessage(null);
-    }
-
-    return () => clearTimeout(timeoutId);
-  }, [value, debounceTime, validate]);
 
   return { isValid, message, isLoading };
 };

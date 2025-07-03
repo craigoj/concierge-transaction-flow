@@ -23,15 +23,16 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect authenticated users
+  // Redirect authenticated users with clean logic
   useEffect(() => {
     if (user && userRole) {
       const from = location.state?.from?.pathname;
       if (from && from !== '/auth') {
         navigate(from, { replace: true });
       } else {
-        const dashboardPath = userRole === 'agent' ? '/agent/dashboard' : '/dashboard';
-        navigate(dashboardPath, { replace: true });
+        // Simple role-based redirect
+        const redirectPath = userRole === 'agent' ? '/agent/dashboard' : '/dashboard';
+        navigate(redirectPath, { replace: true });
       }
     }
   }, [user, userRole, navigate, location]);
@@ -274,7 +275,6 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        {/* Brand Footer */}
         <div className="text-center mt-8 text-brand-charcoal/50 font-brand-body text-sm italic">
           "Excellence is Intentional."
         </div>
