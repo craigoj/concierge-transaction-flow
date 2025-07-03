@@ -17,16 +17,33 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Simple role fetching with error handling
+  // Clear all auth state and redirect to login
+  const clearAuthAndRedirect = () => {
+    console.log('Clearing auth state and redirecting to login');
+    setSession(null);
+    setUser(null);
+    setUserRole(null);
+    setLoading(false);
+    navigate('/auth', { replace: true });
+  };
+
+  // Fetch user role with timeout
   const fetchUserRole = async (userId: string): Promise<string> => {
     try {
       console.log('Fetching role for user:', userId);
       
-      const { data: profile, error } = await supabase
+      // Set a timeout for the query
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+      
+      const queryPromise = supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single();
+      
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       if (error) {
         console.error('Role fetch error:', error);
@@ -43,52 +60,43 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   };
 
   // Handle navigation after authentication
-  const handlePostAuthNavigation = (session: Session | null, role: string | null) => {
+  const handleNavigation = (session: Session | null, role: string | null) => {
     const currentPath = location.pathname;
     
     console.log('Navigation check:', { currentPath, hasSession: !!session, role });
 
-    // No session - redirect to auth
     if (!session) {
       if (currentPath !== '/auth') {
-        console.log('No session, redirecting to /auth');
         navigate('/auth', { replace: true });
       }
       return;
     }
 
-    // Has session but on auth page - redirect based on role
+    // If we're on auth page and have session, redirect based on role
     if (currentPath === '/auth') {
       const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
-      console.log(`Authenticated user on /auth, redirecting to ${destination}`);
       navigate(destination, { replace: true });
       return;
     }
 
-    // Role-based access control for authenticated users
+    // Role-based access control
     if (role === 'coordinator') {
-      // Coordinators can't access agent routes
       if (currentPath.startsWith('/agent/')) {
-        console.log('Coordinator accessing agent route, redirecting to /dashboard');
         navigate('/dashboard', { replace: true });
         return;
       }
-      // Redirect root to dashboard
       if (currentPath === '/') {
         navigate('/dashboard', { replace: true });
         return;
       }
     } else if (role === 'agent') {
-      // Agents can't access coordinator-only routes
       const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
       const isCoordinatorRoute = coordinatorOnlyRoutes.some(route => currentPath.startsWith(route));
       
       if (isCoordinatorRoute) {
-        console.log('Agent accessing coordinator route, redirecting to /agent/dashboard');
         navigate('/agent/dashboard', { replace: true });
         return;
       }
-      // Redirect root to agent dashboard
       if (currentPath === '/') {
         navigate('/agent/dashboard', { replace: true });
         return;
@@ -98,23 +106,26 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   useEffect(() => {
     let mounted = true;
+    let initTimeout: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
         
-        // Get initial session with error handling
+        // Set a maximum timeout for initialization
+        initTimeout = setTimeout(() => {
+          if (mounted) {
+            console.log('Auth initialization timeout, clearing state');
+            clearAuthAndRedirect();
+          }
+        }, 10000); // 10 second timeout
+
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          // Clear any corrupted session state
-          await supabase.auth.signOut();
           if (mounted) {
-            setSession(null);
-            setUser(null);
-            setUserRole(null);
-            handlePostAuthNavigation(null, null);
+            clearAuthAndRedirect();
           }
           return;
         }
@@ -130,77 +141,76 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch role for authenticated users
           try {
             const role = await fetchUserRole(session.user.id);
             if (mounted) {
               setUserRole(role);
-              handlePostAuthNavigation(session, role);
+              handleNavigation(session, role);
             }
           } catch (roleError) {
             console.error('Role fetch failed:', roleError);
             if (mounted) {
-              setUserRole('agent'); // Default fallback
-              handlePostAuthNavigation(session, 'agent');
+              setUserRole('agent');
+              handleNavigation(session, 'agent');
             }
           }
         } else {
           setUserRole(null);
-          handlePostAuthNavigation(null, null);
+          handleNavigation(null, null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
         if (mounted) {
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
-          handlePostAuthNavigation(null, null);
+          clearAuthAndRedirect();
         }
       } finally {
         if (mounted) {
+          clearTimeout(initTimeout);
           setLoading(false);
         }
       }
     };
 
-    // Set up auth state listener with error handling
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         
         if (!mounted) return;
 
-        // Handle token refresh errors
+        // Handle specific auth events
         if (event === 'TOKEN_REFRESHED' && !session) {
-          console.log('Token refresh failed, signing out');
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
-          handlePostAuthNavigation(null, null);
+          console.log('Token refresh failed, clearing auth');
+          clearAuthAndRedirect();
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          clearAuthAndRedirect();
           return;
         }
 
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
+        if (session?.user && event === 'SIGNED_IN') {
           try {
             const role = await fetchUserRole(session.user.id);
             if (mounted) {
               setUserRole(role);
-              handlePostAuthNavigation(session, role);
+              handleNavigation(session, role);
             }
           } catch (roleError) {
             console.error('Role fetch failed during auth change:', roleError);
             if (mounted) {
-              setUserRole('agent'); // Default fallback
-              handlePostAuthNavigation(session, 'agent');
+              setUserRole('agent');
+              handleNavigation(session, 'agent');
             }
           }
-        } else {
+        } else if (!session) {
           setUserRole(null);
-          handlePostAuthNavigation(null, null);
+          handleNavigation(null, null);
         }
       }
     );
@@ -209,11 +219,12 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
     return () => {
       mounted = false;
+      clearTimeout(initTimeout);
       subscription.unsubscribe();
     };
   }, [location.pathname, navigate]);
 
-  // Show loading state only during initial load
+  // Show loading state with timeout
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center">
