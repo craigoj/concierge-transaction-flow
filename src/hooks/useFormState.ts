@@ -41,11 +41,8 @@ export const useFormState = <T extends keyof TableRowTypes>(options: FormStateOp
 
     setLoading(true);
     try {
-      const { data: fetchedData, error: fetchError } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', recordId)
-        .single();
+      const query = supabase.from(tableName).select('*').eq('id', recordId).single();
+      const { data: fetchedData, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
@@ -66,18 +63,11 @@ export const useFormState = <T extends keyof TableRowTypes>(options: FormStateOp
       let result;
 
       if (recordId) {
-        result = await supabase
-          .from(tableName)
-          .update(data as any)
-          .eq('id', recordId)
-          .select()
-          .single();
+        const updateQuery = supabase.from(tableName).update(data as any).eq('id', recordId).select().single();
+        result = await updateQuery;
       } else {
-        result = await supabase
-          .from(tableName)
-          .insert(data as any)
-          .select()
-          .single();
+        const insertQuery = supabase.from(tableName).insert(data as any).select().single();
+        result = await insertQuery;
       }
 
       if (result.error) throw result.error;

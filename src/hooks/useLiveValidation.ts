@@ -32,10 +32,8 @@ export const useLiveValidation = (
 
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select(columnName)
-          .eq(columnName, currentValue);
+        const query = supabase.from(tableName).select(columnName).eq(columnName, currentValue);
+        const { data, error } = await query;
 
         setIsLoading(false);
 
