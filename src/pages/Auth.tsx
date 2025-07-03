@@ -25,18 +25,22 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting sign in for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         toast({
           variant: "destructive",
           title: "Sign In Error",
           description: error.message,
         });
       } else if (data.user) {
+        console.log('Sign in successful:', data.user.email);
         toast({
           title: "Success!",
           description: "Signed in successfully. Redirecting...",
@@ -44,7 +48,7 @@ const Auth = () => {
         // AuthGuard will handle navigation automatically
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('Unexpected sign in error:', error);
       toast({
         variant: "destructive",
         title: "Sign In Error",
@@ -65,7 +69,7 @@ const Auth = () => {
       const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           emailRedirectTo: redirectUrl,
@@ -136,6 +140,17 @@ const Auth = () => {
             }
           </p>
         </div>
+
+        {/* Demo Credentials Helper */}
+        {!isSignUp && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800 mb-2 font-medium">Demo Credentials:</p>
+            <p className="text-sm text-blue-700">
+              <strong>Coordinator:</strong> admin@demo.com / demo1234<br />
+              <strong>Agent:</strong> agent@demo.com / demo1234
+            </p>
+          </div>
+        )}
 
         {/* Authentication Card */}
         <Card className="card-brand border-0 shadow-brand-glass">

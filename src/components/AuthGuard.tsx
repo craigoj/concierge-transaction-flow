@@ -14,31 +14,43 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Simple role fetching
+  // Simple role fetching with better error handling
   const fetchUserRole = async (userId: string): Promise<string> => {
     try {
-      const { data: profile } = await supabase
+      setRoleLoading(true);
+      console.log('Fetching role for user:', userId);
+      
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single();
       
-      return profile?.role || 'agent';
+      if (error) {
+        console.error('Role fetch error:', error);
+        return 'agent'; // Default fallback
+      }
+      
+      const role = profile?.role || 'agent';
+      console.log('Role fetched successfully:', role);
+      return role;
     } catch (error) {
-      console.error('Error fetching role:', error);
-      return 'agent';
+      console.error('Error fetching user role:', error);
+      return 'agent'; // Default fallback
+    } finally {
+      setRoleLoading(false);
     }
   };
 
-  // Handle navigation based on auth state and role
-  const handleNavigation = (session: Session | null, role: string | null) => {
-    const currentPath = location.pathname;
-    console.log('Navigation check:', { currentPath, hasSession: !!session, role });
+  // Simplified navigation logic - single decision tree
+  const handleNavigation = (session: Session | null, role: string | null, currentPath: string) => {
+    console.log('Navigation decision:', { currentPath, hasSession: !!session, role, roleLoading });
 
-    // If no session, redirect to auth (unless already there)
+    // No session - redirect to auth
     if (!session) {
       if (currentPath !== '/auth') {
         console.log('No session, redirecting to /auth');
@@ -47,44 +59,51 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       return;
     }
 
-    // If session exists but no role yet, wait for role to load
-    if (!role) {
-      console.log('Session exists but role not loaded yet');
-      return;
-    }
-
-    // Redirect from auth page when logged in
+    // Has session but on auth page - redirect to appropriate dashboard
     if (currentPath === '/auth') {
       const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
-      console.log(`Logged in, redirecting from /auth to ${destination}`);
+      console.log(`Authenticated user on /auth, redirecting to ${destination}`);
       navigate(destination, { replace: true });
       return;
     }
 
-    // Redirect from root
-    if (currentPath === '/') {
-      const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
-      console.log(`At root, redirecting to ${destination}`);
-      navigate(destination, { replace: true });
-      return;
-    }
-
-    // Role-based route protection
-    if (role === 'agent') {
-      // Agents should only access agent routes
-      const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
-      const isRestrictedRoute = coordinatorOnlyRoutes.some(route => currentPath.startsWith(route));
-      
-      if (isRestrictedRoute || (currentPath.startsWith('/') && !currentPath.startsWith('/agent/'))) {
-        if (currentPath !== '/dashboard' && currentPath !== '/transactions' && currentPath !== '/clients') {
-          console.log(`Agent accessing restricted route ${currentPath}, redirecting to agent dashboard`);
+    // Has session and role, enforce role-based access
+    if (role) {
+      if (role === 'coordinator') {
+        // Coordinators can't access agent routes
+        if (currentPath.startsWith('/agent/')) {
+          console.log('Coordinator accessing agent route, redirecting to /dashboard');
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        // Redirect root to dashboard
+        if (currentPath === '/') {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } else if (role === 'agent') {
+        // Agents can't access coordinator-only routes
+        const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
+        const isCoordinatorRoute = coordinatorOnlyRoutes.some(route => currentPath.startsWith(route));
+        
+        if (isCoordinatorRoute) {
+          console.log('Agent accessing coordinator route, redirecting to /agent/dashboard');
           navigate('/agent/dashboard', { replace: true });
+          return;
+        }
+        // Redirect root to agent dashboard
+        if (currentPath === '/') {
+          navigate('/agent/dashboard', { replace: true });
+          return;
         }
       }
-    } else if (role === 'coordinator' && currentPath.startsWith('/agent/')) {
-      // Coordinators shouldn't access agent-only routes
-      console.log(`Coordinator accessing agent route ${currentPath}, redirecting to dashboard`);
-      navigate('/dashboard', { replace: true });
+    } else {
+      // Has session but no role yet - allow access but default behavior
+      if (currentPath === '/') {
+        // Default to dashboard while waiting for role
+        navigate('/dashboard', { replace: true });
+        return;
+      }
     }
   };
 
@@ -100,30 +119,35 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         
         if (error) {
           console.error('Session error:', error);
-          // Clear any corrupted session data
+          // Clear corrupted session
           await supabase.auth.signOut();
         }
 
         if (!mounted) return;
 
-        console.log('Initial session check:', { hasSession: !!session, userEmail: session?.user?.email });
+        console.log('Initial session check:', { 
+          hasSession: !!session, 
+          userEmail: session?.user?.email 
+        });
+
+        setSession(session);
+        setUser(session?.user ?? null);
 
         if (session?.user) {
-          setSession(session);
-          setUser(session.user);
+          // Fetch role but don't block rendering
+          fetchUserRole(session.user.id).then(role => {
+            if (mounted) {
+              setUserRole(role);
+              // Re-check navigation after role is loaded
+              handleNavigation(session, role, location.pathname);
+            }
+          });
           
-          // Fetch role
-          const role = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setUserRole(role);
-            console.log('User role fetched:', role);
-            handleNavigation(session, role);
-          }
+          // Initial navigation check without waiting for role
+          handleNavigation(session, null, location.pathname);
         } else {
-          setSession(null);
-          setUser(null);
           setUserRole(null);
-          handleNavigation(null, null);
+          handleNavigation(null, null, location.pathname);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -131,7 +155,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           setSession(null);
           setUser(null);
           setUserRole(null);
-          handleNavigation(null, null);
+          handleNavigation(null, null, location.pathname);
         }
       } finally {
         if (mounted) {
@@ -147,21 +171,23 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         
         if (!mounted) return;
 
+        setSession(session);
+        setUser(session?.user ?? null);
+
         if (session?.user) {
-          setSession(session);
-          setUser(session.user);
+          // Fetch role asynchronously
+          fetchUserRole(session.user.id).then(role => {
+            if (mounted) {
+              setUserRole(role);
+              handleNavigation(session, role, location.pathname);
+            }
+          });
           
-          const role = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setUserRole(role);
-            console.log('Auth state change - role:', role);
-            handleNavigation(session, role);
-          }
+          // Immediate navigation check
+          handleNavigation(session, null, location.pathname);
         } else {
-          setSession(null);
-          setUser(null);
           setUserRole(null);
-          handleNavigation(null, null);
+          handleNavigation(null, null, location.pathname);
         }
       }
     );
@@ -172,9 +198,9 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Remove location.pathname dependency to prevent unnecessary re-renders
+  }, [location.pathname, navigate]);
 
-  // Show loading state
+  // Show loading state only during initial load
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center">
@@ -186,7 +212,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
-  // Don't render children if not authenticated
+  // Don't render children if not authenticated (but not loading)
   if (!session || !user) {
     return null;
   }
