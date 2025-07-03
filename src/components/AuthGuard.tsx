@@ -19,9 +19,10 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Prevent multiple navigation calls
+  // Prevent multiple navigation calls and role fetching
   const navigationInProgress = useRef(false);
   const roleCache = useRef<{ [userId: string]: string }>({});
+  const authInitialized = useRef(false);
 
   const logDebug = (message: string, data?: any) => {
     console.log(`[AuthGuard] ${message}`, data || '');
@@ -31,22 +32,31 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const fetchUserRole = async (userId: string): Promise<string> => {
     // Check cache first
     if (roleCache.current[userId]) {
+      logDebug('Using cached role:', roleCache.current[userId]);
       return roleCache.current[userId];
     }
 
     try {
+      logDebug('Fetching role for user:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single();
       
+      if (error) {
+        logDebug('Error fetching role:', error);
+        const defaultRole = 'agent';
+        roleCache.current[userId] = defaultRole;
+        return defaultRole;
+      }
+
       const role = profile?.role || 'agent';
-      // Cache the role
       roleCache.current[userId] = role;
+      logDebug('Fetched role:', role);
       return role;
     } catch (error) {
-      logDebug('Error fetching role, using default:', error);
+      logDebug('Exception fetching role:', error);
       const defaultRole = 'agent';
       roleCache.current[userId] = defaultRole;
       return defaultRole;
@@ -61,7 +71,12 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     }
 
     const currentPath = location.pathname;
-    logDebug('Handling navigation', { session: !!session, role, currentPath });
+    logDebug('Handling navigation', { 
+      hasSession: !!session, 
+      role, 
+      currentPath,
+      userId: session?.user?.id
+    });
 
     // If no session, redirect to auth (but not if already on auth)
     if (!session) {
@@ -123,94 +138,109 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     }
   };
 
+  // Clear auth state completely
+  const clearAuthState = () => {
+    logDebug('Clearing auth state');
+    setSession(null);
+    setUser(null);
+    setUserRole(null);
+    roleCache.current = {};
+    setAuthState('unauthenticated');
+  };
+
+  // Process auth state change
+  const processAuthState = async (session: Session | null) => {
+    if (!session?.user) {
+      clearAuthState();
+      await handleNavigation(null, null);
+      return;
+    }
+
+    logDebug('Processing auth state for user:', session.user.email);
+    
+    // Set session and user immediately
+    setSession(session);
+    setUser(session.user);
+
+    // Fetch role
+    try {
+      const role = await fetchUserRole(session.user.id);
+      setUserRole(role);
+      setAuthState('authenticated');
+      
+      // Handle navigation after we have both session and role
+      await handleNavigation(session, role);
+    } catch (error) {
+      logDebug('Error processing auth state:', error);
+      clearAuthState();
+      await handleNavigation(null, null);
+    }
+  };
+
   // Initialize auth state and set up listener
   useEffect(() => {
-    let mounted = true;
+    if (authInitialized.current) {
+      logDebug('Auth already initialized, skipping');
+      return;
+    }
 
-    const initializeAuth = async () => {
-      try {
-        logDebug('Initializing authentication...');
+    authInitialized.current = true;
+    logDebug('Initializing authentication...');
 
-        // Get initial session first
-        const { data: { session }, error } = await supabase.auth.getSession();
+    // Set up auth listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        logDebug('Auth state change:', { event, userEmail: session?.user?.email });
         
-        if (!mounted) return;
-
-        if (error) {
-          logDebug('Session error:', error);
-          setAuthState('unauthenticated');
+        // Handle different auth events
+        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+          clearAuthState();
           await handleNavigation(null, null);
           return;
         }
 
-        // Set initial state
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          await processAuthState(session);
+          return;
+        }
 
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setUserRole(role);
-            setAuthState('authenticated');
-            await handleNavigation(session, role);
-          }
-        } else {
-          if (mounted) {
-            setAuthState('unauthenticated');
+        // For other events, just process the session
+        await processAuthState(session);
+      }
+    );
+
+    // Then get initial session
+    const initializeSession = async () => {
+      try {
+        logDebug('Getting initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          logDebug('Initial session error:', error);
+          // If it's a refresh token error, clear auth state
+          if (error.message?.includes('refresh') || error.message?.includes('token')) {
+            await supabase.auth.signOut();
+            clearAuthState();
             await handleNavigation(null, null);
+            return;
           }
         }
 
-        // Set up auth listener after initial state is set
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            if (!mounted) return;
-
-            logDebug('Auth state change:', { event, userEmail: session?.user?.email });
-            
-            // Update session and user state
-            setSession(session);
-            setUser(session?.user ?? null);
-            
-            if (session?.user) {
-              // Fetch role for the user
-              const role = await fetchUserRole(session.user.id);
-              if (mounted) {
-                setUserRole(role);
-                setAuthState('authenticated');
-                // Handle navigation after role is set
-                await handleNavigation(session, role);
-              }
-            } else {
-              if (mounted) {
-                setUserRole(null);
-                setAuthState('unauthenticated');
-                // Clear role cache on logout
-                roleCache.current = {};
-                await handleNavigation(null, null);
-              }
-            }
-          }
-        );
-
-        return () => {
-          subscription.unsubscribe();
-        };
+        await processAuthState(session);
       } catch (error) {
-        logDebug('Auth initialization error:', error);
-        if (mounted) {
-          setAuthState('unauthenticated');
-          await handleNavigation(null, null);
-        }
+        logDebug('Exception getting initial session:', error);
+        clearAuthState();
+        await handleNavigation(null, null);
       }
     };
 
-    initializeAuth();
+    initializeSession();
 
     return () => {
-      mounted = false;
+      logDebug('Cleaning up auth subscription');
+      subscription.unsubscribe();
     };
-  }, []); // Only run once on mount
+  }, []); // Empty dependency array - only run once
 
   // Loading state
   if (authState === 'loading') {
