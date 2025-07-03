@@ -22,13 +22,13 @@ import {
 interface AutomationRule {
   id: string;
   name: string;
-  description: string;
   trigger_event: string;
   trigger_condition: any;
-  actions: any[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  template_id: string;
+  created_by: string;
 }
 
 const AutomationDashboard = () => {
@@ -57,7 +57,7 @@ const AutomationDashboard = () => {
         .update({ is_active: !currentStatus })
         .eq('id', ruleId);
       if (error) throw error;
-      refetch(); // Refresh the data
+      refetch();
     } catch (error: any) {
       console.error('Error toggling automation status:', error);
       alert('Failed to toggle automation status');
@@ -141,7 +141,7 @@ const AutomationDashboard = () => {
                       <CardTitle className="text-lg font-semibold">{rule.name}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">{rule.description}</p>
+                      <p className="text-sm text-muted-foreground">Trigger: {rule.trigger_event}</p>
                       <div className="mt-2 flex items-center justify-between">
                         <Badge variant="secondary">{rule.trigger_event}</Badge>
                         <Button

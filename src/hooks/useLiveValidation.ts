@@ -9,8 +9,10 @@ interface ValidationResult {
   isLoading: boolean;
 }
 
+type TableName = 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding';
+
 export const useLiveValidation = (
-  tableName: 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding',
+  tableName: TableName,
   columnName: string,
   value: string,
   debounceTime: number = 500
@@ -21,7 +23,7 @@ export const useLiveValidation = (
   const { user } = useAuth();
 
   const validate = useCallback(
-    (currentValue: string) => {
+    async (currentValue: string) => {
       if (!currentValue || !user?.id) {
         setIsValid(null);
         setMessage(null);
@@ -29,24 +31,27 @@ export const useLiveValidation = (
       }
 
       setIsLoading(true);
-      supabase
-        .from(tableName)
-        .select(columnName)
-        .eq(columnName, currentValue)
-        .then((response) => {
-          const { data, error } = response;
-          setIsLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select(columnName)
+          .eq(columnName, currentValue);
 
-          if (error) {
-            setIsValid(false);
-            setMessage(`Validation error: ${error.message}`);
-          } else {
-            // Assuming that if data exists, the value is not unique
-            const isUnique = data === null || data.length === 0;
-            setIsValid(isUnique);
-            setMessage(isUnique ? 'Value is unique' : 'Value already exists');
-          }
-        });
+        setIsLoading(false);
+
+        if (error) {
+          setIsValid(false);
+          setMessage(`Validation error: ${error.message}`);
+        } else {
+          const isUnique = data === null || data.length === 0;
+          setIsValid(isUnique);
+          setMessage(isUnique ? 'Value is unique' : 'Value already exists');
+        }
+      } catch (error: any) {
+        setIsLoading(false);
+        setIsValid(false);
+        setMessage(`Validation error: ${error.message}`);
+      }
     },
     [tableName, columnName, user?.id]
   );

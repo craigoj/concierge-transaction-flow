@@ -2,21 +2,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
-interface FormStateOptions<T> {
-  tableName: 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding';
+// Specific table row types
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type TransactionRow = Database['public']['Tables']['transactions']['Row'];
+type ClientRow = Database['public']['Tables']['clients']['Row'];
+type AgentVendorRow = Database['public']['Tables']['agent_vendors']['Row'];
+type AgentBrandingRow = Database['public']['Tables']['agent_branding']['Row'];
+
+type TableRowTypes = {
+  'profiles': ProfileRow;
+  'transactions': TransactionRow;
+  'clients': ClientRow;
+  'agent_vendors': AgentVendorRow;
+  'agent_branding': AgentBrandingRow;
+};
+
+interface FormStateOptions<T extends keyof TableRowTypes> {
+  tableName: T;
   recordId?: string;
-  initialData?: T;
+  initialData?: Partial<TableRowTypes[T]>;
   userId?: string;
   debounceTime?: number;
-  onChange?: (data: T) => void;
+  onChange?: (data: Partial<TableRowTypes[T]>) => void;
 }
 
-export const useFormState = <T>(options: FormStateOptions<T>) => {
+export const useFormState = <T extends keyof TableRowTypes>(options: FormStateOptions<T>) => {
   const { tableName, recordId, initialData, userId: controlledUserId, debounceTime = 500, onChange } = options;
   const { user } = useAuth();
   const userId = controlledUserId || user?.id;
-  const [data, setData] = useState<T>(initialData || {} as T);
+  const [data, setData] = useState<Partial<TableRowTypes[T]>>(initialData || {} as Partial<TableRowTypes[T]>);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -33,7 +49,7 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
 
       if (fetchError) throw fetchError;
 
-      setData(fetchedData as T);
+      setData(fetchedData as Partial<TableRowTypes[T]>);
       setError(null);
     } catch (e: any) {
       setError(e);
@@ -47,27 +63,26 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
 
     setLoading(true);
     try {
-      const payload = { ...data };
-      let upsert;
+      let result;
 
       if (recordId) {
-        upsert = await supabase
+        result = await supabase
           .from(tableName)
-          .update(payload)
+          .update(data as any)
           .eq('id', recordId)
           .select()
           .single();
       } else {
-        upsert = await supabase
+        result = await supabase
           .from(tableName)
-          .insert(payload)
+          .insert(data as any)
           .select()
           .single();
       }
 
-      if (upsert.error) throw upsert.error;
+      if (result.error) throw result.error;
 
-      setData(upsert.data as T);
+      setData(result.data as Partial<TableRowTypes[T]>);
       setError(null);
     } catch (e: any) {
       setError(e);
@@ -97,7 +112,7 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
     }
   }, [recordId, fetchData, initialData]);
 
-  const updateField = useCallback((field: keyof T, value: any) => {
+  const updateField = useCallback((field: keyof TableRowTypes[T], value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
   }, []);
 

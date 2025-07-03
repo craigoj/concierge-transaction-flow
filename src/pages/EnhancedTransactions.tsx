@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus } from 'lucide-react';
 import TransactionList from '@/components/transactions/TransactionList';
-import { EnhancedCreateTransactionDialog } from '@/components/transactions/EnhancedCreateTransactionDialog';
+import EnhancedCreateTransactionDialog from '@/components/transactions/EnhancedCreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';

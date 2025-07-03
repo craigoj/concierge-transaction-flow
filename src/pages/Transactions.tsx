@@ -5,7 +5,7 @@ import { Plus, Settings } from 'lucide-react';
 import { EnhancedTransactionList } from '@/components/transactions/EnhancedTransactionList';
 import { TransactionTemplateManager } from '@/components/transactions/TransactionTemplateManager';
 import { QuickSearch } from '@/components/transactions/QuickSearch';
-import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
+import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';

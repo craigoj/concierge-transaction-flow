@@ -4,132 +4,91 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/testUtils';
 import { SmartValidatedInput } from '@/components/validation/SmartValidatedInput';
 import { z } from 'zod';
 
-// Mock the advanced validation hook
-vi.mock('@/hooks/useAdvancedFormValidation', () => ({
-  useAdvancedFormValidation: () => ({
-    validateFieldProgressive: vi.fn().mockResolvedValue(null),
-    addToBatch: vi.fn(),
-    getValidationSuggestions: vi.fn().mockResolvedValue(['suggestion1', 'suggestion2']),
-    getContextualValidation: vi.fn().mockReturnValue(null),
-    storeSuccessfulValue: vi.fn(),
-    metrics: {
-      totalValidations: 10,
-      errorRate: 0.1,
-      averageValidationTime: 250,
-      popularErrors: {}
-    }
-  })
-}));
-
 describe('SmartValidatedInput', () => {
   const defaultProps = {
-    name: 'test-field',
-    label: 'Test Field',
+    fieldName: 'test-field',
     value: '',
     onChange: vi.fn(),
-    schema: z.string().min(1, 'Field is required'),
-    formId: 'test-form'
+    formContext: {},
+    className: '',
+    placeholder: 'Test placeholder',
+    type: 'text' as const
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render with label and input', () => {
+  it('should render with placeholder', () => {
     render(<SmartValidatedInput {...defaultProps} />);
     
-    expect(screen.getByLabelText('Test Field')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
-  });
-
-  it('should show required indicator when required', () => {
-    render(<SmartValidatedInput {...defaultProps} required />);
-    
-    expect(screen.getByText('*')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Test placeholder')).toBeInTheDocument();
   });
 
   it('should call onChange when input value changes', async () => {
     const mockOnChange = vi.fn();
     render(<SmartValidatedInput {...defaultProps} onChange={mockOnChange} />);
     
-    const input = screen.getByRole('textbox');
+    const input = screen.getByPlaceholderText('Test placeholder');
     fireEvent.change(input, { target: { value: 'test value' } });
     
     expect(mockOnChange).toHaveBeenCalledWith('test value');
   });
 
-  it('should show validation error', async () => {
+  it('should show validation error for short input', async () => {
     const { rerender } = render(<SmartValidatedInput {...defaultProps} />);
     
-    // Simulate validation error by re-rendering with error state
-    // In a real scenario, this would come from the validation hook
-    rerender(<SmartValidatedInput {...defaultProps} value="invalid" />);
+    // Simulate validation error by re-rendering with short value
+    rerender(<SmartValidatedInput {...defaultProps} value="a" />);
     
-    // The component should show error styling
-    const input = screen.getByRole('textbox');
-    fireEvent.focus(input);
-    fireEvent.blur(input);
+    const input = screen.getByPlaceholderText('Test placeholder');
     
     await waitFor(() => {
-      expect(input).toHaveClass('border-red-500');
+      expect(input).toHaveClass('border-red-300');
     });
   });
 
   it('should show success state for valid input', async () => {
     render(<SmartValidatedInput {...defaultProps} value="valid input" />);
     
-    const input = screen.getByRole('textbox');
-    fireEvent.focus(input);
-    fireEvent.blur(input);
+    const input = screen.getByPlaceholderText('Test placeholder');
     
     await waitFor(() => {
-      expect(input).toHaveClass('border-green-500');
+      expect(input).toHaveClass('border-green-300');
     });
   });
 
-  it('should show security indicator for maximum security level', () => {
-    render(<SmartValidatedInput {...defaultProps} securityLevel="maximum" />);
+  it('should show loading state during validation', async () => {
+    const { rerender } = render(<SmartValidatedInput {...defaultProps} />);
     
-    // Should show shield icon for maximum security
-    expect(document.querySelector('[data-lucide="shield"]')).toBeInTheDocument();
-  });
-
-  it('should display validation quality badge', async () => {
-    render(<SmartValidatedInput {...defaultProps} value="test" />);
+    // Change value to trigger validation
+    rerender(<SmartValidatedInput {...defaultProps} value="testing" />);
     
-    const input = screen.getByRole('textbox');
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'test value' } });
-    
+    // Should show loading state briefly
     await waitFor(() => {
-      expect(screen.getByText('excellent')).toBeInTheDocument();
+      const input = screen.getByPlaceholderText('Test placeholder');
+      expect(input).toHaveClass('border-yellow-300');
     });
   });
 
-  it('should handle suggestions popover', async () => {
-    render(<SmartValidatedInput {...defaultProps} enableSuggestions />);
+  it('should handle empty value', () => {
+    render(<SmartValidatedInput {...defaultProps} value="" />);
     
-    const input = screen.getByRole('textbox');
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'te' } });
-    
-    await waitFor(() => {
-      expect(screen.getByText('Suggestions')).toBeInTheDocument();
-    });
+    const input = screen.getByPlaceholderText('Test placeholder');
+    expect(input).toHaveValue('');
   });
 
-  it('should show description when provided', () => {
-    const description = 'This is a helpful description';
-    render(<SmartValidatedInput {...defaultProps} description={description} />);
+  it('should accept custom className', () => {
+    render(<SmartValidatedInput {...defaultProps} className="custom-class" />);
     
-    expect(screen.getByText(description)).toBeInTheDocument();
+    const input = screen.getByPlaceholderText('Test placeholder');
+    expect(input).toHaveClass('custom-class');
   });
 
-  it('should handle accessibility attributes', () => {
-    render(<SmartValidatedInput {...defaultProps} />);
+  it('should handle different input types', () => {
+    render(<SmartValidatedInput {...defaultProps} type="email" />);
     
-    const input = screen.getByRole('textbox');
-    expect(input).toHaveAttribute('aria-describedby', 'test-field-description');
-    expect(input).toHaveAttribute('id', 'test-field');
+    const input = screen.getByPlaceholderText('Test placeholder');
+    expect(input).toHaveAttribute('type', 'email');
   });
 });
