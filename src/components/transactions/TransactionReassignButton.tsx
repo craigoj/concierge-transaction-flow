@@ -39,7 +39,7 @@ const TransactionReassignButton = ({
       <TransactionReassignDialog
         open={showDialog}
         onOpenChange={setShowDialog}
-        transactionId={transactionId}
+        transaction={transactionId}
         currentAgentId={currentAgentId}
         onSuccess={() => {
           setShowDialog(false);

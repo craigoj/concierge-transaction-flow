@@ -227,9 +227,11 @@ export const TransactionListWithBulk = ({
       {/* Bulk Action Bar */}
       {enableBulkActions && (
         <BulkActionBar
-          selectedTransactionIds={selectedIds}
+          selectedCount={selectedIds.length}
+          onBulkStatusUpdate={(status) => console.log('Bulk status update:', status)}
+          onBulkReassign={() => console.log('Bulk reassign')}
+          onBulkDelete={() => console.log('Bulk delete')}
           onClearSelection={clearSelection}
-          onSuccess={handleSuccess}
         />
       )}
     </>

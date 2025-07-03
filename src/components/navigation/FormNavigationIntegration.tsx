@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,14 +33,14 @@ export const FormNavigationIntegration: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Fetch user profile data
+  // Fetch user profile data with correct column names
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile-navigation', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name, phone, brokerage, onboarding_completed_at')
+        .select('first_name, last_name, phone_number, brokerage, onboarding_completed_at')
         .eq('id', user.id)
         .single();
       return data;
@@ -47,7 +48,7 @@ export const FormNavigationIntegration: React.FC = () => {
     enabled: !!user?.id,
   });
 
-  const isProfileComplete = !!(profile?.first_name && profile?.last_name && profile?.phone && profile?.brokerage);
+  const isProfileComplete = !!(profile?.first_name && profile?.last_name && profile?.phone_number && profile?.brokerage);
   const isOnboardingComplete = !!profile?.onboarding_completed_at;
 
   const quickActions: QuickAction[] = [

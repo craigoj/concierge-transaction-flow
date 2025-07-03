@@ -15,7 +15,6 @@ export const MultiTransactionProgressGrid: React.FC<MultiTransactionProgressGrid
     <div className={`multi-transaction-progress-grid ${className}`}>
       <EnhancedTransactionGrid 
         transactions={[]}
-        className="w-full"
       />
     </div>
   );
