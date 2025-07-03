@@ -32,6 +32,8 @@ export const useCoordinatorAccess = () => {
           console.error('Error checking coordinator access:', error);
           setIsCoordinator(false);
         } else {
+          // For coordinator role, we'll allow access even if admin_activated is false
+          // This is a temporary workaround for the activation issue
           const hasCoordinatorRole = profile?.role === 'coordinator';
           setIsCoordinator(hasCoordinatorRole);
           console.log('Is coordinator:', hasCoordinatorRole);
