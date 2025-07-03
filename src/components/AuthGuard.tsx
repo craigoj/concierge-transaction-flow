@@ -19,7 +19,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Clear all auth state and redirect to login
   const clearAuthAndRedirect = () => {
-    console.log('Clearing auth state and redirecting to login');
+    console.log('🔄 Clearing auth state and redirecting to login');
     setSession(null);
     setUser(null);
     setUserRole(null);
@@ -27,12 +27,11 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     navigate('/auth', { replace: true });
   };
 
-  // Fetch user role with timeout
-  const fetchUserRole = async (userId: string): Promise<string> => {
+  // Fetch user role with timeout and retry logic
+  const fetchUserRole = async (userId: string, retryCount = 0): Promise<string> => {
     try {
-      console.log('Fetching role for user:', userId);
+      console.log(`🔍 Fetching role for user: ${userId} (attempt ${retryCount + 1})`);
       
-      // Set a timeout for the query
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 5000)
       );
@@ -46,27 +45,44 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       if (error) {
-        console.error('Role fetch error:', error);
-        return 'agent'; // Default fallback
+        console.error('❌ Role fetch error:', error);
+        if (retryCount < 2) {
+          console.log(`🔄 Retrying role fetch (${retryCount + 1}/2)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchUserRole(userId, retryCount + 1);
+        }
+        return 'agent'; // Default fallback after retries
       }
       
       const role = profile?.role || 'agent';
-      console.log('Role fetched successfully:', role);
+      console.log(`✅ Role fetched successfully: ${role}`);
       return role;
     } catch (error) {
-      console.error('Error fetching user role:', error);
-      return 'agent'; // Default fallback
+      console.error('❌ Error fetching user role:', error);
+      if (retryCount < 2) {
+        console.log(`🔄 Retrying role fetch after error (${retryCount + 1}/2)`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchUserRole(userId, retryCount + 1);
+      }
+      return 'agent'; // Default fallback after retries
     }
   };
 
-  // Handle navigation after authentication
+  // Enhanced navigation handler with better role-based routing
   const handleNavigation = (session: Session | null, role: string | null) => {
     const currentPath = location.pathname;
     
-    console.log('Navigation check:', { currentPath, hasSession: !!session, role });
+    console.log('🧭 Navigation check:', { 
+      currentPath, 
+      hasSession: !!session, 
+      role,
+      userEmail: session?.user?.email 
+    });
 
+    // If no session, redirect to auth (except if already on auth page)
     if (!session) {
       if (currentPath !== '/auth') {
+        console.log('🔄 No session, redirecting to auth');
         navigate('/auth', { replace: true });
       }
       return;
@@ -75,33 +91,48 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
     // If we're on auth page and have session, redirect based on role
     if (currentPath === '/auth') {
       const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+      console.log(`🔄 On auth page with session, redirecting to: ${destination}`);
       navigate(destination, { replace: true });
       return;
     }
 
-    // Role-based access control
+    // Handle root route
+    if (currentPath === '/') {
+      const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+      console.log(`🔄 On root route, redirecting to: ${destination}`);
+      navigate(destination, { replace: true });
+      return;
+    }
+
+    // Role-based access control and corrections
     if (role === 'coordinator') {
+      // Coordinators should not be on agent routes
       if (currentPath.startsWith('/agent/')) {
+        console.log('🔄 Coordinator on agent route, redirecting to coordinator dashboard');
         navigate('/dashboard', { replace: true });
         return;
       }
-      if (currentPath === '/') {
-        navigate('/dashboard', { replace: true });
-        return;
-      }
+      // If coordinator is on generic dashboard, that's fine - no redirect needed
     } else if (role === 'agent') {
+      // Agents should be on agent routes, not coordinator routes
       const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
       const isCoordinatorRoute = coordinatorOnlyRoutes.some(route => currentPath.startsWith(route));
       
       if (isCoordinatorRoute) {
+        console.log('🔄 Agent on coordinator route, redirecting to agent dashboard');
         navigate('/agent/dashboard', { replace: true });
         return;
       }
-      if (currentPath === '/') {
+      
+      // If agent is on generic /dashboard, redirect to agent dashboard
+      if (currentPath === '/dashboard') {
+        console.log('🔄 Agent on generic dashboard, redirecting to agent dashboard');
         navigate('/agent/dashboard', { replace: true });
         return;
       }
     }
+
+    console.log('✅ Navigation check complete - staying on current route');
   };
 
   useEffect(() => {
@@ -110,20 +141,20 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        console.log('🚀 Initializing auth...');
         
         // Set a maximum timeout for initialization
         initTimeout = setTimeout(() => {
           if (mounted) {
-            console.log('Auth initialization timeout, clearing state');
+            console.log('⏰ Auth initialization timeout, clearing state');
             clearAuthAndRedirect();
           }
-        }, 10000); // 10 second timeout
+        }, 10000);
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Session error:', sessionError);
+          console.error('❌ Session error:', sessionError);
           if (mounted) {
             clearAuthAndRedirect();
           }
@@ -132,7 +163,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
         if (!mounted) return;
 
-        console.log('Initial session check:', { 
+        console.log('📋 Initial session check:', { 
           hasSession: !!session, 
           userEmail: session?.user?.email 
         });
@@ -148,7 +179,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
               handleNavigation(session, role);
             }
           } catch (roleError) {
-            console.error('Role fetch failed:', roleError);
+            console.error('❌ Role fetch failed:', roleError);
             if (mounted) {
               setUserRole('agent');
               handleNavigation(session, 'agent');
@@ -159,7 +190,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
           handleNavigation(null, null);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('❌ Auth initialization error:', error);
         if (mounted) {
           clearAuthAndRedirect();
         }
@@ -171,22 +202,22 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
       }
     };
 
-    // Set up auth state listener
+    // Set up auth state listener with improved error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
+        console.log('🔄 Auth state change:', event, session?.user?.email);
         
         if (!mounted) return;
 
-        // Handle specific auth events
+        // Handle token refresh failures
         if (event === 'TOKEN_REFRESHED' && !session) {
-          console.log('Token refresh failed, clearing auth');
+          console.log('❌ Token refresh failed, clearing auth');
           clearAuthAndRedirect();
           return;
         }
 
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
+          console.log('👋 User signed out');
           clearAuthAndRedirect();
           return;
         }
@@ -194,7 +225,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user && event === 'SIGNED_IN') {
+        if (session?.user && ['SIGNED_IN', 'TOKEN_REFRESHED'].includes(event)) {
           try {
             const role = await fetchUserRole(session.user.id);
             if (mounted) {
@@ -202,7 +233,7 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
               handleNavigation(session, role);
             }
           } catch (roleError) {
-            console.error('Role fetch failed during auth change:', roleError);
+            console.error('❌ Role fetch failed during auth change:', roleError);
             if (mounted) {
               setUserRole('agent');
               handleNavigation(session, 'agent');
