@@ -1,34 +1,34 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { PropertyDetailsStep } from './offer-steps/PropertyDetailsStep';
 import { OfferTermsStep } from './offer-steps/OfferTermsStep';
 import { FinancingDetailsStep } from './offer-steps/FinancingDetailsStep';
 import { ContingenciesStep } from './offer-steps/ContingenciesStep';
 import { AdditionalTermsStep } from './offer-steps/AdditionalTermsStep';
 import { ReviewAndSubmitStep } from './offer-steps/ReviewAndSubmitStep';
-import { useFormAutoSave } from '@/hooks/useFormAutoSave';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 export interface OfferFormData {
-  // Property Information
+  // Property Details
   property_address: string;
-  listing_price: string;
-  mls_number: string;
-  property_type: string;
-  lot_size: string;
-  square_footage: string;
+  buyer_names: string;
   
   // Offer Terms
-  offer_price: string;
-  earnest_money_amount: string;
-  down_payment_percentage: string;
-  financing_type: string;
-  closing_date_preference: string;
+  purchase_price: string;
+  emd_amount: string;
+  exchange_fee: string;
+  projected_closing_date: string;
+  
+  // Financing Details
+  loan_type: string;
+  lending_company: string;
+  settlement_company: string;
+  closing_cost_assistance: string;
   
   // Contingencies
   inspection_period_days: string;
@@ -42,126 +42,120 @@ export interface OfferFormData {
   seller_concessions_requested: string;
   special_terms: string;
   timeline_preferences: string;
-  
-  // Buyer Information
-  buyer_names: string;
-  buyer_contacts: {
-    phones: string[];
-    emails: string[];
-  };
-  loan_type: string;
-  lending_company: string;
-  settlement_company: string;
-  closing_cost_assistance: string;
-  wdi_inspection_details: {
-    period: number | null;
-    provider: string | null;
-    notes: string;
-  };
-  fica_details: {
-    required: boolean;
-    inspection_period: number | null;
-  };
-  extras: string;
-  lead_eifs_survey: string;
-  occupancy_notes: string;
 }
 
-const STEPS = [
-  { id: 'property', title: 'Property Details', component: PropertyDetailsStep },
-  { id: 'terms', title: 'Offer Terms', component: OfferTermsStep },
-  { id: 'financing', title: 'Financing Details', component: FinancingDetailsStep },
-  { id: 'contingencies', title: 'Contingencies', component: ContingenciesStep },
-  { id: 'additional', title: 'Additional Terms', component: AdditionalTermsStep },
-  { id: 'review', title: 'Review & Submit', component: ReviewAndSubmitStep }
+const initialFormData: OfferFormData = {
+  property_address: '',
+  buyer_names: '',
+  purchase_price: '',
+  emd_amount: '',
+  exchange_fee: '',
+  projected_closing_date: '',
+  loan_type: '',
+  lending_company: '',
+  settlement_company: '',
+  closing_cost_assistance: '',
+  inspection_period_days: '7',
+  appraisal_contingency: true,
+  financing_contingency: true,
+  sale_contingency: false,
+  other_contingencies: '',
+  personal_property_included: '',
+  seller_concessions_requested: '',
+  special_terms: '',
+  timeline_preferences: '',
+};
+
+const steps = [
+  { id: 1, title: 'Property Details', component: PropertyDetailsStep },
+  { id: 2, title: 'Offer Terms', component: OfferTermsStep },
+  { id: 3, title: 'Financing Details', component: FinancingDetailsStep },
+  { id: 4, title: 'Contingencies', component: ContingenciesStep },
+  { id: 5, title: 'Additional Terms', component: AdditionalTermsStep },
+  { id: 6, title: 'Review & Submit', component: ReviewAndSubmitStep },
 ];
 
 export const OfferDraftingForm = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<OfferFormData>({
-    property_address: '',
-    listing_price: '',
-    mls_number: '',
-    property_type: '',
-    lot_size: '',
-    square_footage: '',
-    offer_price: '',
-    earnest_money_amount: '',
-    down_payment_percentage: '',
-    financing_type: '',
-    closing_date_preference: '',
-    inspection_period_days: '',
-    appraisal_contingency: false,
-    financing_contingency: false,
-    sale_contingency: false,
-    other_contingencies: '',
-    personal_property_included: '',
-    seller_concessions_requested: '',
-    special_terms: '',
-    timeline_preferences: '',
-    buyer_names: '',
-    buyer_contacts: { phones: [], emails: [] },
-    loan_type: '',
-    lending_company: '',
-    settlement_company: '',
-    closing_cost_assistance: '',
-    wdi_inspection_details: { period: null, provider: null, notes: '' },
-    fica_details: { required: false, inspection_period: null },
-    extras: '',
-    lead_eifs_survey: '',
-    occupancy_notes: ''
-  });
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<OfferFormData>(initialFormData);
+  const [loading, setLoading] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
   const { toast } = useToast();
-
-  // Auto-save functionality
-  useFormAutoSave('offer_requests', undefined, formData, true, 30000);
+  const { user } = useAuth();
 
   const updateFormData = (updates: Partial<OfferFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
   };
 
-  const nextStep = () => {
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+  // Auto-save functionality
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const autoSave = async () => {
+      setAutoSaving(true);
+      try {
+        // Auto-save to local storage for now
+        localStorage.setItem('offerDraftFormData', JSON.stringify(formData));
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setAutoSaving(false);
+      }
+    };
+
+    const timer = setTimeout(autoSave, 2000);
+    return () => clearTimeout(timer);
+  }, [formData, user?.id]);
+
+  // Load saved data on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('offerDraftFormData');
+      if (saved) {
+        setFormData(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to load saved data:', error);
+    }
+  }, []);
+
+  const handleNext = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(prev => prev + 1);
     }
   };
 
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
     }
   };
 
   const handleSubmit = async () => {
     if (!user?.id) return;
 
-    setIsSubmitting(true);
+    setLoading(true);
     try {
+      const offerData = {
+        agent_id: user.id,
+        property_address: formData.property_address,
+        buyer_names: formData.buyer_names,
+        purchase_price: parseFloat(formData.purchase_price) || 0,
+        emd_amount: parseFloat(formData.emd_amount) || 0,
+        exchange_fee: parseFloat(formData.exchange_fee) || 0,
+        projected_closing_date: formData.projected_closing_date,
+        loan_type: formData.loan_type,
+        lending_company: formData.lending_company,
+        settlement_company: formData.settlement_company,
+        closing_cost_assistance: formData.closing_cost_assistance || null,
+        buyer_contacts: { phones: [], emails: [] },
+        extras: formData.personal_property_included || null,
+        status: 'pending'
+      };
+
       const { error } = await supabase
         .from('offer_requests')
-        .insert({
-          agent_id: user.id,
-          property_address: formData.property_address,
-          buyer_names: formData.buyer_names,
-          buyer_contacts: formData.buyer_contacts,
-          purchase_price: parseFloat(formData.offer_price) || 0,
-          loan_type: formData.loan_type,
-          lending_company: formData.lending_company,
-          emd_amount: parseFloat(formData.earnest_money_amount) || 0,
-          exchange_fee: 0, // Will be calculated
-          settlement_company: formData.settlement_company,
-          closing_cost_assistance: formData.closing_cost_assistance,
-          projected_closing_date: formData.closing_date_preference,
-          wdi_inspection_details: formData.wdi_inspection_details,
-          fica_details: formData.fica_details,
-          extras: formData.extras,
-          lead_eifs_survey: formData.lead_eifs_survey,
-          occupancy_notes: formData.occupancy_notes,
-          status: 'pending'
-        });
+        .insert(offerData);
 
       if (error) throw error;
 
@@ -170,41 +164,10 @@ export const OfferDraftingForm = () => {
         description: "Offer request submitted successfully",
       });
 
-      // Reset form or redirect
-      setCurrentStep(0);
-      setFormData({
-        property_address: '',
-        listing_price: '',
-        mls_number: '',
-        property_type: '',
-        lot_size: '',
-        square_footage: '',
-        offer_price: '',
-        earnest_money_amount: '',
-        down_payment_percentage: '',
-        financing_type: '',
-        closing_date_preference: '',
-        inspection_period_days: '',
-        appraisal_contingency: false,
-        financing_contingency: false,
-        sale_contingency: false,
-        other_contingencies: '',
-        personal_property_included: '',
-        seller_concessions_requested: '',
-        special_terms: '',
-        timeline_preferences: '',
-        buyer_names: '',
-        buyer_contacts: { phones: [], emails: [] },
-        loan_type: '',
-        lending_company: '',
-        settlement_company: '',
-        closing_cost_assistance: '',
-        wdi_inspection_details: { period: null, provider: null, notes: '' },
-        fica_details: { required: false, inspection_period: null },
-        extras: '',
-        lead_eifs_survey: '',
-        occupancy_notes: ''
-      });
+      // Clear saved data
+      localStorage.removeItem('offerDraftFormData');
+      setFormData(initialFormData);
+      setCurrentStep(1);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -212,70 +175,64 @@ export const OfferDraftingForm = () => {
         description: error.message,
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const CurrentStepComponent = STEPS[currentStep].component;
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
+  const CurrentStepComponent = steps[currentStep - 1].component;
+  const progressPercentage = (currentStep / steps.length) * 100;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Card className="card-brand">
-        <CardHeader className="pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-2xl font-brand-heading text-brand-charcoal">
-              Digital Offer Request
-            </CardTitle>
-            <div className="text-sm text-brand-charcoal/60">
-              Step {currentStep + 1} of {STEPS.length}
-            </div>
-          </div>
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Offer Drafting Request</span>
+          {autoSaving && (
+            <span className="text-sm text-muted-foreground">Auto-saving...</span>
+          )}
+        </CardTitle>
+        <div className="space-y-2">
+          <Progress value={progressPercentage} className="w-full" />
+          <p className="text-sm text-muted-foreground">
+            Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
+          </p>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <CurrentStepComponent
+          formData={formData}
+          updateFormData={updateFormData}
+        />
+        
+        <div className="flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+          >
+            Previous
+          </Button>
           
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-brand-charcoal/70">
-              <span>{STEPS[currentStep].title}</span>
-              <span>{Math.round(progress)}% Complete</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <CurrentStepComponent 
-            formData={formData}
-            updateFormData={updateFormData}
-          />
-
-          <div className="flex justify-between pt-6 border-t">
+          {currentStep < steps.length ? (
             <Button
               type="button"
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
+              onClick={handleNext}
             >
-              Previous
+              Next
             </Button>
-
-            {currentStep === STEPS.length - 1 ? (
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="btn-brand"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Offer Request'}
-              </Button>
-            ) : (
-              <Button
-                onClick={nextStep}
-                className="btn-brand"
-              >
-                Next
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? "Submitting..." : "Submit Offer Request"}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };

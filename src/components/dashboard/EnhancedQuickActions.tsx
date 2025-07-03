@@ -1,73 +1,96 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Plus, FileText, Users, Settings } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, FileText, Users, Calendar, BarChart3, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
+import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
 
 const EnhancedQuickActions = () => {
   const navigate = useNavigate();
-  const [showCreateTransaction, setShowCreateTransaction] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const quickActions = [
     {
       title: 'New Transaction',
-      description: 'Start a new real estate transaction',
+      description: 'Start a new transaction',
       icon: Plus,
-      action: () => setShowCreateTransaction(true),
+      onClick: () => setShowCreateDialog(true),
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
-      title: 'Offer Request',
-      description: 'Create a new offer request',
-      icon: FileText,
-      action: () => navigate('/offer-drafting'),
+      title: 'Create Client',
+      description: 'Add a new client',
+      icon: Users,
+      onClick: () => navigate('/clients/new'),
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
-      title: 'Client Portal',
-      description: 'Access client information',
-      icon: Users,
-      action: () => navigate('/clients'),
+      title: 'View Documents',
+      description: 'Manage documents',
+      icon: FileText,
+      onClick: () => navigate('/documents'),
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
-      title: 'Agent Setup',
-      description: 'Configure your preferences',
-      icon: Settings,
-      action: () => navigate('/agent/setup'),
+      title: 'Schedule Meeting',
+      description: 'Book a meeting',
+      icon: Calendar,
+      onClick: () => navigate('/calendar'),
       color: 'bg-orange-500 hover:bg-orange-600'
+    },
+    {
+      title: 'View Reports',
+      description: 'Analyze performance',
+      icon: BarChart3,
+      onClick: () => navigate('/analytics'),
+      color: 'bg-indigo-500 hover:bg-indigo-600'
+    },
+    {
+      title: 'Settings',
+      description: 'Configure preferences',
+      icon: Settings,
+      onClick: () => navigate('/settings'),
+      color: 'bg-gray-500 hover:bg-gray-600'
     }
   ];
 
   return (
     <>
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickActions.map((action) => (
-            <Button
-              key={action.title}
-              onClick={action.action}
-              className={`${action.color} text-white h-auto p-4 flex flex-col items-center justify-center space-y-2`}
-              variant="default"
-            >
-              <action.icon className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium text-sm">{action.title}</div>
-                <div className="text-xs opacity-90">{action.description}</div>
-              </div>
-            </Button>
-          ))}
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.title}
+                  variant="outline"
+                  className={`h-auto p-4 flex flex-col items-center gap-2 ${action.color} text-white border-none hover:scale-105 transition-all duration-200`}
+                  onClick={action.onClick}
+                >
+                  <Icon className="h-8 w-8" />
+                  <div className="text-center">
+                    <div className="font-semibold">{action.title}</div>
+                    <div className="text-xs opacity-80">{action.description}</div>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
       </Card>
 
-      {showCreateTransaction && (
-        <CreateTransactionDialog 
-          onSuccess={() => setShowCreateTransaction(false)}
-        />
-      )}
+      <CreateTransactionDialog 
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => {
+          // Handle success if needed
+        }}
+      />
     </>
   );
 };

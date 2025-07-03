@@ -9,10 +9,8 @@ interface ValidationResult {
   isLoading: boolean;
 }
 
-type TableName = 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding';
-
 export const useLiveValidation = (
-  tableName: TableName,
+  tableName: string,
   columnName: string,
   value: string,
   debounceTime: number = 500
@@ -32,8 +30,10 @@ export const useLiveValidation = (
 
       setIsLoading(true);
       try {
-        const query = supabase.from(tableName).select(columnName).eq(columnName, currentValue);
-        const { data, error } = await query;
+        const { data, error } = await supabase
+          .from(tableName)
+          .select(columnName)
+          .eq(columnName, currentValue);
 
         setIsLoading(false);
 

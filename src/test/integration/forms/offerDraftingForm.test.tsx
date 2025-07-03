@@ -1,120 +1,109 @@
 
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/testUtils';
 import { OfferDraftingForm } from '@/components/forms/OfferDraftingForm';
-import { mockOfferRequest } from '@/test/utils/testUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock the hooks
-const mockMutate = vi.fn();
-const mockUseCreateOfferRequest = vi.fn(() => ({
-  mutate: mockMutate,
-  isPending: false,
-  error: null
-}));
-
-vi.mock('@/hooks/queries/useOfferRequests', () => ({
-  useCreateOfferRequest: mockUseCreateOfferRequest
-}));
-
-vi.mock('@/hooks/useAdvancedFormValidation', () => ({
-  useAdvancedFormValidation: () => ({
-    validateFieldProgressive: vi.fn().mockResolvedValue(null),
-    validateAllFields: vi.fn().mockResolvedValue(true),
-    clearValidation: vi.fn(),
-    metrics: { totalValidations: 0, errorRate: 0, averageValidationTime: 0, popularErrors: {} }
+// Mock dependencies
+vi.mock('@/contexts/AuthContext');
+vi.mock('@/integrations/supabase/client');
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({
+    toast: vi.fn()
   })
 }));
 
-describe('OfferDraftingForm Integration', () => {
-  const defaultProps = {
-    onSuccess: vi.fn(),
-    onCancel: vi.fn()
-  };
+const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
+const mockSupabase = supabase as any;
 
+describe('OfferDraftingForm', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: { id: 'test-user-id' },
+      userRole: 'agent'
+    });
+
+    mockSupabase.from = vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnValue({
+        data: null,
+        error: null
+      })
+    });
+
+    // Clear localStorage
+    localStorage.clear();
   });
 
-  it('should render all form sections', () => {
-    render(<OfferDraftingForm {...defaultProps} />);
+  it('renders the first step by default', () => {
+    render(<OfferDraftingForm />);
     
-    expect(screen.getByText('Property Information')).toBeInTheDocument();
-    expect(screen.getByText('Offer Terms')).toBeInTheDocument();
-    expect(screen.getByText('Buyer Information')).toBeInTheDocument();
-    expect(screen.getByText('Financing Details')).toBeInTheDocument();
+    expect(screen.getByText('Property Details')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 6: Property Details')).toBeInTheDocument();
   });
 
-  it('should handle form submission with valid data', async () => {
-    const mockOnSuccess = vi.fn();
-    render(<OfferDraftingForm {...defaultProps} onSuccess={mockOnSuccess} />);
+  it('allows navigation between steps', async () => {
+    render(<OfferDraftingForm />);
     
-    // Fill out the form with valid data
-    fireEvent.change(screen.getByLabelText(/property address/i), {
-      target: { value: mockOfferRequest.property_address }
-    });
+    // Click Next button
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
     
-    fireEvent.change(screen.getByLabelText(/buyer names/i), {
-      target: { value: mockOfferRequest.buyer_names }
-    });
-    
-    fireEvent.change(screen.getByLabelText(/purchase price/i), {
-      target: { value: mockOfferRequest.purchase_price.toString() }
-    });
-    
-    // Submit the form
-    const submitButton = screen.getByRole('button', { name: /submit offer request/i });
-    fireEvent.click(submitButton);
-    
+    // Should move to step 2
     await waitFor(() => {
-      expect(mockOnSuccess).toHaveBeenCalled();
+      expect(screen.getByText('Step 2 of 6: Offer Terms')).toBeInTheDocument();
     });
-  });
-
-  it('should show validation errors for invalid data', async () => {
-    render(<OfferDraftingForm {...defaultProps} />);
     
-    // Try to submit empty form
-    const submitButton = screen.getByRole('button', { name: /submit offer request/i });
-    fireEvent.click(submitButton);
+    // Click Previous button
+    const previousButton = screen.getByText('Previous');
+    fireEvent.click(previousButton);
     
+    // Should go back to step 1
     await waitFor(() => {
-      expect(screen.getByText(/property address is required/i)).toBeInTheDocument();
+      expect(screen.getByText('Step 1 of 6: Property Details')).toBeInTheDocument();
     });
   });
 
-  it('should handle form cancellation', () => {
-    const mockOnCancel = vi.fn();
-    render(<OfferDraftingForm {...defaultProps} onCancel={mockOnCancel} />);
+  it('shows submit button on final step', async () => {
+    render(<OfferDraftingForm />);
     
-    const cancelButton = screen.getByRole('button', { name: /cancel/i });
-    fireEvent.click(cancelButton);
+    // Navigate to final step
+    for (let i = 0; i < 5; i++) {
+      const nextButton = screen.getByText('Next');
+      fireEvent.click(nextButton);
+      await waitFor(() => {}); // Wait for state update
+    }
     
-    expect(mockOnCancel).toHaveBeenCalled();
+    expect(screen.getByText('Submit Offer Request')).toBeInTheDocument();
   });
 
-  it('should show loading state during submission', async () => {
-    // Mock pending state
-    mockUseCreateOfferRequest.mockReturnValue({
-      mutate: mockMutate,
-      isPending: true,
-      error: null
-    });
+  it('auto-saves form data to localStorage', async () => {
+    render(<OfferDraftingForm />);
     
-    render(<OfferDraftingForm {...defaultProps} />);
+    const propertyAddressInput = screen.getByLabelText(/property address/i);
+    fireEvent.change(propertyAddressInput, { target: { value: '123 Main St' } });
     
-    expect(screen.getByText(/submitting/i)).toBeInTheDocument();
+    // Wait for auto-save
+    await waitFor(() => {
+      const savedData = localStorage.getItem('offerDraftFormData');
+      expect(savedData).toBeTruthy();
+      const parsedData = JSON.parse(savedData!);
+      expect(parsedData.property_address).toBe('123 Main St');
+    }, { timeout: 3000 });
   });
 
-  it('should handle network errors gracefully', async () => {
-    // Mock error state
-    mockUseCreateOfferRequest.mockReturnValue({
-      mutate: mockMutate,
-      isPending: false,
-      error: new Error('Network error')
-    });
+  it('loads saved data from localStorage on mount', () => {
+    const savedData = {
+      property_address: '456 Oak Ave',
+      buyer_names: 'John Doe',
+      purchase_price: '500000'
+    };
+    localStorage.setItem('offerDraftFormData', JSON.stringify(savedData));
     
-    render(<OfferDraftingForm {...defaultProps} />);
+    render(<OfferDraftingForm />);
     
-    expect(screen.getByText(/error submitting offer/i)).toBeInTheDocument();
+    const propertyAddressInput = screen.getByLabelText(/property address/i) as HTMLInputElement;
+    expect(propertyAddressInput.value).toBe('456 Oak Ave');
   });
 });
