@@ -42,9 +42,9 @@ describe('AuthGuard Security Integration', () => {
   });
 
   it('should show loading state initially', () => {
-    // Mock loading state
     mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: null }
+      data: { session: null },
+      error: null
     });
 
     render(
@@ -59,9 +59,9 @@ describe('AuthGuard Security Integration', () => {
   });
 
   it('should redirect to auth when not authenticated', async () => {
-    // Mock no session
     mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: null }
+      data: { session: null },
+      error: null
     });
 
     render(
@@ -73,7 +73,7 @@ describe('AuthGuard Security Integration', () => {
     );
     
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/auth');
+      expect(mockNavigate).toHaveBeenCalledWith('/auth', { replace: true });
     });
   });
 
@@ -83,9 +83,9 @@ describe('AuthGuard Security Integration', () => {
       access_token: 'mock-token'
     };
     
-    // Mock authenticated session
     mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: mockSession }
+      data: { session: mockSession },
+      error: null
     });
     
     mockSupabase.from().select().eq().single.mockResolvedValue({
@@ -113,7 +113,8 @@ describe('AuthGuard Security Integration', () => {
     };
     
     mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: mockSession }
+      data: { session: mockSession },
+      error: null
     });
     
     mockSupabase.from().select().eq().single.mockResolvedValue({
@@ -130,7 +131,7 @@ describe('AuthGuard Security Integration', () => {
     );
     
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/agent/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/agent/dashboard', { replace: true });
     });
   });
 
@@ -141,7 +142,8 @@ describe('AuthGuard Security Integration', () => {
     };
     
     mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: mockSession }
+      data: { session: mockSession },
+      error: null
     });
     
     mockSupabase.from().select().eq().single.mockResolvedValue({
@@ -158,7 +160,7 @@ describe('AuthGuard Security Integration', () => {
     );
     
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
   });
 });

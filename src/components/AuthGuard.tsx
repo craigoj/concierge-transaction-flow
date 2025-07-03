@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -18,210 +18,193 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Prevent multiple navigation calls
+  const navigationInProgress = useRef(false);
+  const roleCache = useRef<{ [userId: string]: string }>({});
 
-  // Debug logging
   const logDebug = (message: string, data?: any) => {
     console.log(`[AuthGuard] ${message}`, data || '');
   };
 
-  // Initialize authentication
-  useEffect(() => {
-    let mounted = true;
+  // Centralized role fetching with caching
+  const fetchUserRole = async (userId: string): Promise<string> => {
+    // Check cache first
+    if (roleCache.current[userId]) {
+      return roleCache.current[userId];
+    }
 
-    const initAuth = async () => {
-      try {
-        logDebug('Initializing authentication...');
-        
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      const role = profile?.role || 'agent';
+      // Cache the role
+      roleCache.current[userId] = role;
+      return role;
+    } catch (error) {
+      logDebug('Error fetching role, using default:', error);
+      const defaultRole = 'agent';
+      roleCache.current[userId] = defaultRole;
+      return defaultRole;
+    }
+  };
 
-        if (sessionError) {
-          logDebug('Session error:', sessionError);
-          setAuthState('unauthenticated');
-          return;
-        }
-
-        if (session?.user) {
-          logDebug('Session found, user:', session.user.email);
-          setSession(session);
-          setUser(session.user);
-          
-          // Fetch user role with better error handling
-          try {
-            logDebug('Fetching user profile...');
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (!mounted) return;
-
-            if (profileError) {
-              logDebug('Profile error:', profileError);
-              // Check if it's a missing profile vs permission issue
-              if (profileError.code === 'PGRST116') {
-                logDebug('Profile not found, using default role');
-                setUserRole('agent'); // Default fallback
-              } else {
-                logDebug('Profile access denied, using fallback role');
-                setUserRole('agent'); // Default fallback
-              }
-            } else {
-              logDebug('Profile found, role:', profile?.role);
-              setUserRole(profile?.role || 'agent');
-            }
-          } catch (err) {
-            logDebug('Error fetching profile:', err);
-            setUserRole('agent'); // Default fallback
-          }
-          
-          setAuthState('authenticated');
-        } else {
-          logDebug('No session found');
-          setAuthState('unauthenticated');
-        }
-      } catch (err) {
-        logDebug('Auth initialization error:', err);
-        if (mounted) {
-          setAuthState('unauthenticated');
-        }
-      }
-    };
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Set up auth state listener
-  useEffect(() => {
-    logDebug('Setting up auth state listener...');
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        logDebug('Auth state change:', { event, userEmail: session?.user?.email });
-        
-        if (event === 'SIGNED_OUT') {
-          logDebug('User signed out');
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
-          setAuthState('unauthenticated');
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          logDebug('User signed in:', session.user.email);
-          setSession(session);
-          setUser(session.user);
-          setAuthState('authenticated');
-          
-          // Fetch role for signed in user - use a small delay to prevent conflicts
-          const fetchRole = async () => {
-            try {
-              logDebug('Fetching role for signed in user...');
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                logDebug('Error fetching role:', error);
-                setUserRole('agent');
-              } else {
-                logDebug('Role fetched:', profile?.role);
-                setUserRole(profile?.role || 'agent');
-              }
-            } catch (err) {
-              logDebug('Error in role fetch:', err);
-              setUserRole('agent');
-            }
-          };
-          
-          // Small delay to ensure state is stable
-          setTimeout(fetchRole, 100);
-        }
-      }
-    );
-
-    return () => {
-      logDebug('Cleaning up auth listener');
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Handle navigation based on auth state and role
-  useEffect(() => {
-    if (authState === 'loading') return;
-
-    logDebug('Navigation effect triggered', {
-      authState,
-      userRole,
-      currentPath: location.pathname
-    });
-
-    if (authState === 'unauthenticated') {
-      if (location.pathname !== '/auth') {
-        logDebug('Redirecting to auth page');
-        navigate('/auth', { replace: true });
-      }
+  // Centralized navigation handler
+  const handleNavigation = async (session: Session | null, role: string | null) => {
+    if (navigationInProgress.current) {
+      logDebug('Navigation already in progress, skipping');
       return;
     }
 
-    if (authState === 'authenticated' && userRole) {
-      logDebug('User authenticated, checking role-based routing', {
-        role: userRole,
-        currentPath: location.pathname
-      });
+    navigationInProgress.current = true;
 
-      // If user is on auth page and authenticated, redirect them
-      if (location.pathname === '/auth') {
-        logDebug('Authenticated user on auth page, redirecting');
-        if (userRole === 'agent') {
-          navigate('/agent/dashboard', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
+    try {
+      const currentPath = location.pathname;
+      logDebug('Handling navigation', { session: !!session, role, currentPath });
+
+      // If no session, redirect to auth
+      if (!session) {
+        if (currentPath !== '/auth') {
+          logDebug('No session, redirecting to auth');
+          navigate('/auth', { replace: true });
         }
+        return;
+      }
+
+      // If session exists but we're on auth page, redirect based on role
+      if (currentPath === '/auth' && role) {
+        logDebug('User on auth page with session, redirecting based on role');
+        const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+        navigate(destination, { replace: true });
         return;
       }
 
       // Handle root path redirection
-      if (location.pathname === '/') {
+      if (currentPath === '/' && role) {
         logDebug('User on root path, redirecting based on role');
-        if (userRole === 'agent') {
-          navigate('/agent/dashboard', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
-        }
+        const destination = role === 'agent' ? '/agent/dashboard' : '/dashboard';
+        navigate(destination, { replace: true });
         return;
       }
 
       // Role-based route protection
-      if (userRole === 'agent') {
+      if (role === 'agent') {
         const coordinatorOnlyRoutes = ['/agents', '/templates', '/workflows', '/automation'];
         const isOnCoordinatorRoute = coordinatorOnlyRoutes.some(route => 
-          location.pathname.startsWith(route)
+          currentPath.startsWith(route)
         );
         
         if (isOnCoordinatorRoute) {
           logDebug('Agent on coordinator route, redirecting to agent dashboard');
           navigate('/agent/dashboard', { replace: true });
         }
-      } else if (userRole === 'coordinator') {
-        if (location.pathname.startsWith('/agent/')) {
+      } else if (role === 'coordinator') {
+        if (currentPath.startsWith('/agent/')) {
           logDebug('Coordinator on agent route, redirecting to main dashboard');
           navigate('/dashboard', { replace: true });
         }
       }
+    } finally {
+      // Reset navigation flag after a short delay
+      setTimeout(() => {
+        navigationInProgress.current = false;
+      }, 100);
     }
-  }, [authState, userRole, location.pathname, navigate]);
+  };
+
+  // Initialize auth state and set up listener
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        logDebug('Initializing authentication...');
+
+        // Set up auth listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (!mounted) return;
+
+            logDebug('Auth state change:', { event, userEmail: session?.user?.email });
+            
+            // Update session and user state
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              // Fetch role for the user
+              const role = await fetchUserRole(session.user.id);
+              if (mounted) {
+                setUserRole(role);
+                setAuthState('authenticated');
+                // Handle navigation after role is set
+                await handleNavigation(session, role);
+              }
+            } else {
+              if (mounted) {
+                setUserRole(null);
+                setAuthState('unauthenticated');
+                // Clear role cache on logout
+                roleCache.current = {};
+                await handleNavigation(null, null);
+              }
+            }
+          }
+        );
+
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (error) {
+          logDebug('Session error:', error);
+          setAuthState('unauthenticated');
+          return;
+        }
+
+        // Set initial state
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
+          if (mounted) {
+            setUserRole(role);
+            setAuthState('authenticated');
+            await handleNavigation(session, role);
+          }
+        } else {
+          if (mounted) {
+            setAuthState('unauthenticated');
+            await handleNavigation(null, null);
+          }
+        }
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        logDebug('Auth initialization error:', error);
+        if (mounted) {
+          setAuthState('unauthenticated');
+        }
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Only run once on mount
 
   // Loading state
   if (authState === 'loading') {
-    logDebug('Showing loading state');
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center">
         <div className="text-center">
@@ -234,12 +217,10 @@ const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // Unauthenticated state - don't render children
   if (authState === 'unauthenticated') {
-    logDebug('User unauthenticated, not rendering children');
     return null;
   }
 
   // Authenticated state - render children
-  logDebug('Rendering authenticated content');
   return <>{children}</>;
 };
 

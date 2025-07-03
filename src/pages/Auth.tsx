@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,93 +10,19 @@ import { useToast } from '@/hooks/use-toast';
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [brokerage, setBrokerage] = useState('');
-  const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Debug logging
-  const logDebug = (message: string, data?: any) => {
-    console.log(`[Auth] ${message}`, data || '');
-  };
-
-  useEffect(() => {
-    let mounted = true;
-
-    const checkInitialAuth = async () => {
-      try {
-        logDebug('Checking initial auth state...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (error) {
-          logDebug('Session check error:', error);
-          setCheckingAuth(false);
-          return;
-        }
-
-        if (session?.user) {
-          logDebug('User already authenticated:', session.user.email);
-          
-          // Check user role for proper redirect
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (!mounted) return;
-
-            if (profileError) {
-              logDebug('Profile error, using default redirect:', profileError);
-              navigate('/dashboard', { replace: true });
-            } else {
-              const role = profile?.role || 'agent';
-              logDebug('User role found:', role);
-              
-              if (role === 'agent') {
-                navigate('/agent/dashboard', { replace: true });
-              } else {
-                navigate('/dashboard', { replace: true });
-              }
-            }
-          } catch (error) {
-            logDebug('Error fetching user role:', error);
-            navigate('/dashboard', { replace: true });
-          }
-        } else {
-          logDebug('No active session found');
-        }
-      } catch (error) {
-        logDebug('Auth check error:', error);
-      } finally {
-        if (mounted) {
-          setCheckingAuth(false);
-        }
-      }
-    };
-
-    checkInitialAuth();
-
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submission
+    if (loading) return;
     
     setLoading(true);
-    
-    logDebug('Attempting sign in...', { email });
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -105,43 +30,35 @@ const Auth = () => {
         password,
       });
 
-      logDebug('Sign in response:', { data: !!data, error });
-
       if (error) {
-        logDebug('Sign in error:', error);
         toast({
           variant: "destructive",
           title: "Sign In Error",
           description: error.message,
         });
-        setLoading(false);
       } else {
-        logDebug('Sign in successful, user:', data.user?.email);
-        // Reset loading and let AuthGuard handle the navigation
-        setLoading(false);
         toast({
           title: "Success!",
           description: "Signed in successfully. Redirecting...",
         });
+        // AuthGuard will handle navigation automatically
       }
     } catch (error) {
-      logDebug('Sign in exception:', error);
       toast({
         variant: "destructive",
         title: "Sign In Error",
         description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
       setLoading(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submission
+    if (loading) return;
     
     setLoading(true);
-    
-    logDebug('Attempting sign up...', { email });
 
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
@@ -161,24 +78,19 @@ const Auth = () => {
         }
       });
 
-      logDebug('Sign up response:', { data: !!data, error });
-
       if (error) {
-        logDebug('Sign up error:', error);
         toast({
           variant: "destructive",
           title: "Sign Up Error",
           description: error.message,
         });
       } else {
-        logDebug('Sign up successful');
         toast({
           title: "Success!",
           description: "Please check your email to confirm your account.",
         });
       }
     } catch (error) {
-      logDebug('Sign up exception:', error);
       toast({
         variant: "destructive",
         title: "Sign Up Error",
@@ -188,18 +100,6 @@ const Auth = () => {
       setLoading(false);
     }
   };
-
-  // Show loading while checking auth status
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-charcoal mx-auto mb-4"></div>
-          <p className="text-brand-charcoal/60 font-brand-body">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-background via-brand-cream to-brand-background flex items-center justify-center p-6">
