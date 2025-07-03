@@ -63,10 +63,11 @@ const EnhancedQuickActions = () => {
         </div>
       </Card>
 
-      <CreateTransactionDialog
-        open={showCreateTransaction}
-        onOpenChange={setShowCreateTransaction}
-      />
+      {showCreateTransaction && (
+        <CreateTransactionDialog 
+          onSuccess={() => setShowCreateTransaction(false)}
+        />
+      )}
     </>
   );
 };

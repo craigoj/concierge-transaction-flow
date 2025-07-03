@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,10 @@ export const CreateTransactionDialog: React.FC<CreateTransactionDialogProps> = (
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [propertyAddress, setPropertyAddress] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [transactionType, setTransactionType] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [transactionType, setTransactionType] = useState<'buyer' | 'seller' | 'dual'>('buyer');
   const [closingDate, setClosingDate] = useState('');
   const [notes, setNotes] = useState('');
   const { toast } = useToast();
@@ -36,16 +39,17 @@ export const CreateTransactionDialog: React.FC<CreateTransactionDialogProps> = (
 
       const { data, error } = await supabase
         .from('transactions')
-        .insert([
-          {
-            property_address: propertyAddress,
-            client_name: clientName,
-            transaction_type: transactionType,
-            closing_date: closingDate,
-            notes: notes,
-            agent_id: user.id,
-          },
-        ])
+        .insert({
+          property_address: propertyAddress,
+          city: city,
+          state: state,
+          zip_code: zipCode,
+          transaction_type: transactionType,
+          closing_date: closingDate,
+          notes: notes,
+          agent_id: user.id,
+          status: 'intake'
+        })
         .select();
 
       if (error) {
@@ -96,14 +100,40 @@ export const CreateTransactionDialog: React.FC<CreateTransactionDialogProps> = (
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="clientName" className="text-right">
-              Client Name
+            <Label htmlFor="city" className="text-right">
+              City
             </Label>
             <Input
               type="text"
-              id="clientName"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              id="city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="state" className="text-right">
+              State
+            </Label>
+            <Input
+              type="text"
+              id="state"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="zipCode" className="text-right">
+              Zip Code
+            </Label>
+            <Input
+              type="text"
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
               className="col-span-3"
               required
             />
@@ -112,14 +142,14 @@ export const CreateTransactionDialog: React.FC<CreateTransactionDialogProps> = (
             <Label htmlFor="transactionType" className="text-right">
               Transaction Type
             </Label>
-            <Select onValueChange={setTransactionType}>
+            <Select onValueChange={(value: 'buyer' | 'seller' | 'dual') => setTransactionType(value)}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Purchase">Purchase</SelectItem>
-                <SelectItem value="Sale">Sale</SelectItem>
-                <SelectItem value="Lease">Lease</SelectItem>
+                <SelectItem value="buyer">Buyer</SelectItem>
+                <SelectItem value="seller">Seller</SelectItem>
+                <SelectItem value="dual">Dual</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -133,7 +163,6 @@ export const CreateTransactionDialog: React.FC<CreateTransactionDialogProps> = (
               value={closingDate}
               onChange={(e) => setClosingDate(e.target.value)}
               className="col-span-3"
-              required
             />
           </div>
           <div className="grid grid-cols-4 items-start gap-4">

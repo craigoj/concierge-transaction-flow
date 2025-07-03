@@ -1,26 +1,28 @@
 
 import React from 'react';
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/navigation/AppSidebar";
-import AppHeader from "@/components/AppHeader";
+import { useAuth } from '@/contexts/AuthContext';
+import AppSidebar from '@/components/navigation/AppSidebar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 const AppLayout = ({ children }: AppLayoutProps) => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <div>{children}</div>;
+  }
+
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-brand-cream">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <AppHeader />
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
+    <div className="flex min-h-screen bg-gray-50">
+      <AppSidebar />
+      <main className="flex-1 overflow-auto">
+        <div className="p-6">
+          {children}
         </div>
-      </div>
-    </SidebarProvider>
+      </main>
+    </div>
   );
 };
 

@@ -12,11 +12,10 @@ export const NetworkStatusIndicator = () => {
     networkError, 
     isOnline, 
     retryConnection, 
-    state,
     hasUnsavedChanges 
   } = useFormStateContext();
 
-  if (!networkError && isOnline && state.autoSaveStatus !== 'error') {
+  if (!networkError && isOnline) {
     return null;
   }
 
@@ -37,7 +36,7 @@ export const NetworkStatusIndicator = () => {
               <AlertCircle className="h-4 w-4" />
             )}
             <AlertDescription className="flex-1">
-              {networkError || 'Auto-save failed. Your changes may not be saved.'}
+              {networkError || 'Connection lost. Your changes may not be saved.'}
             </AlertDescription>
             <Button
               size="sm"
@@ -66,7 +65,7 @@ export const NetworkStatusIndicator = () => {
 };
 
 export const FormStatusBar = ({ className }: { className?: string }) => {
-  const { state, isOnline, hasUnsavedChanges, forceSave } = useFormStateContext();
+  const { isOnline, hasUnsavedChanges, forceSave } = useFormStateContext();
 
   const getStatusIndicator = () => {
     if (!isOnline) {
@@ -78,44 +77,12 @@ export const FormStatusBar = ({ className }: { className?: string }) => {
       );
     }
 
-    switch (state.autoSaveStatus) {
-      case 'saving':
-        return (
-          <div className="flex items-center gap-2 text-blue-600">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </motion.div>
-            <span className="text-sm">Saving...</span>
-          </div>
-        );
-      case 'saved':
-        return (
-          <div className="flex items-center gap-2 text-green-600">
-            <Wifi className="h-4 w-4" />
-            <span className="text-sm">Saved</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">Save failed</span>
-            <Button size="sm" variant="outline" onClick={forceSave}>
-              Retry
-            </Button>
-          </div>
-        );
-      default:
-        return isOnline ? (
-          <div className="flex items-center gap-2 text-gray-600">
-            <Wifi className="h-4 w-4" />
-            <span className="text-sm">Connected</span>
-          </div>
-        ) : null;
-    }
+    return (
+      <div className="flex items-center gap-2 text-green-600">
+        <Wifi className="h-4 w-4" />
+        <span className="text-sm">Connected</span>
+      </div>
+    );
   };
 
   return (

@@ -1,3 +1,4 @@
+
 // Form Components Export
 export { VendorCard } from './VendorCard';
 export { CurrencyInput } from './CurrencyInput';
@@ -33,27 +34,27 @@ export { ConflictResolutionDialog } from './ConflictResolutionDialog';
 export { FormStateProvider, useFormStateContext } from '../FormStateProvider';
 export { NetworkStatusIndicator, FormStatusBar } from '../NetworkStatusIndicator';
 
-// Types Export
-export type { VendorData } from './VendorCard';
-export type { ContactData } from './ContactArrayInput';
-export type { ServiceTierData, ServiceTierFeature } from './ServiceTierCard';
-export type { ProgressStep } from './ProgressIndicator';
+// Types Export - using basic types instead of complex database types
+export type VendorData = {
+  type: string;
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  address: string;
+  notes: string;
+};
 
-// State Management Types
-export type { 
-  FormState,
-  AgentVendor,
-  AgentBranding,
-  AgentIntakeSession,
-  OfferRequest,
-  ServiceTierType
-} from '../../../hooks/useFormState';
+export type ContactData = {
+  phones: string[];
+  emails: string[];
+};
 
 // Navigation Integration Components
 export { FormNavigationIntegration } from '../../navigation/FormNavigationIntegration';
 
 // Enhanced Transaction Components
-export { EnhancedCreateTransactionDialog } from '../../transactions/EnhancedCreateTransactionDialog';
+export { default as EnhancedCreateTransactionDialog } from '../../transactions/EnhancedCreateTransactionDialog';
 
 // Workflow Integration
 export { FormWorkflowIntegration, useWorkflowIntegration } from '../../workflows/FormWorkflowIntegration';

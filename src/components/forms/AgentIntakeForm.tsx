@@ -126,9 +126,10 @@ const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
       <div className="min-h-[600px] relative overflow-hidden">
         {currentStep === 1 && (
           <VendorPreferencesStep
-            data={formData.vendors}
             onNext={handleNext}
-            onChange={(data) => handleStepComplete(1, data)}
+            onPrevious={handlePrevious}
+            onSubmit={(data) => handleStepComplete(1, data)}
+            initialData={formData.vendors}
           />
         )}
         {currentStep === 2 && (

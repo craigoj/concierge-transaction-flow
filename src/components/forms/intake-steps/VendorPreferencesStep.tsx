@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Minus, Star, Building, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
+import { Plus, Minus, Star, Building, Phone, Mail, MapPin, FileText, CheckCircle2, Home, DollarSign, Camera, Layout } from 'lucide-react';
 
 interface Vendor {
   type: string;

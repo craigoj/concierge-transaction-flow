@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,7 @@ const ReviewAndSubmitStep: React.FC<ReviewAndSubmitStepProps> = ({
               </Button>
             </div>
             {typeof value === 'boolean' ? (
-              <Badge variant={value ? "success" : "destructive"}>
+              <Badge variant={value ? "default" : "secondary"}>
                 {value ? "Yes" : "No"}
               </Badge>
             ) : Array.isArray(value) ? (

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { EnhancedTransactionGrid } from './EnhancedTransactionGrid';
+import EnhancedTransactionGrid from './EnhancedTransactionGrid';
 
 interface MultiTransactionProgressGridProps {
   agentId?: string;
@@ -14,7 +14,7 @@ export const MultiTransactionProgressGrid: React.FC<MultiTransactionProgressGrid
   return (
     <div className={`multi-transaction-progress-grid ${className}`}>
       <EnhancedTransactionGrid 
-        agentId={agentId}
+        transactions={[]}
         className="w-full"
       />
     </div>
