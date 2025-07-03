@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,26 +18,6 @@ const Auth = () => {
   const [brokerage, setBrokerage] = useState('');
   const { toast } = useToast();
 
-  // Clear any existing auth errors on mount
-  useEffect(() => {
-    const clearAuthErrors = async () => {
-      try {
-        // Check if there's a broken session and clear it
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || (session && !session.access_token)) {
-          console.log('[Auth] Clearing broken session');
-          await supabase.auth.signOut();
-        }
-      } catch (error) {
-        console.log('[Auth] Error checking session:', error);
-        // If there's any error with the session, sign out to clear it
-        await supabase.auth.signOut();
-      }
-    };
-
-    clearAuthErrors();
-  }, []);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -44,9 +25,6 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Clear any existing session first
-      await supabase.auth.signOut();
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -66,7 +44,7 @@ const Auth = () => {
         // AuthGuard will handle navigation automatically
       }
     } catch (error) {
-      console.error('[Auth] Sign in error:', error);
+      console.error('Sign in error:', error);
       toast({
         variant: "destructive",
         title: "Sign In Error",
@@ -114,7 +92,7 @@ const Auth = () => {
         });
       }
     } catch (error) {
-      console.error('[Auth] Sign up error:', error);
+      console.error('Sign up error:', error);
       toast({
         variant: "destructive",
         title: "Sign Up Error",
