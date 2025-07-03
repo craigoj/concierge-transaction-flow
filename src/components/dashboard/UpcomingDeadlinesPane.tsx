@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,14 +53,12 @@ const UpcomingDeadlinesPane = () => {
     return "text-green-600";
   };
 
-  // Sample milestone dates that would typically be tracked
   const getMilestones = (transaction: any) => {
     const milestones = [];
     
     if (transaction.closing_date) {
       const closingDate = new Date(transaction.closing_date);
       
-      // Add sample milestones based on closing date
       const earnestMoneyDue = new Date(closingDate);
       earnestMoneyDue.setDate(closingDate.getDate() - 14);
       
@@ -103,97 +102,18 @@ const UpcomingDeadlinesPane = () => {
           <div className="text-center py-8 text-muted-foreground">Loading deadlines...</div>
         ) : (
           <div className="space-y-4">
-            {/* Yesterday */}
-            <div>
-              <h4 className="text-sm font-semibold text-red-600 mb-2 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                YESTERDAY | FRI
-              </h4>
-              <div className="text-xs text-muted-foreground mb-3">
-                Sample overdue items would appear here
-              </div>
-            </div>
-
-            {/* Today */}
-            <div>
-              <h4 className="text-sm font-semibold text-orange-600 mb-2">
-                TODAY | SAT
-              </h4>
-              {upcomingDeadlines?.map((transaction) => {
-                const todayMilestones = getMilestones(transaction).filter(milestone => {
-                  const milestoneDate = new Date(milestone.date).toDateString();
-                  const today = new Date().toDateString();
-                  return milestoneDate === today;
-                });
-                
-                return todayMilestones.map((milestone, idx) => (
-                  <div key={`${transaction.id}-${idx}`} className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <div className="text-sm font-medium text-foreground mb-1">
-                      {transaction.property_address}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        ✓ {milestone.type}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {milestone.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                ));
-              })}
-            </div>
-
-            {/* Tomorrow */}
-            <div>
-              <h4 className="text-sm font-semibold text-blue-600 mb-2">
-                TOMORROW | SUN
-              </h4>
-              {upcomingDeadlines?.map((transaction) => {
-                const tomorrowMilestones = getMilestones(transaction).filter(milestone => {
-                  const milestoneDate = new Date(milestone.date);
-                  const tomorrow = new Date();
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  return milestoneDate.toDateString() === tomorrow.toDateString();
-                });
-                
-                return tomorrowMilestones.map((milestone, idx) => (
-                  <div key={`${transaction.id}-${idx}`} className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="text-sm font-medium text-foreground mb-1">
-                      {transaction.property_address}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        □ {milestone.type}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {milestone.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                ));
-              })}
-            </div>
-
-            {/* Rest of the week */}
             {upcomingDeadlines && upcomingDeadlines.length > 0 ? (
               upcomingDeadlines.map((transaction) => {
-                const futureMilestones = getMilestones(transaction).filter(milestone => {
-                  const milestoneDate = new Date(milestone.date);
-                  const today = new Date();
-                  const tomorrow = new Date();
-                  tomorrow.setDate(today.getDate() + 1);
-                  return milestoneDate > tomorrow;
-                });
+                const milestones = getMilestones(transaction);
                 
-                return futureMilestones.map((milestone, idx) => (
-                  <div key={`${transaction.id}-future-${idx}`} className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                return milestones.map((milestone, idx) => (
+                  <div key={`${transaction.id}-${idx}`} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <div className="text-sm font-medium text-foreground mb-1">
                       {transaction.property_address}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        □ {milestone.type}
+                        {milestone.type}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs ${getDateColor(milestone.date)}`}>

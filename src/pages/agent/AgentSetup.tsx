@@ -76,8 +76,7 @@ const AgentSetup = () => {
           firstName: data.first_name || "Agent",
           email: data.email || "",
         });
-      } catch (error: any) {
-        console.error("Token validation error:", error);
+      } catch (error) {
         toast({
           variant: "destructive",
           title: "Invalid Invitation",
@@ -97,7 +96,6 @@ const AgentSetup = () => {
 
     setIsLoading(true);
     try {
-      // First, get the user associated with this token
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id, email")
@@ -108,38 +106,26 @@ const AgentSetup = () => {
         throw new Error("Invalid invitation");
       }
 
-      // Update the user's password using the service role
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        profileData.id,
-        { password: data.password }
-      );
-
-      if (updateError) {
-        throw new Error("Failed to set password");
-      }
-
-      // Sign in the user
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: profileData.email,
         password: data.password,
       });
 
-      if (signInError || !signInData.user) {
-        throw new Error("Failed to sign in");
+      if (signInError) {
+        throw new Error("Failed to sign in with new password");
       }
 
-      // Update the profile to mark onboarding as complete
       const { error: completeError } = await supabase
         .from("profiles")
         .update({
           onboarding_completed_at: new Date().toISOString(),
           invitation_status: "completed",
-          invitation_token: null, // Clear the token
+          invitation_token: null,
         })
         .eq("id", profileData.id);
 
       if (completeError) {
-        console.error("Failed to update onboarding status:", completeError);
+        throw new Error("Failed to complete setup");
       }
 
       toast({
@@ -147,10 +133,8 @@ const AgentSetup = () => {
         description: "Your account has been set up successfully.",
       });
 
-      // Redirect to agent dashboard
       navigate("/agent/dashboard");
     } catch (error: any) {
-      console.error("Setup error:", error);
       toast({
         variant: "destructive",
         title: "Setup Failed",

@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,6 +19,22 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [brokerage, setBrokerage] = useState('');
   const { toast } = useToast();
+  const { user, userRole } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (user && userRole) {
+      const from = location.state?.from?.pathname;
+      if (from && from !== '/auth') {
+        navigate(from, { replace: true });
+      } else {
+        const dashboardPath = userRole === 'agent' ? '/agent/dashboard' : '/dashboard';
+        navigate(dashboardPath, { replace: true });
+      }
+    }
+  }, [user, userRole, navigate, location]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,30 +43,24 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      console.log('Attempting sign in for:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (error) {
-        console.error('Sign in error:', error);
         toast({
           variant: "destructive",
           title: "Sign In Error",
           description: error.message,
         });
-      } else if (data.user) {
-        console.log('Sign in successful:', data.user.email);
+      } else {
         toast({
-          title: "Success!",
-          description: "Signed in successfully. Redirecting...",
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
         });
-        // AuthGuard will handle navigation automatically
       }
     } catch (error) {
-      console.error('Unexpected sign in error:', error);
       toast({
         variant: "destructive",
         title: "Sign In Error",
@@ -68,7 +80,7 @@ const Auth = () => {
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
       
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -91,12 +103,11 @@ const Auth = () => {
         });
       } else {
         toast({
-          title: "Success!",
+          title: "Account Created!",
           description: "Please check your email to confirm your account.",
         });
       }
     } catch (error) {
-      console.error('Sign up error:', error);
       toast({
         variant: "destructive",
         title: "Sign Up Error",
