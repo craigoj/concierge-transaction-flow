@@ -19,14 +19,7 @@ export const useDashboardMetrics = () => {
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['dashboardMetrics'],
     queryFn: async () => {
-      console.log('Dashboard: Fetching metrics...');
-      
-      // Add timeout to queries
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Dashboard query timeout')), 15000);
-      });
-
-      const dataPromise = Promise.all([
+      const [transactionsResult, tasksResult, clientsResult] = await Promise.all([
         supabase
           .from('transactions')
           .select('*')
@@ -39,25 +32,9 @@ export const useDashboardMetrics = () => {
           .select('id')
       ]);
 
-      const [transactionsResult, tasksResult, clientsResult] = await Promise.race([
-        dataPromise,
-        timeoutPromise
-      ]) as any;
-
-      console.log('Dashboard: Metrics fetched successfully');
-
-      if (transactionsResult.error) {
-        console.error('Dashboard: Transactions query error:', transactionsResult.error);
-        throw transactionsResult.error;
-      }
-      if (tasksResult.error) {
-        console.error('Dashboard: Tasks query error:', tasksResult.error);
-        throw tasksResult.error;
-      }
-      if (clientsResult.error) {
-        console.error('Dashboard: Clients query error:', clientsResult.error);
-        throw clientsResult.error;
-      }
+      if (transactionsResult.error) throw transactionsResult.error;
+      if (tasksResult.error) throw tasksResult.error;
+      if (clientsResult.error) throw clientsResult.error;
 
       return {
         transactions: transactionsResult.data || [],
@@ -67,8 +44,6 @@ export const useDashboardMetrics = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
-    retry: 2, // Limit retries
-    retryDelay: 1000, // 1 second between retries
   });
 
   const metrics = useMemo((): DashboardMetrics | null => {

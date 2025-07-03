@@ -1,15 +1,14 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useTransactionData } from '@/hooks/queries/useTransactionData';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ArrowLeft, 
   Edit, 
@@ -19,10 +18,24 @@ import {
   MapPin,
   User,
   FileText,
-  CheckSquare,
-  AlertCircle
+  CheckSquare
 } from 'lucide-react';
-import TransactionOverview from '@/components/transactions/TransactionOverview';
+
+interface Transaction {
+  id: string;
+  property_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  purchase_price: number;
+  closing_date: string;
+  status: string;
+  agent_id: string;
+  created_at: string;
+  updated_at: string;
+  service_tier?: string;
+  transaction_type?: string;
+}
 
 const TransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,13 +43,44 @@ const TransactionDetail = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { role } = useUserRole();
-  
-  const { data: transaction, isLoading, error } = useTransactionData(id!);
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchTransaction();
+    }
+  }, [id]);
+
+  const fetchTransaction = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setTransaction(data);
+    } catch (error) {
+      console.error('Error fetching transaction:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load transaction details',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active': return 'bg-green-100 text-green-800';
-      case 'intake': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'closed': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -60,118 +104,24 @@ const TransactionDetail = () => {
     });
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Header Skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Skeleton className="h-10 w-32" />
-            <div>
-              <Skeleton className="h-8 w-64 mb-2" />
-              <Skeleton className="h-4 w-48" />
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <Skeleton className="h-10 w-20" />
-            <Skeleton className="h-10 w-20" />
-          </div>
-        </div>
-
-        {/* Transaction Overview Skeleton */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <Skeleton className="h-6 w-80 mb-2" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-              <Skeleton className="h-6 w-20" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3">
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <div>
-                    <Skeleton className="h-3 w-20 mb-1" />
-                    <Skeleton className="h-5 w-24" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tabs Skeleton */}
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/transactions')}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Transactions</span>
-          </Button>
-        </div>
-        
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Transaction</h3>
-            <p className="text-gray-600 mb-4">{error.message}</p>
-            <div className="flex justify-center space-x-2">
-              <Button onClick={() => navigate('/transactions')}>
-                Back to Transactions
-              </Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
   if (!transaction) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/transactions')}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Transactions</span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Transaction Not Found</h2>
+          <p className="text-gray-600 mb-4">The transaction you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate('/transactions')}>
+            Back to Transactions
           </Button>
         </div>
-        
-        <Card>
-          <CardContent className="p-8 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Transaction Not Found</h3>
-            <p className="text-gray-600 mb-4">
-              The transaction you're looking for doesn't exist or you don't have permission to view it.
-            </p>
-            <Button onClick={() => navigate('/transactions')}>
-              Back to Transactions
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -194,7 +144,7 @@ const TransactionDetail = () => {
           
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Transaction Details</h1>
-            <p className="text-gray-600">ID: {transaction.id.slice(0, 8)}...</p>
+            <p className="text-gray-600">ID: {transaction.id}</p>
           </div>
         </div>
         
@@ -215,7 +165,67 @@ const TransactionDetail = () => {
       </div>
 
       {/* Transaction Overview */}
-      <TransactionOverview transaction={transaction} />
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                {transaction.property_address}
+              </CardTitle>
+              <p className="text-gray-600 mt-1">
+                {transaction.city}, {transaction.state} {transaction.zip_code}
+              </p>
+            </div>
+            <Badge className={`text-sm ${getStatusColor(transaction.status)}`}>
+              {transaction.status.toUpperCase()}
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex items-center space-x-3">
+              <DollarSign className="h-8 w-8 text-green-600" />
+              <div>
+                <p className="text-sm text-gray-600">Purchase Price</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(transaction.purchase_price)}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Calendar className="h-8 w-8 text-blue-600" />
+              <div>
+                <p className="text-sm text-gray-600">Closing Date</p>
+                <p className="text-lg font-semibold">
+                  {transaction.closing_date ? formatDate(transaction.closing_date) : 'TBD'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <User className="h-8 w-8 text-purple-600" />
+              <div>
+                <p className="text-sm text-gray-600">Service Tier</p>
+                <p className="text-lg font-semibold capitalize">
+                  {transaction.service_tier || 'Standard'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <MapPin className="h-8 w-8 text-red-600" />
+              <div>
+                <p className="text-sm text-gray-600">Transaction Type</p>
+                <p className="text-lg font-semibold capitalize">
+                  {transaction.transaction_type || 'Sale'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
@@ -229,27 +239,27 @@ const TransactionDetail = () => {
         <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
+              <CardTitle>Transaction Information</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Transaction Details</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">Property Details</h4>
                   <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Type:</span> {transaction.transaction_type || 'Not specified'}</p>
-                    <p><span className="font-medium">Service Tier:</span> {transaction.service_tier || 'Standard'}</p>
-                    <p><span className="font-medium">Commission Rate:</span> {transaction.commission_rate ? `${transaction.commission_rate}%` : 'Not set'}</p>
+                    <p><span className="font-medium">Address:</span> {transaction.property_address}</p>
+                    <p><span className="font-medium">City:</span> {transaction.city}</p>
+                    <p><span className="font-medium">State:</span> {transaction.state}</p>
+                    <p><span className="font-medium">ZIP Code:</span> {transaction.zip_code}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Timeline</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">Transaction Details</h4>
                   <div className="space-y-2 text-sm">
                     <p><span className="font-medium">Created:</span> {formatDate(transaction.created_at)}</p>
                     <p><span className="font-medium">Last Updated:</span> {formatDate(transaction.updated_at)}</p>
-                    {transaction.closing_date && (
-                      <p><span className="font-medium">Closing Date:</span> {formatDate(transaction.closing_date)}</p>
-                    )}
+                    <p><span className="font-medium">Status:</span> {transaction.status}</p>
+                    <p><span className="font-medium">Agent ID:</span> {transaction.agent_id}</p>
                   </div>
                 </div>
               </div>
@@ -266,13 +276,7 @@ const TransactionDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">No documents uploaded yet</p>
-                <Button className="mt-4" variant="outline">
-                  Upload Document
-                </Button>
-              </div>
+              <p className="text-gray-600">Document management coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -286,41 +290,7 @@ const TransactionDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {transaction.tasks && transaction.tasks.length > 0 ? (
-                <div className="space-y-3">
-                  {transaction.tasks.map((task) => (
-                    <div key={task.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <input 
-                        type="checkbox" 
-                        checked={task.is_completed}
-                        className="h-4 w-4"
-                        readOnly
-                      />
-                      <div className="flex-1">
-                        <p className={`font-medium ${task.is_completed ? 'line-through text-gray-500' : ''}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-sm text-gray-600">{task.description}</p>
-                        )}
-                        {task.due_date && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Due: {formatDate(task.due_date)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CheckSquare className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">No tasks created yet</p>
-                  <Button className="mt-4" variant="outline">
-                    Add Task
-                  </Button>
-                </div>
-              )}
+              <p className="text-gray-600">Task management coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -334,10 +304,7 @@ const TransactionDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">Timeline view coming soon</p>
-              </div>
+              <p className="text-gray-600">Timeline view coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>

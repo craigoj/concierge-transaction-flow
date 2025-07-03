@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -19,45 +20,27 @@ export const transactionKeys = {
 };
 
 export const useTransactionData = (transactionId: string) => {
-  // Add debug logging for the transaction ID
-  console.log('useTransactionData called with ID:', transactionId);
-  console.log('ID is valid:', !!transactionId);
-  
   return useQuery({
     queryKey: transactionKeys.detail(transactionId),
     queryFn: async (): Promise<Transaction> => {
-      console.log('=== TRANSACTION QUERY START ===');
-      console.log('Fetching transaction data for ID:', transactionId);
-      
-      if (!transactionId) {
-        console.error('No transaction ID provided');
-        throw new Error('Transaction ID is required');
+      // First check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Authentication error:', authError);
+        throw new Error(`Authentication failed: ${authError.message}`);
       }
       
-      // First, let's check the current user and their role
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        console.error('Auth error:', userError);
-        throw new Error('Authentication required');
-      }
-      
-      console.log('Current user ID:', user.id);
-      
-      // Check user role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-      } else {
-        console.log('User role:', profile?.role);
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
+      console.log('Fetching transaction data for:', {
+        transactionId,
+        userId: user.id,
+        userEmail: user.email
+      });
+
       // Fetch the transaction with related data
-      console.log('Executing transaction query...');
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -67,16 +50,15 @@ export const useTransactionData = (transactionId: string) => {
           documents (*)
         `)
         .eq('id', transactionId)
-        .maybeSingle();
-
-      console.log('Transaction query result:', { data, error });
-      console.log('Data received:', !!data);
-      console.log('Error received:', !!error);
+        .single();
 
       if (error) {
-        console.error('Transaction fetch error details:', {
-          message: error.message,
+        console.error('Transaction query error:', {
+          error,
+          transactionId,
+          userId: user.id,
           code: error.code,
+          message: error.message,
           details: error.details,
           hint: error.hint
         });
@@ -85,24 +67,27 @@ export const useTransactionData = (transactionId: string) => {
         if (error.code === 'PGRST116') {
           throw new Error(`Transaction not found: ${transactionId}`);
         } else if (error.message.includes('row-level security')) {
-          throw new Error(`Access denied: You don't have permission to view this transaction.`);
+          throw new Error(`Access denied: You don't have permission to view this transaction. Please check with your administrator.`);
         } else {
           throw new Error(`Database error: ${error.message}`);
         }
       }
 
       if (!data) {
-        console.log('No transaction data returned for ID:', transactionId);
         throw new Error(`Transaction not found: ${transactionId}`);
       }
 
-      console.log('Successfully fetched transaction:', data);
-      console.log('=== TRANSACTION QUERY END ===');
+      console.log('Transaction data fetched successfully:', {
+        transactionId: data.id,
+        propertyAddress: data.property_address,
+        agentId: data.agent_id,
+        status: data.status
+      });
+
       return data as Transaction;
     },
     enabled: !!transactionId,
     retry: (failureCount, error) => {
-      console.log('Query retry attempt:', failureCount, 'Error:', error.message);
       // Don't retry on authentication or permission errors
       if (error.message.includes('Authentication') || 
           error.message.includes('Access denied') || 
@@ -119,6 +104,9 @@ export const useTransactionTasks = (transactionId: string) => {
   return useQuery({
     queryKey: ['transaction-tasks', transactionId],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -126,6 +114,7 @@ export const useTransactionTasks = (transactionId: string) => {
         .order('due_date', { ascending: true });
 
       if (error) {
+        console.error('Tasks query error:', error);
         throw error;
       }
       return data;
