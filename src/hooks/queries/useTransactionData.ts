@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -20,10 +19,20 @@ export const transactionKeys = {
 };
 
 export const useTransactionData = (transactionId: string) => {
+  // Add debug logging for the transaction ID
+  console.log('useTransactionData called with ID:', transactionId);
+  console.log('ID is valid:', !!transactionId);
+  
   return useQuery({
     queryKey: transactionKeys.detail(transactionId),
     queryFn: async (): Promise<Transaction> => {
+      console.log('=== TRANSACTION QUERY START ===');
       console.log('Fetching transaction data for ID:', transactionId);
+      
+      if (!transactionId) {
+        console.error('No transaction ID provided');
+        throw new Error('Transaction ID is required');
+      }
       
       // First, let's check the current user and their role
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -48,6 +57,7 @@ export const useTransactionData = (transactionId: string) => {
       }
 
       // Fetch the transaction with related data
+      console.log('Executing transaction query...');
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -60,9 +70,17 @@ export const useTransactionData = (transactionId: string) => {
         .maybeSingle();
 
       console.log('Transaction query result:', { data, error });
+      console.log('Data received:', !!data);
+      console.log('Error received:', !!error);
 
       if (error) {
-        console.error('Transaction fetch error:', error);
+        console.error('Transaction fetch error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        
         // Provide more specific error messages
         if (error.code === 'PGRST116') {
           throw new Error(`Transaction not found: ${transactionId}`);
@@ -79,6 +97,7 @@ export const useTransactionData = (transactionId: string) => {
       }
 
       console.log('Successfully fetched transaction:', data);
+      console.log('=== TRANSACTION QUERY END ===');
       return data as Transaction;
     },
     enabled: !!transactionId,
