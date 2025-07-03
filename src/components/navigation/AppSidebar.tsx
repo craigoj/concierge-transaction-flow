@@ -1,119 +1,93 @@
 
-import { Building2, Users, FileText, Settings, Calendar, Bell, MessageSquare, User, BarChart3, Workflow } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { useUserRole } from "@/hooks/useUserRole";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
+import { 
+  Home, 
+  FileText, 
+  Users, 
+  Settings, 
+  BarChart3, 
+  Calendar,
+  MessageSquare,
+  Shield,
+  Cog,
+  User
+} from 'lucide-react';
 
-// Agent navigation items
-const agentItems = [
-  { title: "Dashboard", url: "/agent/dashboard", icon: Building2 },
-  { title: "My Transactions", url: "/agent/transactions", icon: Building2 },
-  { title: "My Tasks", url: "/agent/tasks", icon: FileText },
-  { title: "My Clients", url: "/agent/clients", icon: Users },
-  { title: "Calendar", url: "/agent/calendar", icon: Calendar },
-];
-
-// Coordinator navigation items
-const coordinatorItems = [
-  { title: "Dashboard", url: "/", icon: Building2 },
-  { title: "All Transactions", url: "/transactions", icon: Building2 },
-  { title: "Clients", url: "/clients", icon: Users },
-  { title: "Agents", url: "/agents", icon: User },
-  { title: "Documents", url: "/documents", icon: FileText },
-  { title: "Templates", url: "/templates", icon: FileText },
-  { title: "Workflows", url: "/workflows", icon: Workflow },
-  { title: "Analytics", url: "/automation", icon: BarChart3 },
-];
-
-// Settings and utility items (same for both roles)
-const utilityItems = [
-  { title: "Communications", url: "/communications", icon: MessageSquare },
-  { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
-
-export function AppSidebar() {
-  const { state } = useSidebar();
+const AppSidebar = () => {
   const location = useLocation();
-  const { role, loading } = useUserRole();
-  const currentPath = location.pathname;
-  
-  const isActive = (path: string) => {
-    if (path === "/") {
-      return currentPath === "/";
-    }
-    if (path === "/agent/dashboard") {
-      return currentPath === "/agent/dashboard";
-    }
-    return currentPath === path || currentPath.startsWith(path + "/");
-  };
+  const { user } = useAuth();
+  const { role } = useUserRole();
 
-  // Show loading state while determining role
-  if (loading) {
-    return (
-      <Sidebar variant="inset">
-        <SidebarContent>
-          <div className="p-4 text-center text-sm text-muted-foreground">
-            Loading...
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    );
-  }
+  const isAgent = role === 'agent';
+  const isCoordinator = role === 'coordinator';
 
-  // Choose navigation items based on role
-  const mainItems = role === 'agent' ? agentItems : coordinatorItems;
-  const navigationLabel = role === 'agent' ? 'Agent Portal' : 'Coordinator Portal';
+  const agentMenuItems = [
+    { href: '/agent/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/transactions', label: 'Transactions', icon: FileText },
+    { href: '/offer-drafting', label: 'Offer Requests', icon: FileText },
+    { href: '/clients', label: 'Clients', icon: Users },
+    { href: '/agent/setup', label: 'Setup', icon: Settings },
+  ];
+
+  const coordinatorMenuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/transactions', label: 'Transactions', icon: FileText },
+    { href: '/agents', label: 'Agents', icon: Users },
+    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/automation', label: 'Automation', icon: Cog },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  const menuItems = isAgent ? agentMenuItems : coordinatorMenuItems;
 
   return (
-    <Sidebar variant="inset">
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{navigationLabel}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {utilityItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-800">Concierge</h2>
+        <p className="text-sm text-gray-600 capitalize">{role} Portal</p>
+      </div>
+      
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            const Icon = item.icon;
+            
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={cn(
+                    'flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                    isActive
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      
+      <div className="p-4 border-t border-gray-200">
+        <div className="flex items-center">
+          <User className="h-8 w-8 text-gray-400" />
+          <div className="ml-3">
+            <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+            <p className="text-xs text-gray-500 capitalize">{role}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default AppSidebar;

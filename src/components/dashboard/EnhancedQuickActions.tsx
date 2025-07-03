@@ -1,151 +1,71 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Calendar, MessageSquare, FileText, Users, Search, Settings } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Plus, FileText, Users, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import CreateTransactionDialog from '@/components/transactions/CreateTransactionDialog';
+import { CreateTransactionDialog } from '@/components/transactions/CreateTransactionDialog';
 
 const EnhancedQuickActions = () => {
   const navigate = useNavigate();
-  const [createTransactionOpen, setCreateTransactionOpen] = useState(false);
+  const [showCreateTransaction, setShowCreateTransaction] = useState(false);
 
-  const primaryActions = [
+  const quickActions = [
     {
+      title: 'New Transaction',
+      description: 'Start a new real estate transaction',
       icon: Plus,
-      label: "New Transaction",
-      description: "Start a new transaction coordination",
-      variant: "default" as const,
-      action: () => setCreateTransactionOpen(true)
+      action: () => setShowCreateTransaction(true),
+      color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
-      icon: Users,
-      label: "Add Client",
-      description: "Register a new client",
-      variant: "outline" as const,
-      action: () => navigate('/clients/new')
-    }
-  ];
-
-  const secondaryActions = [
-    {
-      icon: Calendar,
-      label: "Schedule Meeting",
-      description: "Book consultation or review",
-      variant: "outline" as const,
-      action: () => navigate('/calendar/new')
-    },
-    {
-      icon: MessageSquare,
-      label: "Send Update",
-      description: "Notify clients of progress",
-      variant: "outline" as const,
-      action: () => navigate('/communications/compose')
-    },
-    {
+      title: 'Offer Request',
+      description: 'Create a new offer request',
       icon: FileText,
-      label: "Upload Document",
-      description: "Add transaction paperwork",
-      variant: "outline" as const,
-      action: () => navigate('/documents/upload')
+      action: () => navigate('/offer-drafting'),
+      color: 'bg-green-500 hover:bg-green-600'
     },
     {
-      icon: Search,
-      label: "Search Transactions",
-      description: "Find specific transactions",
-      variant: "outline" as const,
-      action: () => navigate('/search')
-    }
-  ];
-
-  const settingsActions = [
+      title: 'Client Portal',
+      description: 'Access client information',
+      icon: Users,
+      action: () => navigate('/clients'),
+      color: 'bg-purple-500 hover:bg-purple-600'
+    },
     {
+      title: 'Agent Setup',
+      description: 'Configure your preferences',
       icon: Settings,
-      label: "Preferences",
-      description: "Update your settings",
-      variant: "ghost" as const,
-      action: () => navigate('/settings')
+      action: () => navigate('/agent/setup'),
+      color: 'bg-orange-500 hover:bg-orange-600'
     }
   ];
-
-  const handleTransactionCreate = () => {
-    setCreateTransactionOpen(false);
-    navigate('/transactions');
-  };
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Primary Actions */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Primary</h4>
-            <div className="grid grid-cols-1 gap-3">
-              {primaryActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant={action.variant}
-                  className="h-auto p-4 flex flex-col items-start space-y-2 text-left hover:scale-105 transition-transform"
-                  onClick={action.action}
-                >
-                  <div className="flex items-center space-x-3 w-full">
-                    <action.icon className="h-5 w-5" />
-                    <div className="flex-1">
-                      <div className="font-medium">{action.label}</div>
-                      <div className="text-xs opacity-75">{action.description}</div>
-                    </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Secondary Actions */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Common Tasks</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {secondaryActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant={action.variant}
-                  size="sm"
-                  className="h-auto p-3 flex flex-col items-center space-y-1 text-center hover:scale-105 transition-transform"
-                  onClick={action.action}
-                >
-                  <action.icon className="h-4 w-4" />
-                  <div className="text-xs font-medium">{action.label}</div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Settings */}
-          <div className="space-y-3 pt-2 border-t">
-            <div className="grid grid-cols-1 gap-2">
-              {settingsActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant={action.variant}
-                  size="sm"
-                  className="justify-start gap-2"
-                  onClick={action.action}
-                >
-                  <action.icon className="h-4 w-4" />
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {quickActions.map((action) => (
+            <Button
+              key={action.title}
+              onClick={action.action}
+              className={`${action.color} text-white h-auto p-4 flex flex-col items-center justify-center space-y-2`}
+              variant="default"
+            >
+              <action.icon className="h-6 w-6" />
+              <div className="text-center">
+                <div className="font-medium text-sm">{action.title}</div>
+                <div className="text-xs opacity-90">{action.description}</div>
+              </div>
+            </Button>
+          ))}
+        </div>
       </Card>
 
       <CreateTransactionDialog
-        open={createTransactionOpen}
-        onOpenChange={setCreateTransactionOpen}
-        onSuccess={handleTransactionCreate}
+        open={showCreateTransaction}
+        onOpenChange={setShowCreateTransaction}
       />
     </>
   );

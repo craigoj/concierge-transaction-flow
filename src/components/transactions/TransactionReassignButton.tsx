@@ -1,30 +1,25 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useUserRole } from '@/hooks/useUserRole';
 import { UserX } from 'lucide-react';
 import { TransactionReassignDialog } from './TransactionReassignDialog';
-import { Database } from '@/integrations/supabase/types';
-import { useUserRole } from '@/hooks/useUserRole';
-
-type Transaction = Database['public']['Tables']['transactions']['Row'];
 
 interface TransactionReassignButtonProps {
-  transaction: Transaction;
-  onSuccess?: () => void;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg';
+  transactionId: string;
+  currentAgentId: string;
+  onReassignSuccess?: () => void;
 }
 
-export const TransactionReassignButton = ({
-  transaction,
-  onSuccess,
-  variant = 'outline',
-  size = 'sm'
+const TransactionReassignButton = ({
+  transactionId,
+  currentAgentId,
+  onReassignSuccess
 }: TransactionReassignButtonProps) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
   const { role } = useUserRole();
+  const [showDialog, setShowDialog] = useState(false);
 
-  // Only show for coordinators
+  // Only coordinators can reassign transactions
   if (role !== 'coordinator') {
     return null;
   }
@@ -32,24 +27,27 @@ export const TransactionReassignButton = ({
   return (
     <>
       <Button
-        variant={variant}
-        size={size}
-        onClick={() => setDialogOpen(true)}
-        className="gap-2"
+        variant="outline"
+        size="sm"
+        onClick={() => setShowDialog(true)}
+        className="flex items-center space-x-1"
       >
         <UserX className="h-4 w-4" />
-        Reassign
+        <span>Reassign</span>
       </Button>
 
       <TransactionReassignDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        transaction={transaction}
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        transactionId={transactionId}
+        currentAgentId={currentAgentId}
         onSuccess={() => {
-          onSuccess?.();
-          setDialogOpen(false);
+          setShowDialog(false);
+          onReassignSuccess?.();
         }}
       />
     </>
   );
 };
+
+export default TransactionReassignButton;

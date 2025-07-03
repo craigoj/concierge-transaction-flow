@@ -1,22 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Save, Send, FileText, DollarSign, Calendar, Home, AlertCircle, Plus, Minus } from 'lucide-react';
-import { CurrencyInput } from '@/components/forms/components/CurrencyInput';
-import { ContactArrayInput } from '@/components/forms/components/ContactArrayInput';
-import { FormTransitions } from '@/components/forms/components/FormTransitions';
-import { LoadingStates } from '@/components/forms/components/LoadingStates';
-import { ProgressIndicator } from '@/components/forms/components/ProgressIndicator';
-import { useFormAutoSave } from '@/hooks/useFormAutoSave';
+import { Loader2, Save, Send, FileText, DollarSign, Calendar as CalendarIcon, Home, AlertCircle, Plus, Trash2, Building, CreditCard, Wifi, WifiOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useRealtimeOfferUpdates } from '@/hooks/useRealtimeOfferUpdates';
 
 // Form validation schema
@@ -91,71 +94,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
       occupancy_notes: '',
     },
   });
-
-  const formData = form.watch();
-
-  // Auto-save functionality (disabled - this is for draft offers)
-  const { saveStatus, hasChanges } = useFormAutoSave({
-    table: 'offer_requests',
-    data: {
-      transaction_id: transactionId || null,
-      property_address: formData.property_address || '',
-      buyer_names: formData.buyer_names || '',
-      status: 'draft'
-    },
-    interval: 30000,
-    enabled: false // Disable auto-save for now to avoid partial submissions
-  });
-
-  // Live validation
-  const { errors, validateField, isValidating } = useLiveValidation({
-    rules: [
-      {
-        field: 'emails',
-        validator: async (emails: string[]) => {
-          if (!emails?.length) return 'At least one email is required';
-          
-          const emailValidator = createEmailValidator();
-          for (const email of emails) {
-            if (email.trim()) {
-              const error = await emailValidator(email);
-              if (error) return `Invalid email: ${email}`;
-            }
-          }
-          return null;
-        }
-      },
-      {
-        field: 'phones',
-        validator: async (phones: string[]) => {
-          if (!phones?.length) return 'At least one phone is required';
-          
-          const phoneValidator = createPhoneValidator();
-          for (const phone of phones) {
-            if (phone.trim()) {
-              const error = await phoneValidator(phone);
-              if (error) return `Invalid phone: ${phone}`;
-            }
-          }
-          return null;
-        }
-      },
-      {
-        field: 'property_address',
-        validator: createTransactionConflictValidator(user?.id || '')
-      }
-    ]
-  });
-
-  // Validate fields on change
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name && value[name as keyof typeof value] !== undefined) {
-        validateField(name, value[name as keyof typeof value], value);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, validateField]);
 
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/[^\d]/g, '');
@@ -253,35 +191,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
     }
   };
 
-  // Auto-save status indicator
-  const getAutoSaveIndicator = () => {
-    switch (saveStatus) {
-      case 'saving':
-        return (
-          <div className="flex items-center gap-2 text-yellow-600">
-            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-sm">Saving...</span>
-          </div>
-        );
-      case 'saved':
-        return (
-          <div className="flex items-center gap-2 text-green-600">
-            <Wifi className="h-4 w-4" />
-            <span className="text-sm">Auto-saved</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center gap-2 text-red-600">
-            <WifiOff className="h-4 w-4" />
-            <span className="text-sm">Save failed</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="mb-8">
@@ -291,15 +200,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
         <p className="text-lg font-brand-body text-brand-charcoal/70">
           Complete this form to request a professional offer draft for your transaction
         </p>
-        <div className="flex items-center gap-4 mt-2">
-          {getAutoSaveIndicator()}
-          {Object.keys(isValidating).some(key => isValidating[key]) && (
-            <div className="flex items-center gap-2 text-blue-600">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-sm">Validating...</span>
-            </div>
-          )}
-        </div>
       </div>
 
       <Form {...form}>
@@ -329,9 +229,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                       />
                     </FormControl>
                     <FormMessage />
-                    {errors.property_address && (
-                      <p className="text-sm text-red-600">{errors.property_address}</p>
-                    )}
                   </FormItem>
                 )}
               />
@@ -356,7 +253,7 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                 )}
               />
 
-              {/* Phone Numbers with live validation */}
+              {/* Phone Numbers */}
               <div className="space-y-3">
                 <Label className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
                   Phone Numbers *
@@ -390,9 +287,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                     </Button>
                   </div>
                 ))}
-                {errors.phones && (
-                  <p className="text-sm text-red-600">{errors.phones}</p>
-                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -405,7 +299,7 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                 </Button>
               </div>
 
-              {/* Email Addresses with live validation */}
+              {/* Email Addresses */}
               <div className="space-y-3">
                 <Label className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
                   Email Addresses *
@@ -440,9 +334,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                     </Button>
                   </div>
                 ))}
-                {errors.emails && (
-                  <p className="text-sm text-red-600">{errors.emails}</p>
-                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -454,459 +345,6 @@ export const OfferDraftingForm = ({ transactionId, onSuccess, onCancel }: OfferD
                   Add Email
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 2: Financial Details */}
-          <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-            <CardHeader>
-              <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
-                <DollarSign className="h-6 w-6" />
-                Financial Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="purchase_price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Purchase Price *
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="$500,000"
-                        className="font-brand-body"
-                        value={field.value ? formatCurrency(field.value.toString()) : ''}
-                        onChange={(e) => field.onChange(parseCurrency(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="loan_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Loan Type *
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="font-brand-body">
-                          <SelectValue placeholder="Select loan type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="conventional">Conventional</SelectItem>
-                        <SelectItem value="fha">FHA</SelectItem>
-                        <SelectItem value="va">VA</SelectItem>
-                        <SelectItem value="usda">USDA</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lending_company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Lending Company *
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="ABC Mortgage Company"
-                        className="font-brand-body"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="emd_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      EMD Amount *
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="$5,000"
-                        className="font-brand-body"
-                        value={field.value ? formatCurrency(field.value.toString()) : ''}
-                        onChange={(e) => field.onChange(parseCurrency(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="exchange_fee"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Exchange Fee *
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="$500"
-                        className="font-brand-body"
-                        value={field.value ? formatCurrency(field.value.toString()) : ''}
-                        onChange={(e) => field.onChange(parseCurrency(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Section 3: Settlement Information */}
-          <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-            <CardHeader>
-              <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
-                <Building className="h-6 w-6" />
-                Settlement Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="settlement_company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Settlement Company *
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="ABC Title & Settlement"
-                        className="font-brand-body"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="closing_cost_assistance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Closing Cost Assistance
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Details about closing cost assistance..."
-                        className="font-brand-body"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="projected_closing_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Projected Closing Date *
-                    </FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full font-brand-body justify-start text-left",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : "Select date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Section 4: Inspection Details */}
-          <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-            <CardHeader>
-              <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
-                <FileText className="h-6 w-6" />
-                Inspection Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* WDI Inspection */}
-              <div className="space-y-4">
-                <h3 className="font-brand-heading tracking-wide uppercase text-brand-charcoal text-lg">
-                  WDI Inspection
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="wdi_period"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                          Inspection Period
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            placeholder="7"
-                            className="font-brand-body"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="wdi_period_unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                          Unit
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="font-brand-body">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="days">Days</SelectItem>
-                            <SelectItem value="weeks">Weeks</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="wdi_provider"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                          Provider
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="buyer" id="buyer" />
-                              <Label htmlFor="buyer" className="font-brand-body">Buyer</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="seller" id="seller" />
-                              <Label htmlFor="seller" className="font-brand-body">Seller</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="wdi_notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                        WDI Notes
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Additional WDI inspection notes..."
-                          className="font-brand-body"
-                          rows={3}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* FICA Details */}
-              <div className="space-y-4">
-                <h3 className="font-brand-heading tracking-wide uppercase text-brand-charcoal text-lg">
-                  FICA Inspection
-                </h3>
-                
-                <FormField
-                  control={form.control}
-                  name="fica_required"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                          FICA Inspection Required
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                {form.watch('fica_required') && (
-                  <FormField
-                    control={form.control}
-                    name="fica_inspection_period"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                          FICA Inspection Period (days)
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            placeholder="7"
-                            className="font-brand-body max-w-xs"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 5: Additional Terms */}
-          <Card className="bg-white/95 backdrop-blur-sm border-brand-taupe/20 shadow-brand-elevation">
-            <CardHeader>
-              <CardTitle className="text-xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase flex items-center gap-3">
-                <CreditCard className="h-6 w-6" />
-                Additional Terms
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="extras"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Extras
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Additional terms, conditions, or special requests..."
-                        className="font-brand-body"
-                        rows={4}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lead_eifs_survey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Lead/EIFS Survey
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Lead paint or EIFS survey requirements..."
-                        className="font-brand-body"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="occupancy_notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-brand-heading tracking-wide uppercase text-brand-charcoal">
-                      Occupancy Notes
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Occupancy terms and conditions..."
-                        className="font-brand-body"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </CardContent>
           </Card>
 

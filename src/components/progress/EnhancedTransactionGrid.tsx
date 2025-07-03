@@ -1,176 +1,170 @@
 
 import React, { useState } from 'react';
-import { useRealtimeTransactions } from '@/hooks/useRealtimeTransactions';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { TransactionProgressCard } from './TransactionProgressCard';
-import { ProgressFilterControls } from './ProgressFilterControls';
-import { BulkTransactionActions } from './BulkTransactionActions';
-import { AgentPerformancePanel } from './AgentPerformancePanel';
-import { ProgressFilters, SortBy, ViewMode, TransactionWithProgress } from '@/types/progress';
-import { Card, CardContent } from '@/components/ui/card';
-import { Building, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  MoreHorizontal, 
+  Edit, 
+  Trash2, 
+  Eye,
+  Calendar,
+  DollarSign,
+  MapPin
+} from 'lucide-react';
 
-interface EnhancedTransactionGridProps {
-  agentId?: string;
-  className?: string;
+interface Transaction {
+  id: string;
+  property_address: string;
+  city: string;
+  state: string;
+  purchase_price: number;
+  closing_date: string;
+  status: string;
+  agent_id: string;
 }
 
-export const EnhancedTransactionGrid: React.FC<EnhancedTransactionGridProps> = ({
-  agentId,
-  className = ''
-}) => {
+interface EnhancedTransactionGridProps {
+  transactions: Transaction[];
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (transactionId: string) => void;
+  onView?: (transaction: Transaction) => void;
+}
+
+const EnhancedTransactionGrid = ({ 
+  transactions = [], 
+  onEdit, 
+  onDelete, 
+  onView 
+}: EnhancedTransactionGridProps) => {
+  const { user } = useAuth();
   const { role } = useUserRole();
-  
-  // Get current user ID for agent-specific filtering
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
+  const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'closed': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  });
-
-  // Filter states
-  const [filters, setFilters] = useState<ProgressFilters>({});
-  const [sortBy, setSortBy] = useState<SortBy>('created_at');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
-
-  // For agents, show only their transactions
-  const effectiveAgentId = role === 'agent' ? currentUser?.id : agentId;
-
-  const {
-    data: transactions,
-    isLoading,
-    error,
-    connectionStatus
-  } = useRealtimeTransactions({
-    agentId: effectiveAgentId,
-    filters,
-    sortBy
-  });
-
-  const handleTransactionSelect = (transactionId: string, selected: boolean) => {
-    setSelectedTransactionIds(prev => 
-      selected 
-        ? [...prev, transactionId]
-        : prev.filter(id => id !== transactionId)
-    );
   };
 
-  const handleSelectAll = (selected: boolean) => {
-    setSelectedTransactionIds(selected ? (transactions?.map(t => t.id) || []) : []);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const handleViewDetails = (transactionId: string) => {
-    window.location.href = `/transactions/${transactionId}`;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
-  const handleQuickAction = (action: any) => {
-    // Handle quick actions like contact client, add task, etc.
-    console.log('Quick action:', action);
-  };
-
-  if (isLoading) {
+  if (!transactions.length) {
     return (
-      <div className={`enhanced-transaction-grid ${className}`}>
-        <div className="flex items-center justify-center p-12">
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-charcoal mx-auto mb-4" />
-            <p className="text-brand-charcoal/60 font-brand-body">Loading transactions...</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
+            <p className="text-gray-500">Get started by creating your first transaction.</p>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`enhanced-transaction-grid ${className}`}>
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="text-red-500 mb-4">
-              <Building className="h-12 w-12 mx-auto mb-2" />
-              <p className="font-semibold">Error Loading Transactions</p>
-              <p className="text-sm text-gray-600 mt-1">{error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={`enhanced-transaction-grid space-y-6 ${className}`}>
-      {/* Connection Status Indicator */}
-      {connectionStatus !== 'connected' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-yellow-800 text-sm font-medium">
-            Real-time updates {connectionStatus === 'reconnecting' ? 'reconnecting...' : 'disconnected'}
-          </p>
-        </div>
-      )}
-
-      {/* Filter Controls */}
-      <ProgressFilterControls
-        filters={filters}
-        sortBy={sortBy}
-        viewMode={viewMode}
-        transactionCount={transactions?.length || 0}
-        onFilterChange={setFilters}
-        onSortChange={setSortBy}
-        onViewModeChange={setViewMode}
-      />
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Transactions Grid */}
-        <div className="xl:col-span-3">
-          {transactions && transactions.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {transactions.map((transaction) => (
-                <TransactionProgressCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  onViewDetails={() => handleViewDetails(transaction.id)}
-                  onQuickAction={handleQuickAction}
-                  className="transition-transform hover:scale-105"
-                />
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Building className="h-16 w-16 text-brand-taupe/40 mx-auto mb-4" />
-                <h3 className="text-xl font-brand-heading text-brand-charcoal mb-2">
-                  No Transactions Found
-                </h3>
-                <p className="text-brand-charcoal/60 font-brand-body">
-                  {Object.keys(filters).length > 0 || filters.searchQuery
-                    ? 'No transactions match your current filters.'
-                    : 'No transactions have been created yet.'}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {transactions.map((transaction) => (
+        <Card key={transaction.id} className="hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                  {transaction.property_address}
+                </CardTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  {transaction.city}, {transaction.state}
                 </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Performance Panel */}
-        <div className="xl:col-span-1">
-          <AgentPerformancePanel
-            agentId={effectiveAgentId}
-            transactions={transactions || []}
-          />
-        </div>
-      </div>
-
-      {/* Bulk Actions Bar */}
-      <BulkTransactionActions
-        selectedTransactionIds={selectedTransactionIds}
-        onClearSelection={() => setSelectedTransactionIds([])}
-      />
+              </div>
+              <Badge className={`ml-2 ${getStatusColor(transaction.status)}`}>
+                {transaction.status}
+              </Badge>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              <div className="flex items-center text-sm text-gray-600">
+                <DollarSign className="h-4 w-4 mr-2" />
+                {formatCurrency(transaction.purchase_price)}
+              </div>
+              
+              {transaction.closing_date && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Closes {formatDate(transaction.closing_date)}
+                </div>
+              )}
+              
+              <div className="flex items-center text-sm text-gray-600">
+                <MapPin className="h-4 w-4 mr-2" />
+                ID: {transaction.id.slice(0, 8)}...
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onView?.(transaction)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                
+                {(role === 'coordinator' || transaction.agent_id === user?.id) && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit?.(transaction)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    
+                    {role === 'coordinator' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDelete?.(transaction.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };
+
+export default EnhancedTransactionGrid;

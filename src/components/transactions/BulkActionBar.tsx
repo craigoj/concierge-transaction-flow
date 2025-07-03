@@ -1,135 +1,92 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Archive, CheckCircle, Users, UserX } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/useUserRole';
-import { BulkReassignDialog } from './BulkReassignDialog';
-import { Database } from '@/integrations/supabase/types';
-
-type TransactionStatus = Database['public']['Enums']['transaction_status'];
+import { Trash2, UserX, RefreshCw, Archive } from 'lucide-react';
 
 interface BulkActionBarProps {
-  selectedTransactionIds: string[];
-  onSuccess: () => void;
+  selectedCount: number;
+  onBulkStatusUpdate: (status: string) => void;
+  onBulkReassign: () => void;
+  onBulkDelete: () => void;
   onClearSelection: () => void;
 }
 
-const BulkActionBar = ({ selectedTransactionIds, onSuccess, onClearSelection }: BulkActionBarProps) => {
-  const [loading, setLoading] = useState(false);
-  const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
-  const { toast } = useToast();
+const BulkActionBar = ({
+  selectedCount,
+  onBulkStatusUpdate,
+  onBulkReassign,
+  onBulkDelete,
+  onClearSelection
+}: BulkActionBarProps) => {
   const { role } = useUserRole();
-
   const isCoordinator = role === 'coordinator';
 
-  const handleBulkStatusUpdate = async (newStatus: TransactionStatus) => {
-    if (!isCoordinator) {
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "Only coordinators can perform bulk status updates.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.rpc('bulk_update_transaction_status', {
-        transaction_ids: selectedTransactionIds,
-        new_status: newStatus
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Updated ${selectedTransactionIds.length} transactions to ${newStatus}.`,
-      });
-
-      onSuccess();
-      onClearSelection();
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (selectedTransactionIds.length === 0) {
+  if (selectedCount === 0) {
     return null;
   }
 
   return (
-    <>
-      <Card className="mb-6 border-blue-200 bg-blue-50/50">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-blue-900">
-                {selectedTransactionIds.length} transaction{selectedTransactionIds.length !== 1 ? 's' : ''} selected
-              </span>
-            </div>
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            {selectedCount} selected
+          </Badge>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Bulk Actions:</span>
             
-            <div className="flex flex-wrap items-center gap-2">
-              {isCoordinator && (
-                <>
-                  {/* Status Update */}
-                  <Select onValueChange={handleBulkStatusUpdate} disabled={loading}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Update Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="intake">Set to Intake</SelectItem>
-                      <SelectItem value="active">Set to Active</SelectItem>
-                      <SelectItem value="closed">Set to Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Bulk Reassign */}
-                  <Button
-                    variant="outline"
-                    onClick={() => setBulkReassignOpen(true)}
-                    disabled={loading}
-                    className="gap-2"
-                  >
-                    <UserX className="h-4 w-4" />
-                    Reassign
-                  </Button>
-                </>
-              )}
-
-              {/* Clear Selection */}
-              <Button
-                variant="outline"
-                onClick={onClearSelection}
-                disabled={loading}
-              >
-                Clear Selection
-              </Button>
-            </div>
+            <Select onValueChange={onBulkStatusUpdate}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Update Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="intake">Move to Intake</SelectItem>
+                <SelectItem value="active">Move to Active</SelectItem>
+                <SelectItem value="pending">Move to Pending</SelectItem>
+                <SelectItem value="closed">Move to Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {isCoordinator && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onBulkReassign}
+                  className="flex items-center space-x-1"
+                >
+                  <UserX className="h-4 w-4" />
+                  <span>Reassign</span>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onBulkDelete}
+                  className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete</span>
+                </Button>
+              </>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      <BulkReassignDialog
-        open={bulkReassignOpen}
-        onOpenChange={setBulkReassignOpen}
-        selectedTransactionIds={selectedTransactionIds}
-        onSuccess={() => {
-          onSuccess();
-          onClearSelection();
-        }}
-      />
-    </>
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearSelection}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          Clear Selection
+        </Button>
+      </div>
+    </div>
   );
 };
 
