@@ -4,16 +4,17 @@ import { Button } from '@/components/ui/button';
 import { useUserRole } from '@/hooks/useUserRole';
 import { UserX } from 'lucide-react';
 import { TransactionReassignDialog } from './TransactionReassignDialog';
+import { Database } from '@/integrations/supabase/types';
+
+type Transaction = Database['public']['Tables']['transactions']['Row'];
 
 interface TransactionReassignButtonProps {
-  transactionId: string;
-  currentAgentId: string;
+  transaction: Transaction;
   onReassignSuccess?: () => void;
 }
 
 const TransactionReassignButton = ({
-  transactionId,
-  currentAgentId,
+  transaction,
   onReassignSuccess
 }: TransactionReassignButtonProps) => {
   const { role } = useUserRole();
@@ -39,8 +40,7 @@ const TransactionReassignButton = ({
       <TransactionReassignDialog
         open={showDialog}
         onOpenChange={setShowDialog}
-        transaction={transactionId}
-        currentAgentId={currentAgentId}
+        transaction={transaction}
         onSuccess={() => {
           setShowDialog(false);
           onReassignSuccess?.();

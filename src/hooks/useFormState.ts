@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FormStateOptions<T> {
-  tableName: string;
+  tableName: 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding';
   recordId?: string;
   initialData?: T;
   userId?: string;
@@ -28,7 +29,6 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
         .from(tableName)
         .select('*')
         .eq('id', recordId)
-        .eq('user_id', userId)
         .single();
 
       if (fetchError) throw fetchError;
@@ -47,7 +47,7 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
 
     setLoading(true);
     try {
-      const payload = { ...data, user_id: userId };
+      const payload = { ...data };
       let upsert;
 
       if (recordId) {
@@ -55,7 +55,6 @@ export const useFormState = <T>(options: FormStateOptions<T>) => {
           .from(tableName)
           .update(payload)
           .eq('id', recordId)
-          .eq('user_id', userId)
           .select()
           .single();
       } else {

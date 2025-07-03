@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ type FormData = {
 
 // Hook for automatically saving form data to Supabase
 export const useFormAutoSave = <T extends FormData>(
-  tableName: string,
+  tableName: 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding',
   recordId: string | undefined,
   formData: T,
   enabled: boolean = true,
@@ -38,7 +39,6 @@ export const useFormAutoSave = <T extends FormData>(
               id: recordId,
               ...formData,
               updated_at: new Date().toISOString(),
-              user_id: user.id, // Optional: Add user ID for auditing
             },
             { onConflict: 'id' }
           );
@@ -61,4 +61,3 @@ export const useFormAutoSave = <T extends FormData>(
     };
   }, [tableName, recordId, formData, user, enabled, debounceDelay]);
 };
-

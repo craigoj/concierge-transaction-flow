@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { useAdvancedValidation } from '@/hooks/useAdvancedValidation';
 
 interface SmartValidatedInputProps {
   value: string;
@@ -27,46 +26,32 @@ export const SmartValidatedInput: React.FC<SmartValidatedInputProps> = ({
 }) => {
   const [validationState, setValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  
-  const { 
-    isValidating, 
-    validationErrors, 
-    validateForm 
-  } = useAdvancedValidation(formContext);
 
   useEffect(() => {
     const validateField = async () => {
       if (!value) {
         setValidationState('idle');
         setErrorMessage('');
-        setSuggestions([]);
         return;
       }
 
       setValidationState('validating');
       
-      try {
-        const errors = await validateForm({ [fieldName]: value, ...formContext });
-        
-        if (errors[fieldName]) {
+      // Simple validation logic
+      setTimeout(() => {
+        if (value.length < 2) {
           setValidationState('invalid');
-          setErrorMessage(errors[fieldName]);
+          setErrorMessage('Value must be at least 2 characters');
         } else {
           setValidationState('valid');
           setErrorMessage('');
         }
-
-        setSuggestions([]);
-      } catch (error) {
-        setValidationState('invalid');
-        setErrorMessage('Validation error occurred');
-      }
+      }, 500);
     };
 
     const debounceTimer = setTimeout(validateField, 500);
     return () => clearTimeout(debounceTimer);
-  }, [value, fieldName, formContext, validateForm]);
+  }, [value, fieldName, formContext]);
 
   const getInputClassName = () => {
     const baseClasses = className;
@@ -114,24 +99,6 @@ export const SmartValidatedInput: React.FC<SmartValidatedInputProps> = ({
             {errorMessage}
           </AlertDescription>
         </Alert>
-      )}
-      
-      {suggestions.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs text-gray-600">Suggestions:</p>
-          <div className="flex flex-wrap gap-1">
-            {suggestions.map((suggestion, index) => (
-              <Badge
-                key={index}
-                variant="outline"
-                className="cursor-pointer hover:bg-gray-100"
-                onClick={() => onChange(suggestion)}
-              >
-                {suggestion}
-              </Badge>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );

@@ -54,8 +54,7 @@ const TransactionOverview: React.FC<TransactionOverviewProps> = ({
             Transaction Overview
           </CardTitle>
           <TransactionReassignButton
-            transactionId={transaction.id}
-            currentAgentId={transaction.agent_id}
+            transaction={transaction}
             onReassignSuccess={onUpdate}
           />
         </div>

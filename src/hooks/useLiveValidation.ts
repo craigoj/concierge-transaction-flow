@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ interface ValidationResult {
 }
 
 export const useLiveValidation = (
-  tableName: string,
+  tableName: 'profiles' | 'transactions' | 'clients' | 'agent_vendors' | 'agent_branding',
   columnName: string,
   value: string,
   debounceTime: number = 500
@@ -31,7 +32,6 @@ export const useLiveValidation = (
       supabase
         .from(tableName)
         .select(columnName)
-        .eq('created_by', user.id)
         .eq(columnName, currentValue)
         .then((response) => {
           const { data, error } = response;
@@ -68,4 +68,3 @@ export const useLiveValidation = (
 
   return { isValid, message, isLoading };
 };
-
