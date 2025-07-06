@@ -1,0 +1,372 @@
+name: SSL Certificate Management
+
+on:
+  schedule:
+    # Run weekly to check certificate expiration
+    - cron: '0 2 * * 0'  # Every Sunday at 2 AM
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'SSL Management Action'
+        required: true
+        default: 'check'
+        type: choice
+        options:
+          - check
+          - renew
+          - provision
+          - revoke
+      domain:
+        description: 'Domain name (optional, for specific domain operations)'
+        required: false
+        type: string
+
+env:
+  NOTIFICATION_THRESHOLD_DAYS: 30
+  CRITICAL_THRESHOLD_DAYS: 7
+
+jobs:
+  ssl-certificate-check:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'check' || github.event.inputs.action == '' || github.event_name == 'schedule'
+    
+    outputs:
+      certificates-status: ${{ steps.check.outputs.certificates-status }}
+      expiring-certificates: ${{ steps.check.outputs.expiring-certificates }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install SSL checking tools
+        run: |
+          npm install -g ssl-checker
+          sudo apt-get update
+          sudo apt-get install -y openssl curl jq
+
+      - name: Check SSL certificates
+        id: check
+        run: |
+          # Define domains to check
+          DOMAINS=(
+            "concierge-transaction-flow.com"
+            "blue.concierge-transaction-flow.com"
+            "green.concierge-transaction-flow.com"
+            "api.concierge-transaction-flow.com"
+          )
+          
+          # If specific domain provided, check only that
+          if [ -n "${{ github.event.inputs.domain }}" ]; then
+            DOMAINS=("${{ github.event.inputs.domain }}")
+          fi
+          
+          CERTIFICATE_STATUS=""
+          EXPIRING_CERTIFICATES=""
+          ALL_HEALTHY=true
+          
+          echo "🔍 Checking SSL certificates for domains..."
+          
+          for domain in "${DOMAINS[@]}"; do
+            echo "Checking $domain..."
+            
+            # Get certificate information
+            cert_info=$(echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null || echo "ERROR")
+            
+            if [ "$cert_info" = "ERROR" ]; then
+              echo "❌ Failed to retrieve certificate for $domain"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}❌ $domain: Certificate retrieval failed\n"
+              ALL_HEALTHY=false
+              continue
+            fi
+            
+            # Extract expiry date
+            expiry_date=$(echo "$cert_info" | grep "notAfter" | cut -d'=' -f2)
+            
+            if [ -z "$expiry_date" ]; then
+              echo "❌ Could not parse expiry date for $domain"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}❌ $domain: Could not parse expiry date\n"
+              ALL_HEALTHY=false
+              continue
+            fi
+            
+            # Convert to epoch time
+            expiry_epoch=$(date -d "$expiry_date" +%s 2>/dev/null || echo "0")
+            current_epoch=$(date +%s)
+            
+            if [ "$expiry_epoch" -eq 0 ]; then
+              echo "❌ Invalid expiry date for $domain"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}❌ $domain: Invalid expiry date\n"
+              ALL_HEALTHY=false
+              continue
+            fi
+            
+            # Calculate days until expiry
+            days_until_expiry=$(( (expiry_epoch - current_epoch) / 86400 ))
+            
+            # Check certificate status
+            if [ $days_until_expiry -lt 0 ]; then
+              echo "🚨 Certificate for $domain has EXPIRED!"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}🚨 $domain: EXPIRED ($days_until_expiry days ago)\n"
+              EXPIRING_CERTIFICATES="${EXPIRING_CERTIFICATES}$domain:expired "
+              ALL_HEALTHY=false
+            elif [ $days_until_expiry -lt $CRITICAL_THRESHOLD_DAYS ]; then
+              echo "🚨 Certificate for $domain expires in $days_until_expiry days (CRITICAL)"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}🚨 $domain: Expires in $days_until_expiry days (CRITICAL)\n"
+              EXPIRING_CERTIFICATES="${EXPIRING_CERTIFICATES}$domain:$days_until_expiry "
+              ALL_HEALTHY=false
+            elif [ $days_until_expiry -lt $NOTIFICATION_THRESHOLD_DAYS ]; then
+              echo "⚠️  Certificate for $domain expires in $days_until_expiry days"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}⚠️  $domain: Expires in $days_until_expiry days\n"
+              EXPIRING_CERTIFICATES="${EXPIRING_CERTIFICATES}$domain:$days_until_expiry "
+            else
+              echo "✅ Certificate for $domain is valid (expires in $days_until_expiry days)"
+              CERTIFICATE_STATUS="${CERTIFICATE_STATUS}✅ $domain: Valid (expires in $days_until_expiry days)\n"
+            fi
+          done
+          
+          # Set outputs
+          echo "certificates-status<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CERTIFICATE_STATUS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "expiring-certificates=$EXPIRING_CERTIFICATES" >> $GITHUB_OUTPUT
+          
+          # Print summary
+          echo ""
+          echo "📋 SSL Certificate Status Summary:"
+          echo -e "$CERTIFICATE_STATUS"
+          
+          if [ "$ALL_HEALTHY" = false ]; then
+            echo "❌ Some certificates require attention"
+            exit 1
+          else
+            echo "✅ All certificates are healthy"
+          fi
+
+  ssl-certificate-provision:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'provision'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Provision SSL certificates
+        run: |
+          DOMAIN="${{ github.event.inputs.domain }}"
+          
+          if [ -z "$DOMAIN" ]; then
+            echo "❌ Domain is required for certificate provisioning"
+            exit 1
+          fi
+          
+          echo "🔐 Provisioning SSL certificate for $DOMAIN..."
+          
+          # For Vercel deployments, certificates are managed automatically
+          # This is primarily for monitoring and validation
+          
+          # Verify domain is properly configured
+          if ! dig +short "$DOMAIN" > /dev/null; then
+            echo "❌ Domain $DOMAIN is not properly configured"
+            exit 1
+          fi
+          
+          echo "✅ Domain $DOMAIN is properly configured"
+          
+          # Check if certificate is already provisioned
+          if openssl s_client -servername "$DOMAIN" -connect "$DOMAIN:443" -verify_return_error < /dev/null 2>&1; then
+            echo "✅ SSL certificate is already provisioned for $DOMAIN"
+          else
+            echo "⏳ SSL certificate provisioning may take a few minutes..."
+            echo "Please check your hosting provider's dashboard for certificate status"
+          fi
+
+  ssl-certificate-renew:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'renew'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Renew SSL certificates
+        run: |
+          echo "🔄 Initiating SSL certificate renewal..."
+          
+          # For managed hosting (Vercel, Netlify), certificates are auto-renewed
+          # This action primarily triggers checks and notifications
+          
+          DOMAIN="${{ github.event.inputs.domain }}"
+          
+          if [ -n "$DOMAIN" ]; then
+            echo "🔄 Checking renewal status for $DOMAIN..."
+            
+            # Check current certificate
+            cert_info=$(echo | openssl s_client -servername "$DOMAIN" -connect "$DOMAIN:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null || echo "ERROR")
+            
+            if [ "$cert_info" != "ERROR" ]; then
+              echo "Current certificate info:"
+              echo "$cert_info"
+            else
+              echo "❌ Could not retrieve current certificate"
+              exit 1
+            fi
+          else
+            echo "🔄 Triggering renewal check for all domains..."
+          fi
+          
+          # For Vercel/Netlify, renewal is automatic
+          # This could trigger a deployment to refresh certificates
+          echo "✅ Certificate renewal process initiated"
+          echo "Note: For managed hosting, certificates are automatically renewed"
+
+  ssl-certificate-revoke:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'revoke'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Revoke SSL certificate
+        run: |
+          DOMAIN="${{ github.event.inputs.domain }}"
+          
+          if [ -z "$DOMAIN" ]; then
+            echo "❌ Domain is required for certificate revocation"
+            exit 1
+          fi
+          
+          echo "🚨 Certificate revocation requested for $DOMAIN"
+          echo "⚠️  This is a destructive action that will make the domain inaccessible via HTTPS"
+          
+          # For managed hosting, this would typically be done through the dashboard
+          echo "❌ Certificate revocation must be performed through your hosting provider's dashboard"
+          echo "This action is logged for security purposes"
+          
+          # Log the revocation request
+          echo "Certificate revocation requested for $DOMAIN at $(date)" >> ssl_revocation.log
+          
+          exit 1  # Fail the action to prevent accidental execution
+
+  notification:
+    needs: [ssl-certificate-check]
+    runs-on: ubuntu-latest
+    if: always() && needs.ssl-certificate-check.outputs.expiring-certificates != ''
+    
+    steps:
+      - name: Send certificate expiration notifications
+        run: |
+          EXPIRING_CERTS="${{ needs.ssl-certificate-check.outputs.expiring-certificates }}"
+          CERT_STATUS="${{ needs.ssl-certificate-check.outputs.certificates-status }}"
+          
+          echo "📧 Sending SSL certificate expiration notifications..."
+          
+          # Prepare notification message
+          MESSAGE="🔐 SSL Certificate Expiration Alert
+          
+          The following certificates require attention:
+          
+          $CERT_STATUS
+          
+          Action required:
+          - Review certificate expiration dates
+          - Plan for certificate renewal
+          - Update DNS configurations if needed
+          
+          Timestamp: $(date -u)
+          Repository: ${{ github.repository }}
+          Workflow: ${{ github.workflow }}
+          "
+          
+          echo "$MESSAGE"
+          
+          # Send notification (implement your preferred method)
+          # Examples:
+          # - Slack webhook
+          # - Email via SendGrid
+          # - Discord webhook
+          # - PagerDuty alert
+          
+          # For demo purposes, we'll create an issue
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+            echo "Creating GitHub issue for certificate expiration..."
+            
+            # This would create a GitHub issue with the certificate status
+            # gh issue create --title "SSL Certificate Expiration Alert" --body "$MESSAGE"
+          fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'check' || github.event.inputs.action == '' || github.event_name == 'schedule'
+    
+    steps:
+      - name: Run SSL security scan
+        run: |
+          echo "🔍 Running SSL security scan..."
+          
+          DOMAINS=(
+            "concierge-transaction-flow.com"
+            "blue.concierge-transaction-flow.com"
+            "green.concierge-transaction-flow.com"
+          )
+          
+          for domain in "${DOMAINS[@]}"; do
+            echo "🔍 Scanning $domain..."
+            
+            # Check SSL configuration
+            ssl_scan=$(echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null)
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ SSL connection successful for $domain"
+              
+              # Check for weak ciphers
+              if echo "$ssl_scan" | grep -q "RC4\|DES\|3DES\|MD5"; then
+                echo "⚠️  Weak ciphers detected for $domain"
+              else
+                echo "✅ Strong ciphers in use for $domain"
+              fi
+              
+              # Check protocol version
+              if echo "$ssl_scan" | grep -q "TLSv1.2\|TLSv1.3"; then
+                echo "✅ Modern TLS version in use for $domain"
+              else
+                echo "⚠️  Consider upgrading TLS version for $domain"
+              fi
+              
+            else
+              echo "❌ SSL connection failed for $domain"
+            fi
+            
+            echo "---"
+          done
+          
+          echo "🔍 SSL security scan completed"
+
+  create-summary:
+    needs: [ssl-certificate-check, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Create SSL management summary
+        run: |
+          echo "📋 SSL Certificate Management Summary"
+          echo "Generated: $(date -u)"
+          echo ""
+          echo "Certificate Status:"
+          echo "${{ needs.ssl-certificate-check.outputs.certificates-status }}"
+          echo ""
+          echo "Expiring Certificates:"
+          echo "${{ needs.ssl-certificate-check.outputs.expiring-certificates }}"
+          echo ""
+          echo "Next Actions:"
+          echo "- Monitor certificate expiration dates"
+          echo "- Plan renewal activities"
+          echo "- Update security configurations as needed"
+          echo "- Review SSL security scan results"

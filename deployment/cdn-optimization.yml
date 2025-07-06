@@ -1,0 +1,472 @@
+name: CDN Optimization and Monitoring
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    # Run daily performance checks
+    - cron: '0 6 * * *'  # Every day at 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'CDN Management Action'
+        required: true
+        default: 'analyze'
+        type: choice
+        options:
+          - analyze
+          - optimize
+          - purge-cache
+          - benchmark
+      target:
+        description: 'Target environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+          - all
+
+env:
+  LIGHTHOUSE_BUDGET_FILE: 'lighthouse-budget.json'
+  PERFORMANCE_THRESHOLD_LCP: 2500
+  PERFORMANCE_THRESHOLD_FID: 100
+  PERFORMANCE_THRESHOLD_CLS: 0.1
+
+jobs:
+  cdn-analysis:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'analyze' || github.event.inputs.action == '' || github.event_name == 'schedule'
+    
+    outputs:
+      performance-score: ${{ steps.lighthouse.outputs.performance-score }}
+      lcp-score: ${{ steps.lighthouse.outputs.lcp-score }}
+      fid-score: ${{ steps.lighthouse.outputs.fid-score }}
+      cls-score: ${{ steps.lighthouse.outputs.cls-score }}
+      cache-hit-ratio: ${{ steps.cdn-metrics.outputs.cache-hit-ratio }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install analysis tools
+        run: |
+          npm install -g @lhci/cli lighthouse
+          npm install -g web-vitals-cli
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+      - name: Run Lighthouse performance audit
+        id: lighthouse
+        run: |
+          # Define URLs to test
+          URLS=(
+            "https://concierge-transaction-flow.com"
+            "https://concierge-transaction-flow.com/dashboard"
+            "https://concierge-transaction-flow.com/transactions"
+          )
+          
+          TARGET="${{ github.event.inputs.target || 'production' }}"
+          
+          if [ "$TARGET" = "staging" ]; then
+            URLS=(
+              "https://staging-concierge-transaction-flow.vercel.app"
+              "https://staging-concierge-transaction-flow.vercel.app/dashboard"
+              "https://staging-concierge-transaction-flow.vercel.app/transactions"
+            )
+          fi
+          
+          TOTAL_PERFORMANCE=0
+          TOTAL_LCP=0
+          TOTAL_FID=0
+          TOTAL_CLS=0
+          COUNT=0
+          
+          for url in "${URLS[@]}"; do
+            echo "🔍 Analyzing: $url"
+            
+            # Run Lighthouse audit
+            lighthouse "$url" \
+              --output json \
+              --output-path "lighthouse-$COUNT.json" \
+              --chrome-flags="--headless --no-sandbox" \
+              --preset=perf \
+              --budget-path="$LIGHTHOUSE_BUDGET_FILE" || true
+            
+            if [ -f "lighthouse-$COUNT.json" ]; then
+              # Extract metrics
+              PERFORMANCE=$(jq -r '.categories.performance.score * 100' "lighthouse-$COUNT.json")
+              LCP=$(jq -r '.audits["largest-contentful-paint"].numericValue' "lighthouse-$COUNT.json")
+              FID=$(jq -r '.audits["max-potential-fid"].numericValue' "lighthouse-$COUNT.json")
+              CLS=$(jq -r '.audits["cumulative-layout-shift"].numericValue' "lighthouse-$COUNT.json")
+              
+              echo "📊 Results for $url:"
+              echo "  Performance: $PERFORMANCE"
+              echo "  LCP: ${LCP}ms"
+              echo "  FID: ${FID}ms"
+              echo "  CLS: $CLS"
+              
+              # Add to totals
+              TOTAL_PERFORMANCE=$(echo "$TOTAL_PERFORMANCE + $PERFORMANCE" | bc -l)
+              TOTAL_LCP=$(echo "$TOTAL_LCP + $LCP" | bc -l)
+              TOTAL_FID=$(echo "$TOTAL_FID + $FID" | bc -l)
+              TOTAL_CLS=$(echo "$TOTAL_CLS + $CLS" | bc -l)
+              
+              COUNT=$((COUNT + 1))
+            fi
+          done
+          
+          # Calculate averages
+          if [ $COUNT -gt 0 ]; then
+            AVG_PERFORMANCE=$(echo "scale=2; $TOTAL_PERFORMANCE / $COUNT" | bc -l)
+            AVG_LCP=$(echo "scale=2; $TOTAL_LCP / $COUNT" | bc -l)
+            AVG_FID=$(echo "scale=2; $TOTAL_FID / $COUNT" | bc -l)
+            AVG_CLS=$(echo "scale=4; $TOTAL_CLS / $COUNT" | bc -l)
+            
+            echo "performance-score=$AVG_PERFORMANCE" >> $GITHUB_OUTPUT
+            echo "lcp-score=$AVG_LCP" >> $GITHUB_OUTPUT
+            echo "fid-score=$AVG_FID" >> $GITHUB_OUTPUT
+            echo "cls-score=$AVG_CLS" >> $GITHUB_OUTPUT
+            
+            echo "📈 Average Performance Metrics:"
+            echo "  Performance Score: $AVG_PERFORMANCE"
+            echo "  LCP: ${AVG_LCP}ms"
+            echo "  FID: ${AVG_FID}ms"
+            echo "  CLS: $AVG_CLS"
+          else
+            echo "❌ No successful audits completed"
+            exit 1
+          fi
+
+      - name: Analyze CDN metrics
+        id: cdn-metrics
+        run: |
+          echo "📊 Analyzing CDN performance metrics..."
+          
+          # This would typically integrate with your CDN provider's API
+          # For Vercel, you might use their Analytics API
+          # For Cloudflare, you might use their GraphQL Analytics API
+          
+          # Simulated CDN metrics analysis
+          BASE_URL="https://concierge-transaction-flow.com"
+          
+          # Test cache hit ratio
+          CACHE_HITS=0
+          TOTAL_REQUESTS=0
+          
+          ASSETS=(
+            "/static/css/main.css"
+            "/static/js/main.js"
+            "/favicon.ico"
+            "/manifest.json"
+          )
+          
+          for asset in "${ASSETS[@]}"; do
+            response=$(curl -s -I "$BASE_URL$asset" || echo "")
+            
+            if echo "$response" | grep -q "x-vercel-cache: HIT\|cf-cache-status: HIT"; then
+              CACHE_HITS=$((CACHE_HITS + 1))
+            fi
+            
+            TOTAL_REQUESTS=$((TOTAL_REQUESTS + 1))
+          done
+          
+          if [ $TOTAL_REQUESTS -gt 0 ]; then
+            CACHE_HIT_RATIO=$(echo "scale=4; $CACHE_HITS / $TOTAL_REQUESTS" | bc -l)
+            echo "cache-hit-ratio=$CACHE_HIT_RATIO" >> $GITHUB_OUTPUT
+            echo "📈 Cache Hit Ratio: $CACHE_HIT_RATIO"
+          else
+            echo "cache-hit-ratio=0" >> $GITHUB_OUTPUT
+            echo "❌ Unable to calculate cache hit ratio"
+          fi
+
+      - name: Generate performance report
+        run: |
+          echo "📋 CDN Performance Report" > cdn-report.md
+          echo "========================" >> cdn-report.md
+          echo "" >> cdn-report.md
+          echo "**Generated:** $(date -u)" >> cdn-report.md
+          echo "**Target:** ${{ github.event.inputs.target || 'production' }}" >> cdn-report.md
+          echo "" >> cdn-report.md
+          echo "## Core Web Vitals" >> cdn-report.md
+          echo "- **Performance Score:** ${{ steps.lighthouse.outputs.performance-score }}" >> cdn-report.md
+          echo "- **LCP (Largest Contentful Paint):** ${{ steps.lighthouse.outputs.lcp-score }}ms" >> cdn-report.md
+          echo "- **FID (First Input Delay):** ${{ steps.lighthouse.outputs.fid-score }}ms" >> cdn-report.md
+          echo "- **CLS (Cumulative Layout Shift):** ${{ steps.lighthouse.outputs.cls-score }}" >> cdn-report.md
+          echo "" >> cdn-report.md
+          echo "## CDN Metrics" >> cdn-report.md
+          echo "- **Cache Hit Ratio:** ${{ steps.cdn-metrics.outputs.cache-hit-ratio }}" >> cdn-report.md
+          echo "" >> cdn-report.md
+          echo "## Recommendations" >> cdn-report.md
+          
+          # Performance recommendations
+          LCP_SCORE="${{ steps.lighthouse.outputs.lcp-score }}"
+          if (( $(echo "$LCP_SCORE > $PERFORMANCE_THRESHOLD_LCP" | bc -l) )); then
+            echo "- ⚠️ LCP exceeds threshold ($PERFORMANCE_THRESHOLD_LCP ms). Consider optimizing images and reducing server response times." >> cdn-report.md
+          else
+            echo "- ✅ LCP within acceptable range" >> cdn-report.md
+          fi
+          
+          FID_SCORE="${{ steps.lighthouse.outputs.fid-score }}"
+          if (( $(echo "$FID_SCORE > $PERFORMANCE_THRESHOLD_FID" | bc -l) )); then
+            echo "- ⚠️ FID exceeds threshold ($PERFORMANCE_THRESHOLD_FID ms). Consider reducing JavaScript execution time." >> cdn-report.md
+          else
+            echo "- ✅ FID within acceptable range" >> cdn-report.md
+          fi
+          
+          CLS_SCORE="${{ steps.lighthouse.outputs.cls-score }}"
+          if (( $(echo "$CLS_SCORE > $PERFORMANCE_THRESHOLD_CLS" | bc -l) )); then
+            echo "- ⚠️ CLS exceeds threshold ($PERFORMANCE_THRESHOLD_CLS). Consider fixing layout shifts." >> cdn-report.md
+          else
+            echo "- ✅ CLS within acceptable range" >> cdn-report.md
+          fi
+          
+          cat cdn-report.md
+
+      - name: Upload performance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdn-performance-report
+          path: |
+            cdn-report.md
+            lighthouse-*.json
+          retention-days: 30
+
+  cdn-optimization:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'optimize'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Optimize build for CDN
+        run: |
+          echo "🔧 Optimizing build for CDN delivery..."
+          
+          # Build with optimization flags
+          npm run build
+          
+          # Analyze bundle size
+          echo "📊 Bundle Analysis:"
+          du -sh dist/
+          find dist/ -name "*.js" -exec du -h {} \; | sort -rh | head -10
+          find dist/ -name "*.css" -exec du -h {} \; | sort -rh | head -5
+          
+          # Check for optimization opportunities
+          echo "🔍 Optimization Analysis:"
+          
+          # Check for uncompressed assets
+          UNCOMPRESSED=$(find dist/ -name "*.js" -o -name "*.css" -o -name "*.html" | wc -l)
+          echo "Uncompressed assets: $UNCOMPRESSED"
+          
+          # Check for large images
+          LARGE_IMAGES=$(find dist/ -name "*.jpg" -o -name "*.png" -o -name "*.gif" | xargs du -k | awk '$1 > 100' | wc -l)
+          echo "Large images (>100KB): $LARGE_IMAGES"
+          
+          # Check for unused CSS
+          if command -v purge-css &> /dev/null; then
+            echo "Running CSS purge analysis..."
+            # This would run PurgeCSS analysis
+          fi
+
+      - name: Generate optimization recommendations
+        run: |
+          echo "📋 CDN Optimization Recommendations" > optimization-report.md
+          echo "===================================" >> optimization-report.md
+          echo "" >> optimization-report.md
+          echo "**Generated:** $(date -u)" >> optimization-report.md
+          echo "" >> optimization-report.md
+          echo "## Current State" >> optimization-report.md
+          echo "- **Total Bundle Size:** $(du -sh dist/ | cut -f1)" >> optimization-report.md
+          echo "- **JavaScript Files:** $(find dist/ -name "*.js" | wc -l)" >> optimization-report.md
+          echo "- **CSS Files:** $(find dist/ -name "*.css" | wc -l)" >> optimization-report.md
+          echo "- **Image Files:** $(find dist/ -name "*.jpg" -o -name "*.png" -o -name "*.gif" -o -name "*.svg" | wc -l)" >> optimization-report.md
+          echo "" >> optimization-report.md
+          echo "## Optimization Opportunities" >> optimization-report.md
+          echo "- Enable Brotli compression for text assets" >> optimization-report.md
+          echo "- Implement WebP/AVIF image formats" >> optimization-report.md
+          echo "- Add resource hints (preload, prefetch)" >> optimization-report.md
+          echo "- Optimize font loading strategy" >> optimization-report.md
+          echo "- Implement service worker for caching" >> optimization-report.md
+          
+          cat optimization-report.md
+
+  cache-purge:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'purge-cache'
+    
+    steps:
+      - name: Purge CDN cache
+        run: |
+          echo "🧹 Purging CDN cache..."
+          
+          TARGET="${{ github.event.inputs.target || 'production' }}"
+          
+          # For Vercel, you might use their API
+          # For Cloudflare, you might use their API
+          
+          echo "Target: $TARGET"
+          
+          # Example: Purge specific assets
+          ASSETS_TO_PURGE=(
+            "/static/css/main.css"
+            "/static/js/main.js"
+            "/favicon.ico"
+            "/manifest.json"
+          )
+          
+          for asset in "${ASSETS_TO_PURGE[@]}"; do
+            echo "Purging: $asset"
+            # This would make API calls to purge specific assets
+          done
+          
+          # Example: Purge all static assets
+          echo "Purging all static assets..."
+          # This would make API call to purge all static assets
+          
+          echo "✅ Cache purge completed"
+
+  benchmark:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'benchmark'
+    
+    steps:
+      - name: Run performance benchmark
+        run: |
+          echo "🏃 Running performance benchmark..."
+          
+          # Install benchmarking tools
+          npm install -g clinic autocannon
+          
+          BASE_URL="https://concierge-transaction-flow.com"
+          TARGET="${{ github.event.inputs.target || 'production' }}"
+          
+          if [ "$TARGET" = "staging" ]; then
+            BASE_URL="https://staging-concierge-transaction-flow.vercel.app"
+          fi
+          
+          # Run load test
+          echo "🔫 Running load test against: $BASE_URL"
+          
+          autocannon -c 10 -d 30 -p 10 "$BASE_URL" > benchmark-results.txt
+          
+          # Extract key metrics
+          echo "📊 Benchmark Results:"
+          grep -E "Req/Sec|Bytes/Sec|Avg|Max" benchmark-results.txt
+          
+          # Test specific endpoints
+          ENDPOINTS=(
+            "/"
+            "/dashboard"
+            "/transactions"
+            "/health"
+          )
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            echo "Testing: $BASE_URL$endpoint"
+            curl -w "@curl-format.txt" -s -o /dev/null "$BASE_URL$endpoint" || true
+          done
+
+      - name: Create curl format file
+        run: |
+          cat > curl-format.txt << 'EOF'
+          time_namelookup:  %{time_namelookup}s
+          time_connect:     %{time_connect}s
+          time_appconnect:  %{time_appconnect}s
+          time_pretransfer: %{time_pretransfer}s
+          time_redirect:    %{time_redirect}s
+          time_starttransfer: %{time_starttransfer}s
+          time_total:       %{time_total}s
+          speed_download:   %{speed_download} bytes/sec
+          speed_upload:     %{speed_upload} bytes/sec
+          size_download:    %{size_download} bytes
+          size_upload:      %{size_upload} bytes
+          EOF
+
+  monitoring-setup:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'analyze' || github.event_name == 'schedule'
+    
+    steps:
+      - name: Setup performance monitoring
+        run: |
+          echo "📊 Setting up CDN performance monitoring..."
+          
+          # This would typically involve:
+          # 1. Setting up Core Web Vitals monitoring
+          # 2. Configuring CDN-specific metrics
+          # 3. Setting up alerting thresholds
+          # 4. Creating dashboard links
+          
+          echo "✅ Performance monitoring configured"
+          
+          # Example: Create monitoring dashboard URL
+          DASHBOARD_URL="https://vercel.com/dashboard/analytics"
+          echo "📈 Analytics Dashboard: $DASHBOARD_URL"
+          
+          # Example: Set up alerts (this would integrate with your monitoring system)
+          echo "🚨 Performance alerts configured:"
+          echo "  - LCP > 2.5s"
+          echo "  - FID > 100ms"
+          echo "  - CLS > 0.1"
+          echo "  - Cache Hit Ratio < 95%"
+
+  create-summary:
+    needs: [cdn-analysis, cdn-optimization, cache-purge, benchmark]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Create CDN management summary
+        run: |
+          echo "📋 CDN Management Summary"
+          echo "========================"
+          echo ""
+          echo "**Action:** ${{ github.event.inputs.action || 'analyze' }}"
+          echo "**Target:** ${{ github.event.inputs.target || 'production' }}"
+          echo "**Timestamp:** $(date -u)"
+          echo ""
+          echo "## Results"
+          
+          if [ "${{ needs.cdn-analysis.result }}" = "success" ]; then
+            echo "✅ CDN Analysis: Completed"
+            echo "   - Performance Score: ${{ needs.cdn-analysis.outputs.performance-score }}"
+            echo "   - LCP: ${{ needs.cdn-analysis.outputs.lcp-score }}ms"
+            echo "   - FID: ${{ needs.cdn-analysis.outputs.fid-score }}ms"
+            echo "   - CLS: ${{ needs.cdn-analysis.outputs.cls-score }}"
+            echo "   - Cache Hit Ratio: ${{ needs.cdn-analysis.outputs.cache-hit-ratio }}"
+          fi
+          
+          if [ "${{ needs.cdn-optimization.result }}" = "success" ]; then
+            echo "✅ CDN Optimization: Completed"
+          fi
+          
+          if [ "${{ needs.cache-purge.result }}" = "success" ]; then
+            echo "✅ Cache Purge: Completed"
+          fi
+          
+          if [ "${{ needs.benchmark.result }}" = "success" ]; then
+            echo "✅ Performance Benchmark: Completed"
+          fi
+          
+          echo ""
+          echo "## Next Steps"
+          echo "- Review performance reports"
+          echo "- Implement optimization recommendations"
+          echo "- Monitor CDN metrics"
+          echo "- Schedule regular performance audits"

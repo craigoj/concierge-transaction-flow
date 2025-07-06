@@ -59,7 +59,12 @@ vi.mock('@/components/ui/button', () => ({
 }));
 
 vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: any) => <div data-testid="card" className={className}>{children}</div>
+  Card: ({ children, className }: any) => <div data-testid="card" className={className}>{children}</div>,
+  CardHeader: ({ children, className }: any) => <div data-testid="card-header" className={className}>{children}</div>,
+  CardTitle: ({ children, className }: any) => <div data-testid="card-title" className={className}>{children}</div>,
+  CardContent: ({ children, className }: any) => <div data-testid="card-content" className={className}>{children}</div>,
+  CardDescription: ({ children, className }: any) => <div data-testid="card-description" className={className}>{children}</div>,
+  CardFooter: ({ children, className }: any) => <div data-testid="card-footer" className={className}>{children}</div>
 }));
 
 vi.mock('@/components/ui/sheet', () => ({

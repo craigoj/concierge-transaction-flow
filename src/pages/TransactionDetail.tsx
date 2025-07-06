@@ -5,6 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +30,7 @@ import {
   FileText,
   CheckSquare
 } from 'lucide-react';
+import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog';
 
 interface Transaction {
   id: string;
@@ -38,26 +49,29 @@ interface Transaction {
 }
 
 const TransactionDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { role } = useUserRole();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (transactionId) {
       fetchTransaction();
     }
-  }, [id]);
+  }, [transactionId]);
 
   const fetchTransaction = async () => {
     try {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('id', id)
+        .eq('id', transactionId)
         .single();
 
       if (error) {
@@ -104,6 +118,60 @@ const TransactionDetail = () => {
     });
   };
 
+  const handleDelete = async () => {
+    if (!transaction) {
+      console.error('handleDelete: No transaction found');
+      return;
+    }
+
+    console.log('Starting delete operation for transaction:', transaction.id);
+    console.log('Current user:', user);
+    console.log('Current role:', role);
+
+    setDeleting(true);
+    try {
+      console.log('Attempting to delete transaction from database...');
+      
+      const { data, error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transaction.id);
+
+      console.log('Delete operation result:', { data, error });
+
+      if (error) {
+        console.error('Delete operation failed:', error);
+        throw error;
+      }
+
+      console.log('Delete operation successful');
+      
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully",
+      });
+
+      navigate('/transactions');
+    } catch (error: any) {
+      console.error('Delete operation caught error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: error.message || "Failed to delete transaction. Check console for details.",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -126,7 +194,7 @@ const TransactionDetail = () => {
     );
   }
 
-  const canEdit = role === 'coordinator' || transaction.agent_id === user?.id;
+  const canEdit = role === 'admin' || role === 'coordinator' || transaction.agent_id === user?.id;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -150,12 +218,16 @@ const TransactionDetail = () => {
         
         {canEdit && (
           <div className="flex space-x-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            {role === 'coordinator' && (
-              <Button variant="outline" className="text-red-600 hover:text-red-700">
+            {(role === 'admin' || role === 'coordinator') && (
+              <Button 
+                variant="outline" 
+                className="text-red-600 hover:text-red-700"
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>
@@ -309,6 +381,38 @@ const TransactionDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Transaction Dialog */}
+      <EditTransactionDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        transaction={transaction}
+        onSuccess={fetchTransaction}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this transaction for {transaction?.property_address}? 
+              This action cannot be undone and will permanently remove all associated data including 
+              tasks, documents, and communication history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? "Deleting..." : "Delete Transaction"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

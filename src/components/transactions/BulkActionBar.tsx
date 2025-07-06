@@ -22,7 +22,7 @@ const BulkActionBar = ({
   onClearSelection
 }: BulkActionBarProps) => {
   const { role } = useUserRole();
-  const isCoordinator = role === 'coordinator';
+  const canManageTransactions = role === 'admin' || role === 'coordinator';
 
   if (selectedCount === 0) {
     return null;
@@ -51,7 +51,7 @@ const BulkActionBar = ({
               </SelectContent>
             </Select>
             
-            {isCoordinator && (
+            {canManageTransactions && (
               <>
                 <Button
                   variant="outline"

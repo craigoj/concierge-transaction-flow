@@ -1,0 +1,194 @@
+name: Security & Maintenance
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  # Dependency vulnerability scanning
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate --json > audit-report.json || true
+
+      - name: Process audit results
+        run: |
+          if [ -s audit-report.json ]; then
+            VULNERABILITIES=$(cat audit-report.json | jq '.vulnerabilities | length')
+            echo "Found $VULNERABILITIES vulnerabilities"
+            
+            if [ "$VULNERABILITIES" -gt 0 ]; then
+              echo "❌ Security vulnerabilities found!"
+              cat audit-report.json | jq '.vulnerabilities'
+              exit 1
+            else
+              echo "✅ No security vulnerabilities found"
+            fi
+          fi
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-audit-report
+          path: audit-report.json
+          retention-days: 7
+
+  # Check for outdated dependencies
+  dependency-updates:
+    name: Check Dependency Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for outdated packages
+        run: |
+          npm outdated --json > outdated-packages.json || true
+          if [ -s outdated-packages.json ]; then
+            echo "📦 Outdated packages found:"
+            cat outdated-packages.json | jq '.'
+          else
+            echo "✅ All packages are up to date"
+          fi
+
+      - name: Upload outdated packages report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: outdated-packages-report
+          path: outdated-packages.json
+          retention-days: 7
+
+  # Docker image security scanning
+  docker-security-scan:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t concierge-app:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'concierge-app:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # License compliance check
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install license checker
+        run: npm install -g license-checker
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check licenses
+        run: |
+          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0' \
+            --excludePrivatePackages \
+            --json > license-report.json || true
+
+      - name: Process license results
+        run: |
+          if [ -s license-report.json ]; then
+            echo "📄 License report generated"
+            # Check for any problematic licenses
+            PROBLEMS=$(cat license-report.json | jq 'to_entries | map(select(.value.licenses | type == "string" and (contains("GPL") or contains("LGPL") or contains("AGPL")))) | length')
+            if [ "$PROBLEMS" -gt 0 ]; then
+              echo "❌ Found packages with problematic licenses!"
+              cat license-report.json | jq 'to_entries | map(select(.value.licenses | type == "string" and (contains("GPL") or contains("LGPL") or contains("AGPL"))))'
+              exit 1
+            else
+              echo "✅ All licenses are compliant"
+            fi
+          fi
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: license-report
+          path: license-report.json
+          retention-days: 30
+
+  # Performance monitoring
+  performance-check:
+    name: Performance Baseline Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Analyze bundle size
+        run: |
+          npm install -g bundlesize
+          npx bundlesize
+
+      - name: Check build performance
+        run: |
+          echo "📊 Build Performance Metrics:"
+          echo "Build directory size: $(du -sh dist/ | cut -f1)"
+          echo "Number of files: $(find dist/ -type f | wc -l)"
+          echo "Largest files:"
+          find dist/ -type f -exec ls -lh {} \; | sort -k5 -hr | head -10

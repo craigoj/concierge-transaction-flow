@@ -1,0 +1,207 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  NODE_VERSION: '18'
+  DEPLOYMENT_TIMEOUT: '10m'
+
+jobs:
+  pre-deployment-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.checks.outputs.should-deploy }}
+      deployment-id: ${{ steps.deployment.outputs.deployment-id }}
+    steps:
+      - name: Create deployment
+        id: deployment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ github.event.inputs.environment || 'production' }}',
+              required_contexts: [],
+              auto_merge: false
+            });
+            core.setOutput('deployment-id', deployment.id);
+            return deployment.id;
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run pre-deployment checks
+        id: checks
+        run: |
+          echo "Running pre-deployment validation..."
+          
+          # Check if critical files exist
+          if [ ! -f "package.json" ] || [ ! -f "vite.config.ts" ]; then
+            echo "Critical files missing"
+            exit 1
+          fi
+          
+          # Run build test
+          npm run build
+          
+          # Check build output
+          if [ ! -d "dist" ]; then
+            echo "Build failed - no dist directory"
+            exit 1
+          fi
+          
+          # Run critical tests
+          npm run test:unit
+          
+          echo "should-deploy=true" >> $GITHUB_OUTPUT
+
+  deploy-production:
+    needs: pre-deployment-checks
+    runs-on: ubuntu-latest
+    if: needs.pre-deployment-checks.outputs.should-deploy == 'true'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    
+    steps:
+      - name: Update deployment status (in progress)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.pre-deployment-checks.outputs.deployment-id }},
+              state: 'in_progress',
+              description: 'Deployment in progress'
+            });
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENVIRONMENT: production
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment validation..."
+          
+          # Wait for deployment to be ready
+          sleep 30
+          
+          # Basic health check
+          curl -f ${{ steps.deploy.outputs.preview-url }}/health || exit 1
+          
+          echo "Deployment validation successful"
+
+      - name: Update deployment status (success)
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.pre-deployment-checks.outputs.deployment-id }},
+              state: 'success',
+              description: 'Deployment successful',
+              environment_url: '${{ steps.deploy.outputs.preview-url }}'
+            });
+
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.pre-deployment-checks.outputs.deployment-id }},
+              state: 'failure',
+              description: 'Deployment failed'
+            });
+
+      - name: Notify deployment result
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const message = status === 'success' 
+              ? `✅ Production deployment successful: ${{ steps.deploy.outputs.preview-url }}`
+              : `❌ Production deployment failed`;
+            
+            console.log(message);
+            
+            // Optional: Send to Slack/Discord/etc
+            // await fetch(process.env.SLACK_WEBHOOK, {
+            //   method: 'POST',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify({ text: message })
+            // });
+
+  rollback-on-failure:
+    needs: [pre-deployment-checks, deploy-production]
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger rollback
+        run: |
+          echo "Deployment failed, initiating rollback..."
+          # This would trigger the rollback script
+          # ./deployment/rollback.sh
+          echo "Rollback procedures would be executed here"

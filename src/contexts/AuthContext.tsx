@@ -33,14 +33,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchUserRole = async (userId: string): Promise<string> => {
     try {
-      const { data: profile } = await supabase
+      console.log('Fetching user role for:', userId);
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 10000); // 10 second timeout
+      });
+      
+      const queryPromise = supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single();
       
-      return profile?.role || 'agent';
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return 'agent';
+      }
+      
+      const role = profile?.role || 'agent';
+      console.log('User role fetched:', role);
+      return role;
     } catch (error) {
+      console.error('Failed to fetch user role:', error);
       return 'agent';
     }
   };
@@ -50,20 +67,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const handleSession = async (newSession: Session | null) => {
+    console.log('Handling session:', newSession?.user?.id || 'null');
     setSession(newSession);
     setUser(newSession?.user ?? null);
     
     if (newSession?.user) {
-      const role = await fetchUserRole(newSession.user.id);
-      setUserRole(role);
+      try {
+        const role = await fetchUserRole(newSession.user.id);
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error in handleSession:', error);
+        setUserRole('agent'); // Default fallback
+      }
     } else {
       setUserRole(null);
     }
     
+    console.log('Setting loading to false');
     setLoading(false);
   };
 
   useEffect(() => {
+    // Set up maximum loading timeout as failsafe
+    const loadingTimeout = setTimeout(() => {
+      console.warn('Auth loading timeout reached - forcing loading to false');
+      setLoading(false);
+    }, 15000); // 15 second absolute maximum
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -72,23 +102,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setUser(null);
           setUserRole(null);
           setLoading(false);
+          clearTimeout(loadingTimeout);
           return;
         }
         
         await handleSession(session);
+        clearTimeout(loadingTimeout);
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('Initial session check:', session?.user?.id || 'null', error?.message || 'no error');
       if (error) {
+        console.error('Session error:', error);
         setLoading(false);
+        clearTimeout(loadingTimeout);
         return;
       }
-      handleSession(session);
+      handleSession(session).finally(() => {
+        clearTimeout(loadingTimeout);
+      });
+    }).catch((error) => {
+      console.error('Failed to get session:', error);
+      setLoading(false);
+      clearTimeout(loadingTimeout);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
   }, []);
 
   return (

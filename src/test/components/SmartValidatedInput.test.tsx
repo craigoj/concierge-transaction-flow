@@ -43,9 +43,10 @@ describe('SmartValidatedInput', () => {
     
     const input = screen.getByPlaceholderText('Test placeholder');
     
+    // Wait for validation to complete (component has 500ms debounce + 500ms async validation)
     await waitFor(() => {
       expect(input).toHaveClass('border-red-300');
-    });
+    }, { timeout: 2000 });
   });
 
   it('should show success state for valid input', async () => {

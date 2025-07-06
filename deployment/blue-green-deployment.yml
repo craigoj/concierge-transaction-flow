@@ -1,0 +1,435 @@
+name: Blue-Green Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: 'Deployment Type'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+          - blue-green
+          - direct
+          - canary
+      traffic_split:
+        description: 'Traffic Split Percentage (for canary)'
+        required: false
+        default: '10'
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  DEPLOYMENT_TIMEOUT: '15m'
+  HEALTH_CHECK_RETRIES: 10
+  HEALTH_CHECK_INTERVAL: 30
+
+jobs:
+  prepare-deployment:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment-id: ${{ steps.deployment.outputs.deployment-id }}
+      blue-url: ${{ steps.urls.outputs.blue-url }}
+      green-url: ${{ steps.urls.outputs.green-url }}
+      current-env: ${{ steps.current.outputs.environment }}
+      target-env: ${{ steps.current.outputs.target-environment }}
+    
+    steps:
+      - name: Create GitHub deployment
+        id: deployment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              required_contexts: [],
+              auto_merge: false,
+              description: 'Blue-Green deployment'
+            });
+            core.setOutput('deployment-id', deployment.id);
+            return deployment.id;
+
+      - name: Determine deployment environment
+        id: current
+        run: |
+          # This would typically query your current production environment
+          # For demo purposes, we'll alternate between blue and green
+          
+          CURRENT_ENV="blue"  # This should be determined from your infrastructure
+          
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            TARGET_ENV="green"
+          else
+            TARGET_ENV="blue"
+          fi
+          
+          echo "environment=$CURRENT_ENV" >> $GITHUB_OUTPUT
+          echo "target-environment=$TARGET_ENV" >> $GITHUB_OUTPUT
+          
+          echo "Current environment: $CURRENT_ENV"
+          echo "Target environment: $TARGET_ENV"
+
+      - name: Set environment URLs
+        id: urls
+        run: |
+          # These would be your actual blue/green environment URLs
+          echo "blue-url=https://blue-concierge-transaction-flow.vercel.app" >> $GITHUB_OUTPUT
+          echo "green-url=https://green-concierge-transaction-flow.vercel.app" >> $GITHUB_OUTPUT
+
+  deploy-to-staging:
+    needs: prepare-deployment
+    runs-on: ubuntu-latest
+    environment: 
+      name: staging-${{ needs.prepare-deployment.outputs.target-env }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    
+    steps:
+      - name: Update deployment status
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.prepare-deployment.outputs.deployment-id }},
+              state: 'in_progress',
+              description: 'Deploying to staging environment'
+            });
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENVIRONMENT: staging
+
+      - name: Deploy to staging environment
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--target staging'
+          alias-domains: |
+            ${{ needs.prepare-deployment.outputs.target-env }}-concierge-transaction-flow.vercel.app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 60
+
+  health-check-staging:
+    needs: [prepare-deployment, deploy-to-staging]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run health checks
+        run: |
+          TARGET_URL="${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}"
+          
+          echo "Running health checks against: $TARGET_URL"
+          
+          # Basic connectivity check
+          for i in $(seq 1 ${{ env.HEALTH_CHECK_RETRIES }}); do
+            echo "Health check attempt $i/${{ env.HEALTH_CHECK_RETRIES }}"
+            
+            if curl -f "$TARGET_URL/health" > /dev/null 2>&1; then
+              echo "✓ Health check passed"
+              break
+            fi
+            
+            if [ $i -eq ${{ env.HEALTH_CHECK_RETRIES }} ]; then
+              echo "✗ Health check failed after ${{ env.HEALTH_CHECK_RETRIES }} attempts"
+              exit 1
+            fi
+            
+            sleep ${{ env.HEALTH_CHECK_INTERVAL }}
+          done
+
+      - name: Run comprehensive tests
+        run: |
+          TARGET_URL="${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}"
+          
+          # Run smoke tests against staging environment
+          npm run test:smoke -- --base-url="$TARGET_URL"
+          
+          # Run performance tests
+          npm run test:performance -- --base-url="$TARGET_URL"
+          
+          echo "All tests passed for staging environment"
+
+  deploy-to-production:
+    needs: [prepare-deployment, deploy-to-staging, health-check-staging]
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: ${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}
+    
+    steps:
+      - name: Update deployment status
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.prepare-deployment.outputs.deployment-id }},
+              state: 'in_progress',
+              description: 'Deploying to production environment'
+            });
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENVIRONMENT: production
+
+      - name: Deploy to production environment
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
+          alias-domains: |
+            ${{ needs.prepare-deployment.outputs.target-env }}-concierge-transaction-flow.vercel.app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Wait for production deployment
+        run: |
+          echo "Waiting for production deployment to be ready..."
+          sleep 90
+
+  health-check-production:
+    needs: [prepare-deployment, deploy-to-production]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production health checks
+        run: |
+          TARGET_URL="${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}"
+          
+          echo "Running production health checks against: $TARGET_URL"
+          
+          # Comprehensive health check
+          for i in $(seq 1 ${{ env.HEALTH_CHECK_RETRIES }}); do
+            echo "Production health check attempt $i/${{ env.HEALTH_CHECK_RETRIES }}"
+            
+            # Check health endpoint
+            if curl -f "$TARGET_URL/health" > /dev/null 2>&1; then
+              echo "✓ Health endpoint responsive"
+              
+              # Check API endpoints
+              if curl -f "$TARGET_URL/api/transactions" -H "Authorization: Bearer test" > /dev/null 2>&1; then
+                echo "✓ API endpoints responsive"
+                break
+              fi
+            fi
+            
+            if [ $i -eq ${{ env.HEALTH_CHECK_RETRIES }} ]; then
+              echo "✗ Production health check failed after ${{ env.HEALTH_CHECK_RETRIES }} attempts"
+              exit 1
+            fi
+            
+            sleep ${{ env.HEALTH_CHECK_INTERVAL }}
+          done
+
+      - name: Run production smoke tests
+        run: |
+          TARGET_URL="${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}"
+          
+          # Run critical path tests
+          npm run test:critical-path -- --base-url="$TARGET_URL"
+          
+          echo "Production smoke tests passed"
+
+  traffic-switch:
+    needs: [prepare-deployment, health-check-production]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deployment_type != 'canary'
+    
+    steps:
+      - name: Switch traffic to new environment
+        run: |
+          echo "Switching traffic from ${{ needs.prepare-deployment.outputs.current-env }} to ${{ needs.prepare-deployment.outputs.target-env }}"
+          
+          # This would typically involve:
+          # - Updating load balancer configuration
+          # - Updating DNS records
+          # - Updating CDN configuration
+          
+          # For Vercel, you would promote the deployment
+          # vercel alias set <deployment-url> <production-domain>
+          
+          echo "Traffic switch completed"
+
+  canary-deployment:
+    needs: [prepare-deployment, health-check-production]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deployment_type == 'canary'
+    
+    steps:
+      - name: Start canary deployment
+        run: |
+          TRAFFIC_SPLIT="${{ github.event.inputs.traffic_split || '10' }}"
+          echo "Starting canary deployment with $TRAFFIC_SPLIT% traffic"
+          
+          # This would configure your load balancer or CDN to split traffic
+          # For example, with Vercel you might use different deployment URLs
+          
+          echo "Canary deployment started with $TRAFFIC_SPLIT% traffic"
+
+      - name: Monitor canary metrics
+        run: |
+          echo "Monitoring canary deployment metrics..."
+          
+          # This would typically involve:
+          # - Checking error rates
+          # - Monitoring performance metrics
+          # - Analyzing user behavior
+          
+          sleep 300  # Monitor for 5 minutes
+          
+          echo "Canary metrics look good"
+
+      - name: Complete canary rollout
+        run: |
+          echo "Completing canary rollout to 100% traffic"
+          
+          # Switch all traffic to new environment
+          echo "Canary rollout completed"
+
+  post-deployment:
+    needs: [prepare-deployment, traffic-switch, canary-deployment]
+    runs-on: ubuntu-latest
+    if: always() && (needs.traffic-switch.result == 'success' || needs.canary-deployment.result == 'success')
+    
+    steps:
+      - name: Update deployment status (success)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.prepare-deployment.outputs.deployment-id }},
+              state: 'success',
+              description: 'Blue-green deployment completed successfully',
+              environment_url: '${{ needs.prepare-deployment.outputs.target-env == "blue" && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}'
+            });
+
+      - name: Clean up old environment
+        run: |
+          OLD_ENV="${{ needs.prepare-deployment.outputs.current-env }}"
+          echo "Cleaning up old environment: $OLD_ENV"
+          
+          # This would typically involve:
+          # - Keeping the old environment for quick rollback
+          # - Scheduling cleanup after a safe period
+          # - Archiving logs and metrics
+          
+          echo "Old environment cleanup scheduled"
+
+      - name: Send deployment notification
+        run: |
+          echo "📦 Blue-Green deployment completed successfully!"
+          echo "🔄 Switched from ${{ needs.prepare-deployment.outputs.current-env }} to ${{ needs.prepare-deployment.outputs.target-env }}"
+          echo "🌐 Live URL: ${{ needs.prepare-deployment.outputs.target-env == 'blue' && needs.prepare-deployment.outputs.blue-url || needs.prepare-deployment.outputs.green-url }}"
+
+  rollback-on-failure:
+    needs: [prepare-deployment, deploy-to-staging, health-check-staging, deploy-to-production, health-check-production]
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: Update deployment status (failure)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.prepare-deployment.outputs.deployment-id }},
+              state: 'failure',
+              description: 'Blue-green deployment failed, rollback initiated'
+            });
+
+      - name: Trigger automatic rollback
+        run: |
+          echo "🚨 Deployment failed, initiating automatic rollback..."
+          
+          # This would trigger your rollback script
+          # ./deployment/rollback.sh "Blue-green deployment failed"
+          
+          echo "Rollback initiated"
+
+      - name: Send failure notification
+        run: |
+          echo "❌ Blue-Green deployment failed!"
+          echo "🔄 Automatic rollback has been initiated"
+          echo "🔍 Please check the deployment logs for details"

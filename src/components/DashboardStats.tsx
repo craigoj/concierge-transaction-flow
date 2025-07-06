@@ -1,6 +1,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, Users, Calendar, DollarSign } from "lucide-react";
+import { Date, Group, Billing, Graph } from "@vibe/icons";
 
 const DashboardStats = () => {
   const stats = [
@@ -9,7 +9,7 @@ const DashboardStats = () => {
       value: "24",
       change: "+12%",
       changeType: "positive" as const,
-      icon: Calendar,
+      icon: Date,
       color: "text-blue-600"
     },
     {
@@ -17,7 +17,7 @@ const DashboardStats = () => {
       value: "89",
       change: "+8%",
       changeType: "positive" as const,
-      icon: Users,
+      icon: Group,
       color: "text-green-600"
     },
     {
@@ -25,7 +25,7 @@ const DashboardStats = () => {
       value: "$12,450",
       change: "+23%",
       changeType: "positive" as const,
-      icon: DollarSign,
+      icon: Billing,
       color: "text-primary"
     },
     {
@@ -33,7 +33,7 @@ const DashboardStats = () => {
       value: "96%",
       change: "+2%",
       changeType: "positive" as const,
-      icon: TrendingUp,
+      icon: Graph,
       color: "text-emerald-600"
     }
   ];

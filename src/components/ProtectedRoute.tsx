@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'coordinator' | 'agent';
+  requiredRole?: 'admin' | 'coordinator' | 'agent';
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -26,6 +26,11 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   // Redirect unauthenticated users to auth page
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Admin users have access to everything - no redirects needed
+  if (userRole === 'admin') {
+    return <>{children}</>;
   }
 
   // Simple role-based redirects

@@ -1,0 +1,27 @@
+# Terraform Variables for Concierge Transaction Flow
+# Copy this file to terraform.tfvars and update with your actual values
+
+# Project Configuration
+project_name = "concierge-transaction-flow"
+domain_name  = "concierge-transaction-flow.com"
+environment  = "production"
+
+# GitHub Configuration
+github_owner = "your-github-username"
+github_repo  = "concierge-transaction-flow"
+
+# Vercel Configuration
+vercel_team_id = "your-vercel-team-id"
+vercel_token   = "your-vercel-api-token"
+
+# Supabase Configuration
+supabase_project_id = "your-supabase-project-id"
+supabase_url        = "https://your-project.supabase.co"
+supabase_anon_key   = "your-supabase-anon-key"
+
+# Cloudflare Configuration (optional)
+cloudflare_zone_id = "your-cloudflare-zone-id"
+
+# Environment-specific overrides
+# staging_domain = "staging.concierge-transaction-flow.com"
+# dev_domain     = "dev.concierge-transaction-flow.com"

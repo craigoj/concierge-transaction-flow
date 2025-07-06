@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building, CheckCircle, Clock } from 'lucide-react';
 import { EnhancedTransactionList } from '@/components/transactions/EnhancedTransactionList';
-import { RoleDebugPanel } from '@/components/debug/RoleDebugPanel';
 
 const Dashboard = () => {
   const { data: transactionCount } = useQuery({
@@ -59,9 +58,6 @@ const Dashboard = () => {
 
   return (
     <div className="p-8">
-      {/* Debug Panel */}
-      <RoleDebugPanel />
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="bg-white/80 backdrop-blur-sm border border-brand-taupe/30 shadow-brand-subtle">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

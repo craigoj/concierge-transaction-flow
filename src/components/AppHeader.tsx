@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut, Search, Plus } from "lucide-react";
+import { Add, Search, Person, Settings, LogOut } from "@vibe/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -107,7 +107,7 @@ const AppHeader = () => {
                 size="sm"
                 className="rounded-xl shadow-brand-subtle"
               >
-                <Plus className="h-4 w-4" />
+                <Add className="h-4 w-4" />
                 CREATE
               </Button>
             </DropdownMenuTrigger>
@@ -162,7 +162,7 @@ const AppHeader = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-brand-taupe/20 rounded-xl text-brand-charcoal">
-                <User className="h-5 w-5" />
+                <Person className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-white border-brand-taupe/20 shadow-brand-elevation">
@@ -170,7 +170,7 @@ const AppHeader = () => {
                 className="hover:bg-brand-taupe/10 cursor-pointer font-brand-body"
                 onClick={() => navigate('/profile')}
               >
-                <User className="mr-3 h-4 w-4" />
+                <Person className="mr-3 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem 
