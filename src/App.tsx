@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -9,6 +11,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
+import { performanceMonitor } from '@/lib/performance-monitoring';
 
 // Import all page components
 import Dashboard from '@/pages/Index';
@@ -48,6 +51,11 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  useEffect(() => {
+    // Initialize performance monitoring
+    performanceMonitor.trackPageView();
+  }, []);
+
   return (
     <ErrorBoundary>
       <Router>
@@ -259,6 +267,8 @@ function App() {
           <Toaster />
           </AuthProvider>
         </QueryClientProvider>
+        <Analytics />
+        <SpeedInsights />
       </Router>
     </ErrorBoundary>
   );
