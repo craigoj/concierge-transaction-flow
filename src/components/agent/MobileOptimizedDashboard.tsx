@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { 
+import { TransactionWithDetails, TaskDetails } from '@/types/dashboard';
+import {
   Home,
   Calendar,
   CheckSquare,
@@ -17,33 +17,48 @@ import {
   MapPin,
   Clock,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  LucideIcon,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface MobileOptimizedDashboardProps {
-  transactions?: any[];
-  tasks?: any[];
-  notifications?: any[];
+interface NotificationItem {
+  id: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  timestamp: string;
 }
 
-const MobileOptimizedDashboard = ({ 
-  transactions = [], 
-  tasks = [], 
-  notifications = [] 
+interface QuickAction {
+  icon: LucideIcon;
+  label: string;
+  action: () => void;
+  color: string;
+}
+
+interface MobileOptimizedDashboardProps {
+  transactions?: TransactionWithDetails[];
+  tasks?: TaskDetails[];
+  notifications?: NotificationItem[];
+}
+
+const MobileOptimizedDashboard = ({
+  transactions = [],
+  tasks = [],
+  notifications = [],
 }: MobileOptimizedDashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
 
-  const activeTransactions = transactions.filter(t => t.status === 'active');
-  const urgentTasks = tasks.filter(t => !t.is_completed && t.priority === 'high');
-  const todayTasks = tasks.filter(t => {
+  const activeTransactions = transactions.filter((t) => t.status === 'active');
+  const urgentTasks = tasks.filter((t) => !t.is_completed && t.priority === 'high');
+  const todayTasks = tasks.filter((t) => {
     if (!t.due_date) return false;
     const today = new Date().toDateString();
     return new Date(t.due_date).toDateString() === today;
   });
 
-  const quickActions = [
+  const quickActions: QuickAction[] = [
     { icon: Phone, label: 'Call Client', action: () => {}, color: 'bg-green-500' },
     { icon: Mail, label: 'Send Email', action: () => {}, color: 'bg-blue-500' },
     { icon: Calendar, label: 'Schedule', action: () => {}, color: 'bg-purple-500' },
@@ -56,18 +71,16 @@ const MobileOptimizedDashboard = ({
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-brand-taupe/20">
         <div className="flex items-center justify-between p-4">
           <div>
-            <h1 className="text-xl font-brand-heading font-bold text-brand-charcoal">
-              Dashboard
-            </h1>
+            <h1 className="text-xl font-brand-heading font-bold text-brand-charcoal">Dashboard</h1>
             <p className="text-sm text-brand-charcoal/60">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'short', 
-                day: 'numeric' 
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
               })}
             </p>
           </div>
-          
+
           {/* Quick Actions Menu */}
           <Sheet open={quickActionsOpen} onOpenChange={setQuickActionsOpen}>
             <SheetTrigger asChild>
@@ -110,13 +123,11 @@ const MobileOptimizedDashboard = ({
               <div className="text-xs text-brand-charcoal/60">Active</div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white/90 backdrop-blur-sm border-brand-taupe/20">
             <CardContent className="p-4 text-center">
               <CheckSquare className="h-6 w-6 text-green-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-brand-charcoal">
-                {todayTasks.length}
-              </div>
+              <div className="text-2xl font-bold text-brand-charcoal">{todayTasks.length}</div>
               <div className="text-xs text-brand-charcoal/60">Due Today</div>
             </CardContent>
           </Card>
@@ -124,10 +135,7 @@ const MobileOptimizedDashboard = ({
 
         {/* Priority Alerts */}
         {urgentTasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="bg-red-50 border-red-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -143,9 +151,7 @@ const MobileOptimizedDashboard = ({
                     </div>
                   ))}
                   {urgentTasks.length > 2 && (
-                    <div className="text-xs text-red-600">
-                      +{urgentTasks.length - 2} more
-                    </div>
+                    <div className="text-xs text-red-600">+{urgentTasks.length - 2} more</div>
                   )}
                 </div>
               </CardContent>
@@ -192,9 +198,7 @@ const MobileOptimizedDashboard = ({
                           {transaction.city}, {transaction.state}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className="text-xs">
-                            {transaction.status}
-                          </Badge>
+                          <Badge className="text-xs">{transaction.status}</Badge>
                           {transaction.service_tier && (
                             <Badge variant="outline" className="text-xs">
                               {transaction.service_tier.replace(/_/g, ' ')}
@@ -217,7 +221,7 @@ const MobileOptimizedDashboard = ({
                     </div>
                   </div>
                 ))}
-                
+
                 {activeTransactions.length === 0 && (
                   <div className="text-center py-4">
                     <Home className="h-8 w-8 text-brand-taupe/40 mx-auto mb-2" />
@@ -235,26 +239,34 @@ const MobileOptimizedDashboard = ({
               </CardHeader>
               <CardContent className="space-y-3">
                 {todayTasks.map((task) => (
-                  <div key={task.id} className="flex items-start gap-3 p-2 border border-brand-taupe/20 rounded">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${
-                      task.priority === 'high' ? 'bg-red-500' : 
-                      task.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'
-                    }`} />
+                  <div
+                    key={task.id}
+                    className="flex items-start gap-3 p-2 border border-brand-taupe/20 rounded"
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full mt-2 ${
+                        task.priority === 'high'
+                          ? 'bg-red-500'
+                          : task.priority === 'medium'
+                            ? 'bg-amber-500'
+                            : 'bg-green-500'
+                      }`}
+                    />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-brand-charcoal">
-                        {task.title}
-                      </p>
+                      <p className="text-sm font-medium text-brand-charcoal">{task.title}</p>
                       {task.description && (
-                        <p className="text-xs text-brand-charcoal/60 mt-1">
-                          {task.description}
-                        </p>
+                        <p className="text-xs text-brand-charcoal/60 mt-1">{task.description}</p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge className={`text-xs ${
-                          task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                          task.priority === 'medium' ? 'bg-amber-100 text-amber-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
+                        <Badge
+                          className={`text-xs ${
+                            task.priority === 'high'
+                              ? 'bg-red-100 text-red-800'
+                              : task.priority === 'medium'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-green-100 text-green-800'
+                          }`}
+                        >
                           {task.priority}
                         </Badge>
                         {task.due_date && (
@@ -267,7 +279,7 @@ const MobileOptimizedDashboard = ({
                     </div>
                   </div>
                 ))}
-                
+
                 {todayTasks.length === 0 && (
                   <div className="text-center py-4">
                     <CheckSquare className="h-8 w-8 text-brand-taupe/40 mx-auto mb-2" />
@@ -310,8 +322,8 @@ const MobileOptimizedDashboard = ({
 
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           className="rounded-full w-14 h-14 bg-brand-charcoal text-white shadow-lg"
           onClick={() => setQuickActionsOpen(true)}
         >

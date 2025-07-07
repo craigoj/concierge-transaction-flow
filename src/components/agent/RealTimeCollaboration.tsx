@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,14 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Users, 
-  MessageCircle, 
-  Send, 
-  Eye, 
-  Edit3,
-  Clock
-} from 'lucide-react';
+import { Users, MessageCircle, Send, Eye, Edit3, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
@@ -53,43 +45,48 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
         // Transform the presence state to match our interface
         const transformedState: Record<string, PresenceState[]> = {};
         for (const [key, presences] of Object.entries(state)) {
-          transformedState[key] = presences.map((presence: any) => ({
-            user_id: presence.user_id,
-            user_name: presence.user_name,
-            user_role: presence.user_role,
-            last_seen: presence.last_seen,
-            current_section: presence.current_section
-          }));
+          transformedState[key] = (presences as unknown[]).map((presence: unknown) => {
+            const p = presence as Record<string, unknown>;
+            return {
+              user_id: p.user_id as string,
+              user_name: p.user_name as string,
+              user_role: p.user_role as string,
+              last_seen: p.last_seen as string,
+              current_section: p.current_section as string | undefined,
+            };
+          });
         }
         setPresenceData(transformedState);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        const user = newPresences[0] as any;
+        const user = newPresences[0] as PresenceState;
         if (user && user.user_name) {
           toast({
-            title: "User Joined",
+            title: 'User Joined',
             description: `${user.user_name} is now viewing this transaction`,
           });
         }
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        const user = leftPresences[0] as any;
+        const user = leftPresences[0] as PresenceState;
         if (user && user.user_name) {
           toast({
-            title: "User Left",
+            title: 'User Left',
             description: `${user.user_name} has left the transaction`,
           });
         }
       })
       .on('broadcast', { event: 'activity' }, ({ payload }) => {
-        setActivityFeed(prev => [payload as ActivityUpdate, ...prev.slice(0, 9)]);
+        setActivityFeed((prev) => [payload as ActivityUpdate, ...prev.slice(0, 9)]);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
-          
+
           // Get current user info
-          const { data: { user } } = await supabase.auth.getUser();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
           if (user) {
             const { data: profile } = await supabase
               .from('profiles')
@@ -103,7 +100,7 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
                 user_name: `${profile.first_name} ${profile.last_name}`,
                 user_role: profile.role,
                 last_seen: new Date().toISOString(),
-                current_section: 'overview'
+                current_section: 'overview',
               });
             }
           }
@@ -116,7 +113,9 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
   }, [transactionId, toast]);
 
   const broadcastActivity = async (action: string, details: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: profile } = await supabase
@@ -136,34 +135,43 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
           user_name: `${profile.first_name} ${profile.last_name}`,
           action,
           details,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
     }
   };
 
   const sendQuickMessage = async () => {
     if (!message.trim()) return;
-    
+
     await broadcastActivity('sent_message', message);
     setMessage('');
   };
 
-  const activeUsers = Object.values(presenceData).flat().filter(user => {
-    const lastSeen = new Date(user.last_seen);
-    const now = new Date();
-    return (now.getTime() - lastSeen.getTime()) < 5 * 60 * 1000; // 5 minutes
-  });
+  const activeUsers = Object.values(presenceData)
+    .flat()
+    .filter((user) => {
+      const lastSeen = new Date(user.last_seen);
+      const now = new Date();
+      return now.getTime() - lastSeen.getTime() < 5 * 60 * 1000; // 5 minutes
+    });
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'coordinator': return 'bg-purple-100 text-purple-800';
-      case 'agent': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'coordinator':
+        return 'bg-purple-100 text-purple-800';
+      case 'agent':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -203,9 +211,7 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium text-brand-charcoal">
-                        {user.user_name}
-                      </p>
+                      <p className="text-sm font-medium text-brand-charcoal">{user.user_name}</p>
                       <Badge className={`text-xs ${getRoleColor(user.user_role)}`}>
                         {user.user_role}
                       </Badge>
@@ -247,24 +253,24 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
               <Send className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="flex gap-2 flex-wrap">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => broadcastActivity('needs_review', 'Requesting coordinator review')}
             >
               Request Review
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => broadcastActivity('task_complete', 'Completed pending tasks')}
             >
               Tasks Complete
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => broadcastActivity('document_ready', 'Documents ready for signature')}
             >

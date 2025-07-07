@@ -1,10 +1,16 @@
-
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  AgentMetrics,
+  AgentProfile,
+  BrokerageMetrics,
+  RegistrationTrendData,
+  AgentStatusData,
+} from '@/types/dashboard';
 import {
   BarChart,
   Bar,
@@ -18,7 +24,7 @@ import {
   Cell,
   LineChart,
   Line,
-} from "recharts";
+} from 'recharts';
 import {
   TrendingUp,
   Users,
@@ -27,25 +33,14 @@ import {
   Building,
   Award,
   Activity,
-  Clock
-} from "lucide-react";
-
-interface AgentMetrics {
-  totalAgents: number;
-  activeAgents: number;
-  pendingAgents: number;
-  completionRate: number;
-  avgOnboardingTime: number;
-  topBrokerages: Array<{ name: string; count: number; percentage: number }>;
-  registrationTrend: Array<{ month: string; count: number }>;
-  statusBreakdown: Array<{ name: string; value: number; color: string }>;
-}
+  Clock,
+} from 'lucide-react';
 
 export const AgentAnalyticsDashboard = () => {
   const [metrics, setMetrics] = useState<AgentMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [] } = useQuery<AgentProfile[]>({
     queryKey: ['all-agents'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -53,7 +48,7 @@ export const AgentAnalyticsDashboard = () => {
         .select('*')
         .eq('role', 'agent')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -67,70 +62,80 @@ export const AgentAnalyticsDashboard = () => {
 
   const calculateMetrics = () => {
     const totalAgents = agents.length;
-    const activeAgents = agents.filter(a => a.invitation_status === 'completed').length;
-    const pendingAgents = agents.filter(a => a.invitation_status === 'pending').length;
+    const activeAgents = agents.filter((a) => a.invitation_status === 'completed').length;
+    const pendingAgents = agents.filter((a) => a.invitation_status === 'pending').length;
     const completionRate = totalAgents > 0 ? (activeAgents / totalAgents) * 100 : 0;
 
     // Calculate average onboarding time
-    const completedAgents = agents.filter(a => a.onboarding_completed_at && a.created_at);
-    const avgOnboardingTime = completedAgents.length > 0 
-      ? completedAgents.reduce((sum, agent) => {
-          const start = new Date(agent.created_at);
-          const end = new Date(agent.onboarding_completed_at);
-          return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-        }, 0) / completedAgents.length
-      : 0;
+    const completedAgents = agents.filter((a) => a.onboarding_completed_at && a.created_at);
+    const avgOnboardingTime =
+      completedAgents.length > 0
+        ? completedAgents.reduce((sum, agent) => {
+            const start = new Date(agent.created_at);
+            const end = new Date(agent.onboarding_completed_at);
+            return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+          }, 0) / completedAgents.length
+        : 0;
 
     // Top brokerages
-    const brokerageCount = agents.reduce((acc, agent) => {
-      if (agent.brokerage) {
-        acc[agent.brokerage] = (acc[agent.brokerage] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const brokerageCount = agents.reduce(
+      (acc, agent) => {
+        if (agent.brokerage) {
+          acc[agent.brokerage] = (acc[agent.brokerage] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const topBrokerages = Object.entries(brokerageCount)
-      .sort(([,a], [,b]) => b - a)
+    const topBrokerages: BrokerageMetrics[] = Object.entries(brokerageCount)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([name, count]) => ({
         name,
         count,
-        percentage: (count / totalAgents) * 100
+        percentage: (count / totalAgents) * 100,
       }));
 
     // Registration trend (last 12 months)
-    const registrationTrend = [];
+    const registrationTrend: RegistrationTrendData[] = [];
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      const count = agents.filter(agent => {
+      const count = agents.filter((agent) => {
         const agentDate = new Date(agent.created_at);
-        return agentDate.getMonth() === date.getMonth() && 
-               agentDate.getFullYear() === date.getFullYear();
+        return (
+          agentDate.getMonth() === date.getMonth() && agentDate.getFullYear() === date.getFullYear()
+        );
       }).length;
       registrationTrend.push({ month: monthName, count });
     }
 
     // Status breakdown
-    const statusCounts = agents.reduce((acc, agent) => {
-      const status = agent.invitation_status || 'pending';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusCounts = agents.reduce(
+      (acc, agent) => {
+        const status = agent.invitation_status || 'pending';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const statusColors = {
       completed: '#22c55e',
       sent: '#3b82f6',
       pending: '#f59e0b',
-      expired: '#ef4444'
+      expired: '#ef4444',
     };
 
-    const statusBreakdown = Object.entries(statusCounts).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      color: statusColors[name as keyof typeof statusColors] || '#6b7280'
-    }));
+    const statusBreakdown: AgentStatusData[] = Object.entries(statusCounts).map(
+      ([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+        color: statusColors[name as keyof typeof statusColors] || '#6b7280',
+      })
+    );
 
     setMetrics({
       totalAgents,
@@ -140,7 +145,7 @@ export const AgentAnalyticsDashboard = () => {
       avgOnboardingTime,
       topBrokerages,
       registrationTrend,
-      statusBreakdown
+      statusBreakdown,
     });
     setLoading(false);
   };
@@ -227,10 +232,10 @@ export const AgentAnalyticsDashboard = () => {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ fill: '#3b82f6' }}
                 />
@@ -284,7 +289,10 @@ export const AgentAnalyticsDashboard = () => {
             {metrics.topBrokerages.map((brokerage, index) => (
               <div key={brokerage.name} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center p-0">
+                  <Badge
+                    variant="outline"
+                    className="w-8 h-8 rounded-full flex items-center justify-center p-0"
+                  >
                     {index + 1}
                   </Badge>
                   <div>

@@ -1,20 +1,39 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Clock, 
+import {
+  AdvancedAnalyticsData,
+  AnalyticsKPICard,
+  ServiceTierDistribution,
+  MonthlyPerformanceData,
+  TransactionWithDetails,
+  TaskDetails,
+} from '@/types/dashboard';
+import {
+  BarChart3,
+  TrendingUp,
+  Clock,
   Target,
   DollarSign,
   Users,
-  Calendar,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
 interface AdvancedAnalyticsProps {
   agentId?: string;
@@ -24,9 +43,11 @@ const AdvancedAnalytics = ({ agentId }: AdvancedAnalyticsProps) => {
   const { data: analyticsData } = useQuery({
     queryKey: ['advanced-analytics', agentId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const targetAgentId = agentId || user?.id;
-      
+
       if (!targetAgentId) throw new Error('No agent ID available');
 
       // Get transactions data
@@ -37,42 +58,45 @@ const AdvancedAnalytics = ({ agentId }: AdvancedAnalyticsProps) => {
 
       // Get completion metrics
       const totalTransactions = transactions?.length || 0;
-      const activeTransactions = transactions?.filter(t => t.status === 'active').length || 0;
-      const closedTransactions = transactions?.filter(t => t.status === 'closed').length || 0;
-      
+      const activeTransactions = transactions?.filter((t) => t.status === 'active').length || 0;
+      const closedTransactions = transactions?.filter((t) => t.status === 'closed').length || 0;
+
       // Calculate completion rates
-      const completionRate = totalTransactions > 0 ? (closedTransactions / totalTransactions) * 100 : 0;
-      
+      const completionRate =
+        totalTransactions > 0 ? (closedTransactions / totalTransactions) * 100 : 0;
+
       // Calculate average closing time
-      const closedWithDates = transactions?.filter(t => t.status === 'closed' && t.closing_date) || [];
-      const avgClosingTime = closedWithDates.length > 0 
-        ? closedWithDates.reduce((acc, t) => {
-            const created = new Date(t.created_at);
-            const closed = new Date(t.closing_date!);
-            return acc + (closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
-          }, 0) / closedWithDates.length
-        : 0;
+      const closedWithDates =
+        transactions?.filter((t) => t.status === 'closed' && t.closing_date) || [];
+      const avgClosingTime =
+        closedWithDates.length > 0
+          ? closedWithDates.reduce((acc, t) => {
+              const created = new Date(t.created_at);
+              const closed = new Date(t.closing_date!);
+              return acc + (closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+            }, 0) / closedWithDates.length
+          : 0;
 
       // Task completion metrics
-      const allTasks = transactions?.flatMap(t => t.tasks || []) || [];
-      const completedTasks = allTasks.filter(t => t.is_completed).length;
+      const allTasks = transactions?.flatMap((t) => t.tasks || []) || [];
+      const completedTasks = allTasks.filter((t) => t.is_completed).length;
       const taskCompletionRate = allTasks.length > 0 ? (completedTasks / allTasks.length) * 100 : 0;
 
       // Monthly performance data (mock data for demo)
-      const monthlyData = [
+      const monthlyData: MonthlyPerformanceData[] = [
         { month: 'Jan', transactions: 3, revenue: 15000, completionRate: 85 },
         { month: 'Feb', transactions: 5, revenue: 25000, completionRate: 90 },
         { month: 'Mar', transactions: 4, revenue: 20000, completionRate: 95 },
         { month: 'Apr', transactions: 6, revenue: 30000, completionRate: 88 },
         { month: 'May', transactions: 7, revenue: 35000, completionRate: 92 },
-        { month: 'Jun', transactions: 5, revenue: 25000, completionRate: 94 }
+        { month: 'Jun', transactions: 5, revenue: 25000, completionRate: 94 },
       ];
 
       // Service tier distribution
-      const tierData = [
+      const tierData: ServiceTierDistribution[] = [
         { name: 'Core', value: 40, color: '#10B981' },
         { name: 'Elite', value: 35, color: '#3B82F6' },
-        { name: 'White Glove', value: 25, color: '#8B5CF6' }
+        { name: 'White Glove', value: 25, color: '#8B5CF6' },
       ];
 
       return {
@@ -84,7 +108,7 @@ const AdvancedAnalytics = ({ agentId }: AdvancedAnalyticsProps) => {
         taskCompletionRate: Math.round(taskCompletionRate),
         monthlyData,
         tierData,
-        totalRevenue: monthlyData.reduce((acc, m) => acc + m.revenue, 0)
+        totalRevenue: monthlyData.reduce((acc, m) => acc + m.revenue, 0),
       };
     },
   });
@@ -102,35 +126,35 @@ const AdvancedAnalytics = ({ agentId }: AdvancedAnalyticsProps) => {
     );
   }
 
-  const kpiCards = [
+  const kpiCards: AnalyticsKPICard[] = [
     {
       title: 'Total Transactions',
       value: analyticsData.totalTransactions,
       icon: BarChart3,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      bgColor: 'bg-blue-50',
     },
     {
       title: 'Completion Rate',
       value: `${analyticsData.completionRate}%`,
       icon: Target,
       color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      bgColor: 'bg-green-50',
     },
     {
       title: 'Avg Closing Time',
       value: `${analyticsData.avgClosingTime} days`,
       icon: Clock,
       color: 'text-amber-600',
-      bgColor: 'bg-amber-50'
+      bgColor: 'bg-amber-50',
     },
     {
       title: 'Total Revenue',
       value: `$${analyticsData.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    }
+      bgColor: 'bg-purple-50',
+    },
   ];
 
   return (
@@ -171,17 +195,17 @@ const AdvancedAnalytics = ({ agentId }: AdvancedAnalyticsProps) => {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="transactions" 
-                    stroke="#3B82F6" 
+                  <Line
+                    type="monotone"
+                    dataKey="transactions"
+                    stroke="#3B82F6"
                     strokeWidth={2}
                     name="Transactions"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="completionRate" 
-                    stroke="#10B981" 
+                  <Line
+                    type="monotone"
+                    dataKey="completionRate"
+                    stroke="#10B981"
                     strokeWidth={2}
                     name="Completion Rate %"
                   />

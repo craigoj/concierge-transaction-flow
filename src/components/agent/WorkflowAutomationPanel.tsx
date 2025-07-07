@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,16 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Workflow, 
-  Play, 
-  Pause, 
-  Settings, 
-  Clock, 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Workflow,
+  Play,
+  Pause,
+  Settings,
+  Clock,
   CheckCircle2,
   AlertTriangle,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -36,7 +41,7 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
         .from('automation_rules')
         .select('*')
         .eq('is_active', true);
-      
+
       if (error) throw error;
       return data;
     },
@@ -49,7 +54,7 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
         .from('workflow_templates')
         .select('*')
         .eq('is_active', true);
-      
+
       if (error) throw error;
       return data;
     },
@@ -63,7 +68,7 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
         .select('*')
         .eq('transaction_id', transactionId)
         .order('executed_at', { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -73,25 +78,25 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
     mutationFn: async (templateId: string) => {
       const { data, error } = await supabase.rpc('apply_workflow_template', {
         p_transaction_id: transactionId,
-        p_template_id: templateId
+        p_template_id: templateId,
       });
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       toast({
-        title: "Workflow Applied",
-        description: "The workflow template has been successfully applied to this transaction.",
+        title: 'Workflow Applied',
+        description: 'The workflow template has been successfully applied to this transaction.',
       });
       queryClient.invalidateQueries({ queryKey: ['workflow-executions', transactionId] });
       queryClient.invalidateQueries({ queryKey: ['tasks', transactionId] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to apply workflow template.",
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to apply workflow template.',
       });
     },
   });
@@ -102,14 +107,14 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
         .from('automation_rules')
         .update({ is_active: isActive })
         .eq('id', ruleId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['automation-rules', transactionId] });
       toast({
-        title: "Automation Updated",
-        description: "Automation rule has been updated successfully.",
+        title: 'Automation Updated',
+        description: 'Automation rule has been updated successfully.',
       });
     },
   });
@@ -129,10 +134,14 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'running': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-amber-100 text-amber-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'running':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-amber-100 text-amber-800';
     }
   };
 
@@ -173,7 +182,7 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
                 ))}
               </SelectContent>
             </Select>
-            <Button 
+            <Button
               onClick={() => selectedTemplate && applyTemplateMutation.mutate(selectedTemplate)}
               disabled={!selectedTemplate || applyTemplateMutation.isPending}
             >
@@ -221,7 +230,7 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={rule.is_active}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         toggleAutomationMutation.mutate({ ruleId: rule.id, isActive: checked })
                       }
                     />
@@ -255,16 +264,15 @@ const WorkflowAutomationPanel = ({ transactionId }: WorkflowAutomationPanelProps
           {executions && executions.length > 0 ? (
             <div className="space-y-3">
               {executions.slice(0, 5).map((execution) => (
-                <div key={execution.id} className="flex items-center gap-3 p-3 border border-brand-taupe/20 rounded-lg">
+                <div
+                  key={execution.id}
+                  className="flex items-center gap-3 p-3 border border-brand-taupe/20 rounded-lg"
+                >
                   {getStatusIcon(execution.status)}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-brand-charcoal">
-                        Workflow Execution
-                      </span>
-                      <Badge className={getStatusColor(execution.status)}>
-                        {execution.status}
-                      </Badge>
+                      <span className="font-medium text-brand-charcoal">Workflow Execution</span>
+                      <Badge className={getStatusColor(execution.status)}>{execution.status}</Badge>
                     </div>
                     <p className="text-sm text-brand-charcoal/60">
                       {new Date(execution.executed_at).toLocaleString()}
