@@ -12,31 +12,16 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface TemplateTask {
-  id?: string;
-  subject: string;
-  description_notes: string;
-  due_date_rule: {
-    type: 'days_from_event' | 'specific_date';
-    days?: number;
-    event?: 'ratified_date' | 'closing_date';
-    date?: string;
-  };
-  phase: string;
-  is_agent_visible: boolean;
-  email_template_id?: string;
-  sort_order: number;
-}
+import { WorkflowTemplate, TemplateTaskFormData, DueDateRule, EmailTemplate, TemplateError } from '@/types/templates';
 
 interface TemplateTaskEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  template: any;
+  template: WorkflowTemplate | null;
 }
 
 const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditorProps) => {
-  const [tasks, setTasks] = useState<TemplateTask[]>([]);
+  const [tasks, setTasks] = useState<TemplateTaskFormData[]>([]);
   const queryClient = useQueryClient();
 
   // Fetch email templates for dropdown
@@ -56,7 +41,7 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
   // Load existing tasks when template changes
   useEffect(() => {
     if (template?.template_tasks) {
-      setTasks(template.template_tasks.map((task: any) => ({
+      setTasks(template.template_tasks.map((task) => ({
         id: task.id,
         subject: task.subject,
         description_notes: task.description_notes || '',
@@ -72,7 +57,7 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
   }, [template]);
 
   const addTask = () => {
-    const newTask: TemplateTask = {
+    const newTask: TemplateTaskFormData = {
       subject: '',
       description_notes: '',
       due_date_rule: {
@@ -91,7 +76,7 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
     setTasks(tasks.filter((_, i) => i !== index));
   };
 
-  const updateTask = (index: number, updates: Partial<TemplateTask>) => {
+  const updateTask = (index: number, updates: Partial<TemplateTaskFormData>) => {
     setTasks(tasks.map((task, i) => i === index ? { ...task, ...updates } : task));
   };
 
@@ -129,7 +114,7 @@ const TemplateTaskEditor = ({ open, onOpenChange, template }: TemplateTaskEditor
       toast.success('Template tasks saved successfully');
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Error saving tasks:', error);
       toast.error('Failed to save template tasks');
     },

@@ -19,26 +19,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Search, Filter, X, Calendar as CalendarIcon, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
-
-interface SearchFilters {
-  searchTerm: string;
-  status: string;
-  brokerage: string;
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
-  experience: string;
-  location: string;
-}
+import { AgentSearchFilters } from "@/types/agent";
 
 interface AdvancedAgentSearchProps {
-  onFiltersChange: (filters: SearchFilters) => void;
+  onFiltersChange: (filters: AgentSearchFilters) => void;
   availableBrokerages: string[];
 }
 
 export const AdvancedAgentSearch = ({ onFiltersChange, availableBrokerages }: AdvancedAgentSearchProps) => {
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [filters, setFilters] = useState<AgentSearchFilters>({
     searchTerm: '',
     status: 'all',
     brokerage: 'all',
@@ -49,14 +38,14 @@ export const AdvancedAgentSearch = ({ onFiltersChange, availableBrokerages }: Ad
 
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const updateFilters = useCallback((newFilters: Partial<SearchFilters>) => {
+  const updateFilters = useCallback((newFilters: Partial<AgentSearchFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
     onFiltersChange(updatedFilters);
   }, [filters, onFiltersChange]);
 
   const clearFilters = () => {
-    const clearedFilters: SearchFilters = {
+    const clearedFilters: AgentSearchFilters = {
       searchTerm: '',
       status: 'all',
       brokerage: 'all',

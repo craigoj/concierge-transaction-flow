@@ -47,7 +47,7 @@ const ActionRequiredPanel = ({ pendingTasks }: ActionRequiredPanelProps) => {
         description: "Thank you! The task has been marked as complete.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",

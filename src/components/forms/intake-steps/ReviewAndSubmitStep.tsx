@@ -9,10 +9,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle2, Edit3, Send, Loader2 } from 'lucide-react';
 
+interface FormData {
+  vendors?: Record<string, unknown>;
+  branding?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 interface ReviewAndSubmitStepProps {
-  data: any;
+  data: FormData;
   onEdit: (step: number) => void;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: FormData) => Promise<void>;
   isLoading: boolean;
   isSubmitDisabled: boolean;
 }
@@ -58,7 +64,7 @@ const ReviewAndSubmitStep: React.FC<ReviewAndSubmitStepProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Display Data */}
-        {Object.entries(data).map(([key, value]: [string, any], index) => (
+        {Object.entries(data).map(([key, value]: [string, unknown], index) => (
           <div key={index} className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold capitalize">{key.replace(/_/g, ' ')}</h4>

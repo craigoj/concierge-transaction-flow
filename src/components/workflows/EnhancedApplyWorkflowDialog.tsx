@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Zap, Clock, CheckCircle, Workflow, Search, Calendar, Users, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { TemplateTask } from '@/types/templates';
 
 interface EnhancedApplyWorkflowDialogProps {
   open: boolean;
@@ -25,7 +26,7 @@ interface WorkflowTemplate {
   name: string;
   type: string;
   description: string;
-  template_tasks: any[];
+  template_tasks: TemplateTask[];
   is_active: boolean;
 }
 
@@ -34,7 +35,7 @@ interface TaskTemplate {
   name: string;
   category: string;
   description: string;
-  tasks: any[];
+  tasks: TemplateTask[];
   transaction_type: string;
   service_tier: string;
 }
@@ -141,7 +142,7 @@ const EnhancedApplyWorkflowDialog = ({
       onOpenChange(false);
       setSelectedTemplateId('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Error applying workflow template:', error);
       toast.error('Failed to apply workflow template');
     },
@@ -164,7 +165,7 @@ const EnhancedApplyWorkflowDialog = ({
       onOpenChange(false);
       setSelectedTemplateId('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Error applying task template:', error);
       toast.error('Failed to apply task template');
     },
@@ -237,7 +238,7 @@ const EnhancedApplyWorkflowDialog = ({
     }
   };
 
-  const formatDueDateRule = (rule: any) => {
+  const formatDueDateRule = (rule: { type?: string; days?: number; event?: string; date?: string } | null) => {
     if (!rule) return 'No due date';
     if (rule.type === 'days_from_event') {
       const days = rule.days || 0;
@@ -385,7 +386,14 @@ const EnhancedApplyWorkflowDialog = ({
                       <h4 className="font-medium">Task Timeline:</h4>
                       <ScrollArea className="h-[300px]">
                         <div className="space-y-2">
-                          {getTasks().map((task: any, index: number) => (
+                          {getTasks().map((task: { 
+                            subject?: string; 
+                            title?: string; 
+                            due_date_rule?: { type?: string; days?: number; event?: string; date?: string } | null;
+                            days_from_contract?: number;
+                            is_agent_visible?: boolean;
+                            email_template_id?: string;
+                          }, index: number) => (
                             <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
                               <span className="text-xs bg-gray-200 rounded px-2 py-1 min-w-[24px] text-center">
                                 {index + 1}

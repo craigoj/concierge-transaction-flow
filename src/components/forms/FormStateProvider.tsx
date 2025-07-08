@@ -1,12 +1,20 @@
 
 import React, { createContext, useContext, ReactNode, useState } from 'react';
+import { 
+  VendorData, 
+  BrandingData, 
+  OfferRequestData,
+  AgentConciergeFormData,
+  SafeError 
+} from '@/types/common';
 
 interface FormState {
   currentStep: number;
   validationErrors: Record<string, string>;
   isSubmitting: boolean;
-  vendorData: any[];
-  brandingData: any;
+  vendorData: VendorData[];
+  brandingData: BrandingData;
+  offerRequestData?: OfferRequestData;
 }
 
 interface FormStateContextType {
@@ -14,13 +22,13 @@ interface FormStateContextType {
   isLoading: boolean;
   networkError: string | null;
   updateState: (updates: Partial<FormState>) => void;
-  updateVendorData: (vendors: any[]) => void;
-  updateBrandingData: (branding: any) => void;
-  updateOfferRequest: (offer: any) => void;
+  updateVendorData: (vendors: VendorData[]) => void;
+  updateBrandingData: (branding: BrandingData) => void;
+  updateOfferRequest: (offer: OfferRequestData) => void;
   setCurrentStep: (step: number) => void;
   setValidationErrors: (errors: Record<string, string>) => void;
   setIsSubmitting: (submitting: boolean) => void;
-  forceSave: () => void;
+  forceSave: () => Promise<void>;
   resetState: () => void;
   resolveConflict: () => Promise<void>;
   retryConnection: () => Promise<void>;
@@ -40,7 +48,18 @@ export const FormStateProvider = ({ children }: FormStateProviderProps) => {
     validationErrors: {},
     isSubmitting: false,
     vendorData: [],
-    brandingData: {}
+    brandingData: {
+      reviewLink: '',
+      favoriteColor: undefined,
+      birthday: undefined,
+      drinksAlcohol: undefined,
+      drinksCoffee: undefined,
+      hasBrandedSign: undefined,
+      signNotes: undefined,
+      hasCanvaTemplate: undefined,
+      canvaTemplateUrl: undefined,
+      socialMediaPermission: undefined
+    }
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -53,56 +72,106 @@ export const FormStateProvider = ({ children }: FormStateProviderProps) => {
     setHasUnsavedChanges(true);
   };
 
-  const updateVendorData = (vendors: any[]) => {
+  const updateVendorData = (vendors: VendorData[]): void => {
     setState(prev => ({ ...prev, vendorData: vendors }));
     setHasUnsavedChanges(true);
   };
 
-  const updateBrandingData = (branding: any) => {
+  const updateBrandingData = (branding: BrandingData): void => {
     setState(prev => ({ ...prev, brandingData: branding }));
     setHasUnsavedChanges(true);
   };
 
-  const updateOfferRequest = (offer: any) => {
-    // Handle offer request updates
+  const updateOfferRequest = (offer: OfferRequestData): void => {
+    setState(prev => ({ ...prev, offerRequestData: offer }));
     setHasUnsavedChanges(true);
   };
 
-  const setCurrentStep = (step: number) => {
+  const setCurrentStep = (step: number): void => {
     setState(prev => ({ ...prev, currentStep: step }));
   };
 
-  const setValidationErrors = (errors: Record<string, string>) => {
+  const setValidationErrors = (errors: Record<string, string>): void => {
     setState(prev => ({ ...prev, validationErrors: errors }));
   };
 
-  const setIsSubmitting = (submitting: boolean) => {
+  const setIsSubmitting = (submitting: boolean): void => {
     setState(prev => ({ ...prev, isSubmitting: submitting }));
   };
 
-  const forceSave = () => {
-    // Implement force save logic
-    setHasUnsavedChanges(false);
+  const forceSave = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      // TODO: Implement actual save logic to backend
+      // This would typically involve calling an API to persist the form data
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
+      setHasUnsavedChanges(false);
+      setNetworkError(null);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to save form data';
+      setNetworkError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const resetState = () => {
+  const resetState = (): void => {
     setState({
       currentStep: 1,
       validationErrors: {},
       isSubmitting: false,
       vendorData: [],
-      brandingData: {}
+      brandingData: {
+        reviewLink: '',
+        favoriteColor: undefined,
+        birthday: undefined,
+        drinksAlcohol: undefined,
+        drinksCoffee: undefined,
+        hasBrandedSign: undefined,
+        signNotes: undefined,
+        hasCanvaTemplate: undefined,
+        canvaTemplateUrl: undefined,
+        socialMediaPermission: undefined
+      }
     });
     setHasUnsavedChanges(false);
-  };
-
-  const resolveConflict = async () => {
-    // Implement conflict resolution
-  };
-
-  const retryConnection = async () => {
-    // Implement connection retry
     setNetworkError(null);
+  };
+
+  const resolveConflict = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      // TODO: Implement conflict resolution logic
+      // This would typically involve merging conflicting data or showing a resolution UI
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulated resolution
+      setNetworkError(null);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to resolve conflict';
+      setNetworkError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const retryConnection = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      // TODO: Implement connection retry logic
+      // This would typically involve re-establishing network connection or retrying failed requests
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated retry
+      setNetworkError(null);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Connection retry failed';
+      setNetworkError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const contextValue: FormStateContextType = {

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ServiceTierType } from '@/types/serviceTiers';
 import { getFeaturesByTier, getTierPricing, calculateTotalCost } from '@/data/serviceTierConfig';
+import { logger } from '@/lib/logger';
 
 // Define the interface for the raw Supabase response
 interface RawTransactionServiceDetails {
@@ -28,6 +29,78 @@ interface TransactionServiceDetails {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * Trigger automation workflows based on service tier changes
+ */
+const triggerServiceTierAutomation = async (
+  transactionId: string, 
+  serviceTier: ServiceTierType
+): Promise<void> => {
+  try {
+    logger.info('Triggering service tier automation workflows', {
+      transactionId,
+      serviceTier,
+      timestamp: new Date().toISOString()
+    }, 'service-tier-automation');
+
+    // Call the automation scheduler edge function
+    const { data, error } = await supabase.functions.invoke('automation-scheduler', {
+      body: {
+        trigger_event: 'service_tier_updated',
+        transaction_id: transactionId,
+        trigger_data: {
+          service_tier: serviceTier,
+          triggered_at: new Date().toISOString()
+        }
+      }
+    });
+
+    if (error) {
+      logger.error('Failed to trigger service tier automation', error, {
+        transactionId,
+        serviceTier
+      }, 'service-tier-automation');
+      throw error;
+    }
+
+    logger.info('Service tier automation triggered successfully', {
+      transactionId,
+      serviceTier,
+      automationData: data
+    }, 'service-tier-automation');
+
+    // Also check for existing automation rules that should be triggered
+    const { data: automationRules, error: rulesError } = await supabase
+      .from('automation_rules')
+      .select('*')
+      .eq('trigger_event', 'service_tier_updated')
+      .eq('is_active', true);
+
+    if (rulesError) {
+      logger.warn('Failed to fetch automation rules for service tier update', rulesError, {
+        transactionId,
+        serviceTier
+      }, 'service-tier-automation');
+    } else if (automationRules && automationRules.length > 0) {
+      logger.info('Found matching automation rules for service tier update', {
+        transactionId,
+        serviceTier,
+        rulesCount: automationRules.length,
+        rules: automationRules.map(rule => ({ id: rule.id, name: rule.name }))
+      }, 'service-tier-automation');
+    }
+
+  } catch (error) {
+    logger.error('Error in service tier automation workflow', error as Error, {
+      transactionId,
+      serviceTier
+    }, 'service-tier-automation');
+    
+    // Don't throw the error here to avoid breaking the main service tier update
+    // Just log it for monitoring purposes
+  }
+};
 
 export const useServiceTierSelection = (transactionId: string) => {
   const queryClient = useQueryClient();
@@ -106,8 +179,8 @@ export const useServiceTierSelection = (transactionId: string) => {
         description: "Transaction service tier has been successfully updated.",
       });
 
-      // TODO: Trigger automation workflows based on service tier
-      // This could be implemented as a separate function or webhook
+      // Trigger automation workflows based on service tier change
+      triggerServiceTierAutomation(transactionId, data.transaction.service_tier);
     },
     onError: (error: any) => {
       toast({

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { CreateTemplateFormData, TemplateError } from '@/types/templates';
 
 interface CreateWorkflowTemplateDialogProps {
   open: boolean;
@@ -16,9 +17,9 @@ interface CreateWorkflowTemplateDialogProps {
 }
 
 const CreateWorkflowTemplateDialog = ({ open, onOpenChange }: CreateWorkflowTemplateDialogProps) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateTemplateFormData>({
     name: '',
-    type: '',
+    type: 'Listing',
     description: '',
   });
   const queryClient = useQueryClient();
@@ -46,9 +47,9 @@ const CreateWorkflowTemplateDialog = ({ open, onOpenChange }: CreateWorkflowTemp
       queryClient.invalidateQueries({ queryKey: ['workflow-templates'] });
       toast.success('Template created successfully');
       onOpenChange(false);
-      setFormData({ name: '', type: '', description: '' });
+      setFormData({ name: '', type: 'Listing', description: '' });
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Error creating template:', error);
       toast.error('Failed to create template');
     },

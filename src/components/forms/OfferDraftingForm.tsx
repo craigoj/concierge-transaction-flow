@@ -94,7 +94,11 @@ const steps = [
   { id: 6, title: 'Review & Submit', component: ReviewAndSubmitStep },
 ];
 
-export const OfferDraftingForm = () => {
+interface OfferDraftingFormProps {
+  transactionId: string;
+}
+
+export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactionId }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<OfferFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -155,8 +159,12 @@ export const OfferDraftingForm = () => {
     setLoading(true);
     try {
       const offerData = {
+        transaction_id: transactionId,
         agent_id: user.id,
         property_address: formData.property_address,
+        property_city: 'Test City',
+        property_state: 'TS',
+        property_zip: '12345',
         buyer_names: formData.buyer_names,
         purchase_price: parseFloat(formData.offer_price || formData.purchase_price) || 0,
         emd_amount: parseFloat(formData.earnest_money_amount || formData.emd_amount) || 0,
@@ -168,6 +176,10 @@ export const OfferDraftingForm = () => {
         closing_cost_assistance: formData.closing_cost_assistance || null,
         buyer_contacts: { phones: [], emails: [] },
         extras: formData.personal_property_included || null,
+        financing_contingency_days: formData.financing_contingency ? 30 : 0,
+        inspection_contingency_days: parseInt(formData.inspection_period_days) || 0,
+        appraisal_contingency_days: formData.appraisal_contingency ? 30 : 0,
+        settlement_date_contingency_days: 0,
         status: 'pending'
       };
 
@@ -185,11 +197,11 @@ export const OfferDraftingForm = () => {
       localStorage.removeItem('offerDraftFormData');
       setFormData(initialFormData);
       setCurrentStep(1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
       setLoading(false);

@@ -10,6 +10,7 @@ import AppHeader from '@/components/AppHeader';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -87,7 +88,7 @@ const Profile = () => {
       setIsEditing(false);
     },
     onError: (error) => {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile', error as Error, { userId: 'current_user' }, 'profile');
       toast.error('Failed to update profile');
     }
   });

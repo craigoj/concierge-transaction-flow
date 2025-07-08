@@ -120,8 +120,9 @@ describe('Secure File Validation', () => {
   });
 
   it('should enforce file size limits', () => {
-    const largeContent = new Array(12 * 1024 * 1024).fill('a').join(''); // 12MB
-    const largeFile = new File([largeContent], 'large.pdf', { type: 'application/pdf' });
+    // Create a more efficient large file simulation by creating a buffer
+    const largeBuffer = new ArrayBuffer(12 * 1024 * 1024); // 12MB
+    const largeFile = new File([largeBuffer], 'large.pdf', { type: 'application/pdf' });
     const result = secureFileValidation.validateFile(largeFile);
     
     expect(result.isValid).toBe(false);

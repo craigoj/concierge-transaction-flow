@@ -88,11 +88,14 @@ describe('Input Sanitization', () => {
 
 describe('Cross-field Validation', () => {
   it('should validate offer request with reasonable EMD', () => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
+    
     const validOffer = {
       purchase_price: 300000,
       emd_amount: 15000, // 5% - reasonable
       exchange_fee: 500,
-      projected_closing_date: new Date('2024-12-01'),
+      projected_closing_date: futureDate,
       loan_type: 'conventional',
       buyer_contacts: {
         emails: ['buyer@example.com'],

@@ -13,16 +13,8 @@ import CreateWorkflowTemplateDialog from './CreateWorkflowTemplateDialog';
 import TemplateTaskEditor from './TemplateTaskEditor';
 import XMLTemplateImportDialog from './XMLTemplateImportDialog';
 import ImportHistoryDialog from './ImportHistoryDialog';
+import { WorkflowTemplate, TemplateSortOption, TemplateFilterStatus, TemplateFilterSource, TemplateError } from '@/types/templates';
 
-interface WorkflowTemplate {
-  id: string;
-  name: string;
-  type: 'Listing' | 'Buyer' | 'General';
-  description?: string;
-  is_active: boolean;
-  created_at: string;
-  template_tasks: any[];
-}
 
 const WorkflowTemplateManager = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
@@ -31,9 +23,9 @@ const WorkflowTemplateManager = () => {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'task_count'>('name');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filterSource, setFilterSource] = useState<'all' | 'imported' | 'manual'>('all');
+  const [sortBy, setSortBy] = useState<TemplateSortOption>('name');
+  const [filterStatus, setFilterStatus] = useState<TemplateFilterStatus>('all');
+  const [filterSource, setFilterSource] = useState<TemplateFilterSource>('all');
   const queryClient = useQueryClient();
 
   // Fetch workflow templates
@@ -66,7 +58,7 @@ const WorkflowTemplateManager = () => {
       queryClient.invalidateQueries({ queryKey: ['workflow-templates'] });
       toast.success('Template deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Error deleting template:', error);
       toast.error('Failed to delete template');
     },
@@ -85,7 +77,7 @@ const WorkflowTemplateManager = () => {
       queryClient.invalidateQueries({ queryKey: ['workflow-templates'] });
       toast.success('Template status updated');
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Error updating template:', error);
       toast.error('Failed to update template');
     },
@@ -95,7 +87,7 @@ const WorkflowTemplateManager = () => {
   const filteredAndSortedTemplates = React.useMemo(() => {
     if (!templates) return [];
 
-    let filtered = templates.filter(template => {
+    const filtered = templates.filter(template => {
       const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            template.description?.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -199,7 +191,7 @@ const WorkflowTemplateManager = () => {
               />
             </div>
             
-            <Select value={sortBy} onValueChange={(value: 'name' | 'created_at' | 'task_count') => setSortBy(value)}>
+            <Select value={sortBy} onValueChange={(value: TemplateSortOption) => setSortBy(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -210,7 +202,7 @@ const WorkflowTemplateManager = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: TemplateFilterStatus) => setFilterStatus(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -221,7 +213,7 @@ const WorkflowTemplateManager = () => {
               </SelectContent>
             </Select>
 
-            <Select value={filterSource} onValueChange={(value: 'all' | 'imported' | 'manual') => setFilterSource(value)}>
+            <Select value={filterSource} onValueChange={(value: TemplateFilterSource) => setFilterSource(value)}>
               <SelectTrigger className="w-36">
                 <SelectValue />
               </SelectTrigger>

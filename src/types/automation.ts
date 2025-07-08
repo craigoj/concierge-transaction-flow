@@ -55,7 +55,7 @@ export interface WorkflowExecution {
   completed_at?: string;
   error_message?: string;
   retry_count: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'retrying';
@@ -92,10 +92,93 @@ export interface ActionConfig {
   reminder_message?: string;
 }
 
+// Database transaction type
+export interface Transaction {
+  id: string;
+  agent_id: string;
+  property_address: string;
+  status: string;
+  transaction_type: string;
+  service_tier?: string;
+  closing_date?: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+// Database task type
+export interface Task {
+  id: string;
+  transaction_id: string;
+  subject: string;
+  description?: string;
+  status: string;
+  priority?: string;
+  task_type?: string;
+  due_date?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+// Database document type
+export interface Document {
+  id: string;
+  transaction_id: string;
+  filename: string;
+  document_type?: string;
+  file_size?: number;
+  content_type?: string;
+  upload_path: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+// Trigger data specific interfaces
+export interface StatusChangeTriggerData {
+  old_status: string;
+  new_status: string;
+  trigger_type: 'status_change';
+  [key: string]: unknown;
+}
+
+export interface TaskCompletionTriggerData {
+  task: Task;
+  trigger_type: 'task_completed';
+  [key: string]: unknown;
+}
+
+export interface DocumentUploadTriggerData {
+  document: Document;
+  trigger_type: 'document_uploaded';
+  [key: string]: unknown;
+}
+
+export interface DateOffsetTriggerData {
+  reference_date: string;
+  trigger_type: 'contract_date_offset' | 'closing_date_offset';
+  [key: string]: unknown;
+}
+
+export interface TimeBasedTriggerData {
+  current_time: string;
+  trigger_type: 'time_based';
+  [key: string]: unknown;
+}
+
+export type TriggerDataUnion = 
+  | StatusChangeTriggerData
+  | TaskCompletionTriggerData 
+  | DocumentUploadTriggerData
+  | DateOffsetTriggerData
+  | TimeBasedTriggerData;
+
 export interface TriggerContext {
   transaction_id: string;
-  transaction: any;
-  trigger_data: Record<string, any>;
+  transaction: Transaction;
+  trigger_data: TriggerDataUnion;
   user_id?: string;
 }
 
@@ -104,7 +187,7 @@ export interface AutomationAuditLog {
   execution_id: string;
   action: string;
   status: 'success' | 'failed';
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   error_message?: string;
   created_at: string;
 }

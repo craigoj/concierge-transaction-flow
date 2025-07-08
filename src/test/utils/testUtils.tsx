@@ -69,3 +69,6 @@ export const mockOfferRequest = {
 // Export all testing library functions
 export * from '@testing-library/react';
 export { screen, fireEvent, waitFor };
+
+// Override the default render with our custom one
+export { customRender as render };

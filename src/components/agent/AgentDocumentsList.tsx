@@ -74,16 +74,8 @@ const AgentDocumentsList = ({ transactionId }: AgentDocumentsListProps) => {
     );
   }
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  const getFileIcon = () => {
     return <FileText className="h-8 w-8 text-brand-taupe" />;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (!bytes) return 'Unknown size';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (
@@ -98,7 +90,7 @@ const AgentDocumentsList = ({ transactionId }: AgentDocumentsListProps) => {
         {documents.map((document) => (
           <div key={document.id} className="flex items-center gap-4 p-4 border border-brand-taupe/20 rounded-lg hover:shadow-md transition-shadow bg-white">
             <div className="flex-shrink-0">
-              {getFileIcon(document.file_name)}
+              {getFileIcon()}
             </div>
             
             <div className="flex-1 min-w-0">

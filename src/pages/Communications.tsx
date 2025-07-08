@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { CommunicationHistory } from '@/components/communications/CommunicationHistory';
 import { MessageSquare, Send, Mail, Phone, Calendar, Plus, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { logger } from '@/lib/logger';
 
 const Communications = () => {
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -97,7 +98,7 @@ const Communications = () => {
       setShowCreateForm(false);
     },
     onError: (error) => {
-      console.error('Error creating communication:', error);
+      logger.error('Error creating communication', error as Error, { communication: newCommunication }, 'communications');
       toast.error('Failed to log communication');
     }
   });
@@ -113,32 +114,7 @@ const Communications = () => {
     createCommunicationMutation.mutate(newCommunication);
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'email': return <Mail className="h-4 w-4" />;
-      case 'phone': return <Phone className="h-4 w-4" />;
-      case 'text': return <MessageSquare className="h-4 w-4" />;
-      case 'meeting': return <Calendar className="h-4 w-4" />;
-      default: return <MessageSquare className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'email': return 'bg-blue-100 text-blue-800';
-      case 'phone': return 'bg-green-100 text-green-800';
-      case 'text': return 'bg-purple-100 text-purple-800';
-      case 'meeting': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPersonName = (person: { first_name?: string; last_name?: string } | null) => {
-    if (!person) return 'Unknown';
-    const firstName = person.first_name || '';
-    const lastName = person.last_name || '';
-    return `${firstName} ${lastName}`.trim() || 'Unknown';
-  };
+  
 
   if (isLoading) {
     return (
@@ -327,75 +303,18 @@ const Communications = () => {
       )}
 
       {/* Communications List */}
-      <div className="space-y-6">
-        {communications?.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-brand-taupe/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                <MessageSquare className="h-12 w-12 text-brand-taupe" />
-              </div>
-              <h3 className="text-2xl font-brand-heading tracking-brand-wide text-brand-charcoal uppercase mb-4">
-                No Communications Yet
-              </h3>
-              <p className="text-lg font-brand-body text-brand-charcoal/60 mb-8">
-                Start logging your client communications to maintain professional excellence
-              </p>
-              <Button 
-                onClick={() => setShowCreateForm(true)}
-                className="bg-brand-charcoal hover:bg-brand-taupe-dark text-brand-background font-brand-heading tracking-wide px-8 py-3 rounded-xl"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                LOG FIRST COMMUNICATION
-              </Button>
-              <div className="w-16 h-px bg-brand-taupe mx-auto mt-8"></div>
-            </div>
-          </div>
-        ) : (
-          communications?.map((comm) => (
-            <Card key={comm.id} className="hover:shadow-brand-elevation transition-all duration-300">
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <Badge className={`${getTypeColor(comm.type)} flex items-center gap-2 font-brand-heading tracking-wide px-3 py-1`}>
-                        {getTypeIcon(comm.type)}
-                        {comm.type.toUpperCase()}
-                      </Badge>
-                      <span className="text-sm font-brand-body text-brand-charcoal/60">
-                        {new Date(comm.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                    
-                    {comm.subject && (
-                      <h3 className="font-brand-heading font-semibold text-xl mb-3 text-brand-charcoal tracking-wide">
-                        {comm.subject}
-                      </h3>
-                    )}
-                    
-                    <div className="flex items-center gap-6 text-sm font-brand-body text-brand-charcoal/70 mb-4">
-                      <span>
-                        <strong>From:</strong> {getPersonName(comm.sender)}
-                      </span>
-                      <span>
-                        <strong>To:</strong> {getPersonName(comm.recipient)}
-                      </span>
-                      {comm.transactions && (
-                        <span>
-                          <strong>Re:</strong> {comm.transactions.property_address}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p className="text-brand-charcoal font-brand-body whitespace-pre-wrap leading-relaxed">
-                      {comm.content}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      <CommunicationHistory 
+        title="All Communications"
+        query={supabase
+          .from('communications')
+          .select(`
+            *,
+            sender:profiles!communications_sender_id_fkey(first_name, last_name),
+            recipient:profiles!communications_recipient_id_fkey(first_name, last_name),
+            transactions(property_address, status)
+          `)
+          .order('created_at', { ascending: false })}
+      />
     </div>
   );
 };

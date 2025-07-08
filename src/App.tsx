@@ -12,6 +12,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 import { performanceMonitor } from '@/lib/performance-monitoring';
+import { Sentry } from '@/lib/sentry';
 
 // Import all page components
 import Dashboard from '@/pages/Index';
@@ -57,7 +58,7 @@ function App() {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <Sentry.ErrorBoundary fallback={ErrorBoundary} showDialog>
       <Router>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
@@ -270,7 +271,7 @@ function App() {
         <Analytics />
         <SpeedInsights />
       </Router>
-    </ErrorBoundary>
+    </Sentry.ErrorBoundary>
   );
 }
 

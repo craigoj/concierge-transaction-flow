@@ -1,30 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@/test/test-utils'
-import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 
-// Create a simple navigation test component
-const NavigationTestApp = ({ initialRoute = '/' }) => {
-  return (
-    <MemoryRouter initialEntries={[initialRoute]}>
-      <div>
-        <nav>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/transactions">Transactions</a>
-          <a href="/clients">Clients</a>
-          <a href="/agents">Agents</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/settings">Settings</a>
-        </nav>
-        <main id="main-content">
-          <div>Current route content</div>
-        </main>
-      </div>
-    </MemoryRouter>
-  )
-}
+// Navigation test component removed as it's not used in tests
 
 // Mock navigation hooks
 const mockNavigate = vi.fn()

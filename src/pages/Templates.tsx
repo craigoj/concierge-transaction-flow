@@ -14,6 +14,7 @@ import { Plus, Edit, Trash2, Eye, Copy, Mail, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import TaskTemplateManager from '@/components/workflows/TaskTemplateManager';
+import { logger } from '@/lib/logger';
 
 interface Template {
   id: string;
@@ -67,7 +68,7 @@ const Templates = () => {
       toast.success('Template deleted successfully');
     },
     onError: (error) => {
-      console.error('Error deleting template:', error);
+      logger.error('Error deleting template', error as Error, { templateId: undefined }, 'templates');
       toast.error('Failed to delete template');
     }
   });
@@ -431,7 +432,7 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onSuccess }) => {
       onSuccess();
     },
     onError: (error) => {
-      console.error('Error saving template:', error);
+      logger.error('Error saving template', error as Error, { templateId: undefined }, 'templates');
       toast.error('Failed to save template');
     }
   });

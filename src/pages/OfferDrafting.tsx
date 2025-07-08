@@ -23,7 +23,7 @@ const OfferDrafting = () => {
           <div className="w-24 h-px bg-brand-taupe mt-6"></div>
         </div>
 
-        <OfferDraftingForm />
+        <OfferDraftingForm transactionId="d1e7b4a0-1b1e-4b1e-8b1e-1b1e1b1e1b1e" />
       </div>
     </div>
   );

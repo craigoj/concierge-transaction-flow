@@ -2,78 +2,108 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  SafeError, 
+  SupabaseResponse, 
+  isSupabaseError, 
+  hasErrorMessage 
+} from '@/types/common';
 
-interface FormStateOptions {
+interface FormStateOptions<T = Record<string, unknown>> {
   tableName: string;
   recordId?: string;
-  initialData?: Record<string, any>;
+  initialData?: T;
   userId?: string;
   debounceTime?: number;
-  onChange?: (data: Record<string, any>) => void;
+  onChange?: (data: T) => void;
 }
 
-export const useFormState = (options: FormStateOptions) => {
+interface FormStateResult<T = Record<string, unknown>> {
+  data: T;
+  loading: boolean;
+  error: SafeError | null;
+  updateField: <K extends keyof T>(field: K, value: T[K]) => void;
+  setData: (data: T) => void;
+  saveData: () => Promise<void>;
+  fetchData: () => Promise<void>;
+}
+
+export const useFormState = <T = Record<string, unknown>>(
+  options: FormStateOptions<T>
+): FormStateResult<T> => {
   const { tableName, recordId, initialData, userId: controlledUserId, debounceTime = 500, onChange } = options;
   const { user } = useAuth();
   const userId = controlledUserId || user?.id;
-  const [data, setData] = useState<Record<string, any>>(initialData || {});
+  const [data, setData] = useState<T>(initialData || ({} as T));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<SafeError | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!tableName || !recordId || !userId) return;
+  const fetchData = useCallback(async (): Promise<void> => {
+    if (!tableName || !recordId || !userId) {
+      return;
+    }
 
     setLoading(true);
     try {
       const { data: fetchedData, error: fetchError } = await supabase
-        .from(tableName as any)
+        .from(tableName)
         .select('*')
         .eq('id', recordId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        throw fetchError;
+      }
 
-      setData(fetchedData || {});
+      setData((fetchedData as T) || ({} as T));
       setError(null);
-    } catch (e: any) {
-      setError(e);
+    } catch (e: unknown) {
+      const safeError = e as SafeError;
+      setError(safeError);
     } finally {
       setLoading(false);
     }
   }, [tableName, recordId, userId]);
 
-  const saveData = useCallback(async () => {
-    if (!tableName || !userId) return;
+  const saveData = useCallback(async (): Promise<void> => {
+    if (!tableName || !userId) {
+      return;
+    }
 
     setLoading(true);
     try {
-      let result;
+      let result: T;
 
       if (recordId) {
         const { data: updateResult, error: updateError } = await supabase
-          .from(tableName as any)
-          .update(data)
+          .from(tableName)
+          .update(data as Record<string, unknown>)
           .eq('id', recordId)
           .select()
           .single();
         
-        if (updateError) throw updateError;
-        result = updateResult;
+        if (updateError) {
+          throw updateError;
+        }
+        result = updateResult as T;
       } else {
         const { data: insertResult, error: insertError } = await supabase
-          .from(tableName as any)
-          .insert(data)
+          .from(tableName)
+          .insert(data as Record<string, unknown>)
           .select()
           .single();
         
-        if (insertError) throw insertError;
-        result = insertResult;
+        if (insertError) {
+          throw insertError;
+        }
+        result = insertResult as T;
       }
 
-      setData(result || {});
+      setData(result || ({} as T));
       setError(null);
-    } catch (e: any) {
-      setError(e);
+    } catch (e: unknown) {
+      const safeError = e as SafeError;
+      setError(safeError);
     } finally {
       setLoading(false);
     }
@@ -100,8 +130,12 @@ export const useFormState = (options: FormStateOptions) => {
     }
   }, [recordId, fetchData, initialData]);
 
-  const updateField = useCallback((field: string, value: any) => {
+  const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]): void => {
     setData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const setDataHandler = useCallback((newData: T): void => {
+    setData(newData);
   }, []);
 
   return {
@@ -109,7 +143,8 @@ export const useFormState = (options: FormStateOptions) => {
     loading,
     error,
     updateField,
-    setData,
+    setData: setDataHandler,
     saveData,
+    fetchData,
   };
 };

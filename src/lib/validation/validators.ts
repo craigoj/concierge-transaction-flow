@@ -2,34 +2,19 @@
 import { z } from 'zod';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
+import { SecurityUtils, secureTextSchema, secureEmailSchema, securePhoneSchema, secureUrlSchema } from '../security-utils';
+import { logger } from '../logger';
 
-// Enhanced validation schemas
-export const emailSchema = z.string()
-  .email('Invalid email format')
-  .min(5, 'Email must be at least 5 characters')
-  .max(254, 'Email must be less than 254 characters')
-  .refine((email) => {
-    // Additional email validation
-    const parts = email.split('@');
-    return parts.length === 2 && parts[1].includes('.');
-  }, 'Invalid email domain');
+// Enhanced validation schemas with security
+export const emailSchema = secureEmailSchema.refine((email) => {
+  // Additional email validation
+  const parts = email.split('@');
+  return parts.length === 2 && parts[1].includes('.');
+}, 'Invalid email domain');
 
-export const phoneSchema = z.string()
-  .regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone format')
-  .min(10, 'Phone number must be at least 10 digits')
-  .max(20, 'Phone number must be less than 20 characters')
-  .transform((phone) => phone.replace(/[^\d+]/g, ''));
+export const phoneSchema = securePhoneSchema;
 
-export const urlSchema = z.string()
-  .url('Invalid URL format')
-  .refine((url) => {
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
-  }, 'URL must use HTTP or HTTPS protocol');
+export const urlSchema = secureUrlSchema;
 
 export const currencySchema = z.number()
   .positive('Amount must be positive')
@@ -51,19 +36,13 @@ export const businessHoursSchema = z.object({
   return hour >= 9 && hour <= 17; // Business hours 9 AM - 5 PM
 }, 'Date must be during business hours (9 AM - 5 PM, weekdays only)');
 
-// Input sanitization utilities
+// Input sanitization utilities (enhanced with security)
 export const sanitizeInput = (input: string): string => {
-  return DOMPurify.sanitize(input, { 
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
-  });
+  return SecurityUtils.sanitizeInput(input);
 };
 
 export const sanitizeHtml = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u'],
-    ALLOWED_ATTR: []
-  });
+  return SecurityUtils.sanitizeInput(html, { allowHtml: true });
 };
 
 // Cross-field validation schemas
@@ -93,21 +72,18 @@ export const offerRequestCrossValidation = z.object({
   path: ['projected_closing_date']
 });
 
-// Vendor validation schema
+// Vendor validation schema (enhanced with security)
 export const vendorValidationSchema = z.object({
-  company_name: z.string()
+  company_name: secureTextSchema
     .min(2, 'Company name must be at least 2 characters')
-    .max(100, 'Company name must be less than 100 characters')
-    .transform(sanitizeInput),
-  contact_name: z.string()
+    .max(100, 'Company name must be less than 100 characters'),
+  contact_name: secureTextSchema
     .max(50, 'Contact name must be less than 50 characters')
-    .transform(sanitizeInput)
     .optional(),
   email: emailSchema.optional(),
   phone: phoneSchema.optional(),
-  address: z.string()
+  address: secureTextSchema
     .max(200, 'Address must be less than 200 characters')
-    .transform(sanitizeInput)
     .optional(),
   notes: z.string()
     .max(500, 'Notes must be less than 500 characters')
@@ -151,13 +127,13 @@ export const createUniqueValidation = (table: string, field: string) => {
         .limit(1);
 
       if (error) {
-        console.error('Unique validation error:', error);
+        logger.error('Unique validation error', { error, table, field, value: SecurityUtils.hashForLogging(String(value)) });
         return null; // Don't fail validation due to server errors
       }
 
       return data && data.length > 0 ? `This ${field} is already in use` : null;
     } catch (error) {
-      console.error('Unique validation error:', error);
+      logger.error('Unique validation error', { error, table, field, value: SecurityUtils.hashForLogging(String(value)) });
       return null;
     }
   };
@@ -171,7 +147,7 @@ export const createBusinessRuleValidation = (
     try {
       return rule(value, context) ? null : errorMessage;
     } catch (error) {
-      console.error('Business rule validation error:', error);
+      logger.error('Business rule validation error', { error, errorMessage, value: SecurityUtils.hashForLogging(String(value)) });
       return null;
     }
   };

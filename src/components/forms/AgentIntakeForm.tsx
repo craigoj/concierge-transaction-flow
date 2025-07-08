@@ -26,7 +26,7 @@ const AgentIntakeForm = ({ onComplete }: AgentIntakeFormProps) => {
     { number: 3, title: 'Review & Submit', description: 'Review and complete setup' }
   ];
 
-  const handleStepComplete = (stepNumber: number, data: any) => {
+  const handleStepComplete = (stepNumber: number, data: Record<string, unknown>) => {
     if (stepNumber === 1) {
       setFormData(prev => ({ ...prev, vendors: data }));
     } else if (stepNumber === 2) {

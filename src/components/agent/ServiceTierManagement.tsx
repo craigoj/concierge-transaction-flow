@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ServiceTierType } from '@/types/serviceTiers';
+import { ServiceTierType, ServiceTierMetrics } from '@/types/agent';
 
 interface ServiceTierManagementProps {
   transactionId: string;
@@ -47,7 +47,7 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
 
   const { data: tierMetrics } = useQuery({
     queryKey: ['tier-metrics', transaction?.service_tier],
-    queryFn: async () => {
+    queryFn: async (): Promise<ServiceTierMetrics | null> => {
       if (!transaction?.service_tier) return null;
       
       // Mock data - in real app, this would come from analytics
@@ -55,7 +55,7 @@ const ServiceTierManagement = ({ transactionId }: ServiceTierManagementProps) =>
         completionRate: 95,
         avgClosingTime: 28,
         clientSatisfaction: 4.8,
-        upgradeRecommendation: transaction.service_tier === 'buyer_core' ? 'buyer_elite' as ServiceTierType : null
+        upgradeRecommendation: transaction.service_tier === 'buyer_core' ? 'buyer_elite' as ServiceTierType : undefined
       };
     },
     enabled: !!transaction?.service_tier

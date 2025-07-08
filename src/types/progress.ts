@@ -13,8 +13,8 @@ export type TransactionPhase = {
   service_tier?: string | null;
   description?: string | null;
   expected_duration_days?: number | null;
-  required_milestones?: any;
-  automation_triggers?: any;
+  required_milestones?: Record<string, unknown>;
+  automation_triggers?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };
@@ -27,7 +27,7 @@ export type TransactionPhaseProgress = {
   started_at?: string | null;
   completed_at?: string | null;
   expected_completion?: string | null;
-  milestones_completed?: any;
+  milestones_completed?: Record<string, unknown>;
   notes?: string | null;
   created_at: string;
   updated_at: string;
@@ -39,10 +39,10 @@ export type AgentPerformanceMetrics = {
   agent_id: string;
   metric_date: string;
   transactions_active: number;
-  avg_phase_duration?: any;
-  completion_rate_by_phase?: any;
-  bottleneck_phases?: any;
-  service_tier_performance?: any;
+  avg_phase_duration?: Record<string, number>;
+  completion_rate_by_phase?: Record<string, number>;
+  bottleneck_phases?: string[];
+  service_tier_performance?: Record<string, Record<string, number>>;
   calculated_at: string;
 };
 

@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "env": {
+    "NODE_ENV": "staging",
+    "VITE_SUPABASE_URL": "@vite-supabase-url-staging",
+    "VITE_SUPABASE_ANON_KEY": "@vite-supabase-anon-key-staging",
+    "VITE_APP_NAME": "Concierge Transaction Flow (Staging)",
+    "VITE_APP_VERSION": "staging",
+    "VITE_APP_URL": "@vite-app-url-staging",
+    "VITE_ENABLE_ANALYTICS": "true",
+    "VITE_ENABLE_DEBUG": "true",
+    "VITE_ENABLE_SENTRY": "true",
+    "VITE_SENTRY_DSN": "@vite-sentry-dsn-staging",
+    "VITE_ENCRYPTION_KEY": "@vite-encryption-key-staging",
+    "RESEND_API_KEY": "@resend-api-key-staging",
+    "ENCRYPTION_KEY": "@encryption-key-staging",
+    "JWT_SECRET": "@jwt-secret-staging"
+  },
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

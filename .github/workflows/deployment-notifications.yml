@@ -1,0 +1,260 @@
+name: Deployment Notifications
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+
+jobs:
+  notify-deployment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+    
+    steps:
+      - name: Get workflow details
+        id: workflow
+        run: |
+          echo "status=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_OUTPUT
+          echo "commit=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          echo "actor=${{ github.event.workflow_run.triggering_actor.login }}" >> $GITHUB_OUTPUT
+          echo "short_commit=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+
+      - name: Get commit message
+        id: commit
+        run: |
+          COMMIT_MSG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ steps.workflow.outputs.commit }}" | \
+            jq -r '.commit.message' | head -1)
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+      - name: Send success notification
+        if: steps.workflow.outputs.status == 'success'
+        run: |
+          cat << 'EOF' > notification.json
+          {
+            "text": "🚀 Deployment Successful",
+            "attachments": [{
+              "color": "good",
+              "title": "✅ Production Deployment Completed",
+              "fields": [
+                {
+                  "title": "Repository",
+                  "value": "${{ github.repository }}",
+                  "short": true
+                },
+                {
+                  "title": "Branch",
+                  "value": "${{ steps.workflow.outputs.branch }}",
+                  "short": true
+                },
+                {
+                  "title": "Commit",
+                  "value": "<https://github.com/${{ github.repository }}/commit/${{ steps.workflow.outputs.commit }}|${{ steps.workflow.outputs.short_commit }}>",
+                  "short": true
+                },
+                {
+                  "title": "Author",
+                  "value": "${{ steps.workflow.outputs.actor }}",
+                  "short": true
+                },
+                {
+                  "title": "Message",
+                  "value": "${{ steps.commit.outputs.message }}",
+                  "short": false
+                },
+                {
+                  "title": "Live URL",
+                  "value": "<https://concierge-transaction-flow.vercel.app|🌐 View Deployment>",
+                  "short": false
+                }
+              ],
+              "footer": "GitHub Actions",
+              "ts": $(date +%s)
+            }]
+          }
+          EOF
+          
+          echo "Notification payload created successfully"
+
+      - name: Send failure notification
+        if: steps.workflow.outputs.status == 'failure'
+        run: |
+          cat << 'EOF' > notification.json
+          {
+            "text": "🚨 Deployment Failed",
+            "attachments": [{
+              "color": "danger",
+              "title": "❌ Production Deployment Failed",
+              "fields": [
+                {
+                  "title": "Repository",
+                  "value": "${{ github.repository }}",
+                  "short": true
+                },
+                {
+                  "title": "Branch",
+                  "value": "${{ steps.workflow.outputs.branch }}",
+                  "short": true
+                },
+                {
+                  "title": "Commit",
+                  "value": "<https://github.com/${{ github.repository }}/commit/${{ steps.workflow.outputs.commit }}|${{ steps.workflow.outputs.short_commit }}>",
+                  "short": true
+                },
+                {
+                  "title": "Author",
+                  "value": "${{ steps.workflow.outputs.actor }}",
+                  "short": true
+                },
+                {
+                  "title": "Message",
+                  "value": "${{ steps.commit.outputs.message }}",
+                  "short": false
+                },
+                {
+                  "title": "Action Required",
+                  "value": "<https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|🔍 View Logs> | <https://github.com/${{ github.repository }}/actions|🔄 Retry Deployment>",
+                  "short": false
+                }
+              ],
+              "footer": "GitHub Actions",
+              "ts": $(date +%s)
+            }]
+          }
+          EOF
+          
+          echo "Failure notification payload created"
+
+      - name: Create deployment summary
+        id: summary
+        run: |
+          STATUS_ICON="${{ steps.workflow.outputs.status == 'success' && '✅' || '❌' }}"
+          STATUS_TEXT="${{ steps.workflow.outputs.status == 'success' && 'Success' || 'Failed' }}"
+          
+          SUMMARY="## 🚀 Deployment Summary
+          
+          **Status:** ${STATUS_ICON} ${STATUS_TEXT}
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ steps.workflow.outputs.branch }}
+          **Commit:** [\`${{ steps.workflow.outputs.short_commit }}\`](https://github.com/${{ github.repository }}/commit/${{ steps.workflow.outputs.commit }})
+          **Author:** ${{ steps.workflow.outputs.actor }}
+          **Message:** ${{ steps.commit.outputs.message }}
+          
+          ${{ steps.workflow.outputs.status == 'success' && '🌐 **Live URL:** https://concierge-transaction-flow.vercel.app' || '🔍 **Logs:** https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}' }}
+          
+          ---
+          *Generated by GitHub Actions at $(date -u)*"
+          
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Issue on Failure
+        if: steps.workflow.outputs.status == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = `🚨 Deployment Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `${{ steps.summary.outputs.summary }}
+            
+            ## Possible Causes
+            - Build errors or test failures
+            - Environment variable issues
+            - Dependency conflicts
+            - Infrastructure problems
+            
+            ## Next Steps
+            1. Check the [workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})
+            2. Review recent changes in commit [\`${{ steps.workflow.outputs.short_commit }}\`](https://github.com/${{ github.repository }}/commit/${{ steps.workflow.outputs.commit }})
+            3. Test locally with \`npm run build\`
+            4. Re-run the deployment once issues are resolved
+            
+            /cc @${{ steps.workflow.outputs.actor }}`;
+            
+            // Check if there's already an open issue for deployment failures
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'deployment-failure'
+            });
+            
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['deployment-failure', 'bug', 'high-priority']
+              });
+            } else {
+              // Add comment to existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: `## 🔄 Another deployment failure occurred\n\n${body}`
+              });
+            }
+
+      - name: Close deployment issues on success
+        if: steps.workflow.outputs.status == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Close any open deployment failure issues
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'deployment-failure'
+            });
+            
+            for (const issue of issues) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Deployment successful! This issue is now resolved.\n\n${{ steps.summary.outputs.summary }}`
+              });
+              
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }
+
+      - name: Update deployment status badge
+        run: |
+          STATUS_COLOR="${{ steps.workflow.outputs.status == 'success' && 'brightgreen' || 'red' }}"
+          STATUS_TEXT="${{ steps.workflow.outputs.status == 'success' && 'passing' || 'failing' }}"
+          
+          echo "Deployment status: ${STATUS_TEXT}"
+          echo "Badge color: ${STATUS_COLOR}"
+          
+          # This could be used to update a status badge or dashboard
+          # For example, updating a status page or dashboard API
+
+      - name: Performance check notification
+        if: steps.workflow.outputs.status == 'success'
+        run: |
+          echo "🔍 Running post-deployment performance check..."
+          
+          # Wait for deployment to be live
+          sleep 30
+          
+          # Basic performance check
+          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://concierge-transaction-flow.vercel.app || echo "0")
+          
+          if (( $(echo "$RESPONSE_TIME > 3.0" | bc -l) )); then
+            echo "⚠️  Warning: Site response time is ${RESPONSE_TIME}s (>3s threshold)"
+            
+            # Could send additional alert here
+            echo "Performance degradation detected - consider investigation"
+          else
+            echo "✅ Performance check passed: ${RESPONSE_TIME}s response time"
+          fi

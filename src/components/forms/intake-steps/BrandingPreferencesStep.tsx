@@ -9,11 +9,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, Palette, Coffee, Wine, Star, Share2 } from 'lucide-react';
 
+interface BrandingPreferencesData {
+  primaryColor?: string;
+  secondaryColor?: string;
+  fontFamily?: string;
+  communicationStyle?: 'formal' | 'informal' | 'friendly';
+  additionalNotes?: string;
+}
+
 interface BrandingPreferencesStepProps {
-  data: any;
+  data: BrandingPreferencesData;
   onNext: () => void;
   onPrev: () => void;
-  onChange: (field: string, value: any) => void;
+  onChange: (field: keyof BrandingPreferencesData, value: string) => void;
 }
 
 const BrandingPreferencesStep: React.FC<BrandingPreferencesStepProps> = ({

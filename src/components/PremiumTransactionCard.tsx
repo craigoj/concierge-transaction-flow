@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, Calendar, MapPin, User, Clock, DollarSign, Star } from "lucide-react";
+import { Building, Calendar, MapPin, User, Star } from "lucide-react";
 
 interface PremiumTransactionCardProps {
   id: string;
@@ -19,7 +19,6 @@ interface PremiumTransactionCardProps {
 }
 
 const PremiumTransactionCard = ({
-  id,
   property,
   client,
   agent,

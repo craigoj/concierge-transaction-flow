@@ -31,9 +31,16 @@ import {
   Eye,
   Settings
 } from "lucide-react";
+import { 
+  AgentProfile, 
+  InvitationStatus, 
+  SetupMethod,
+  SetupLinkResponse,
+  ApiError
+} from "@/types/agent";
 
 interface AgentAccountControllerProps {
-  agents: any[];
+  agents: AgentProfile[];
   open: boolean;
   onClose: () => void;
   onUpdate: () => void;
@@ -43,7 +50,7 @@ export const AgentAccountController = ({ agents, open, onClose, onUpdate }: Agen
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [setupMethodFilter, setSetupMethodFilter] = useState('all');
-  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [selectedAgent, setSelectedAgent] = useState<AgentProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -61,7 +68,7 @@ export const AgentAccountController = ({ agents, open, onClose, onUpdate }: Agen
     return matchesSearch && matchesStatus && matchesSetupMethod;
   });
 
-  const handleStatusChange = async (agentId: string, newStatus: string) => {
+  const handleStatusChange = async (agentId: string, newStatus: InvitationStatus) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -80,11 +87,12 @@ export const AgentAccountController = ({ agents, open, onClose, onUpdate }: Agen
       });
 
       onUpdate();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         variant: "destructive",
         title: "Update failed",
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -100,20 +108,24 @@ export const AgentAccountController = ({ agents, open, onClose, onUpdate }: Agen
 
       if (error) throw error;
 
-      if (data?.success) {
+      const response = data as SetupLinkResponse;
+      if (response?.success && response.setup_link) {
         // Copy to clipboard
-        await navigator.clipboard.writeText(data.setupLink);
+        await navigator.clipboard.writeText(response.setup_link);
         
         toast({
           title: "Setup link generated",
           description: "Setup link has been copied to clipboard.",
         });
+      } else {
+        throw new Error(response?.error || 'Failed to generate setup link');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         variant: "destructive",
         title: "Failed to generate setup link",
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -138,31 +150,36 @@ export const AgentAccountController = ({ agents, open, onClose, onUpdate }: Agen
         title: "Password reset sent",
         description: `Password reset email sent to ${agent.email}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         variant: "destructive",
         title: "Password reset failed",
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: InvitationStatus | null | undefined) => {
     switch (status) {
       case 'completed': return 'bg-green-500';
       case 'sent': return 'bg-yellow-500';
       case 'pending': return 'bg-gray-500';
+      case 'expired': return 'bg-red-500';
+      case 'cancelled': return 'bg-gray-400';
       default: return 'bg-gray-500';
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: InvitationStatus | null | undefined) => {
     switch (status) {
       case 'completed': return <UserCheck className="h-4 w-4" />;
       case 'sent': return <Clock className="h-4 w-4" />;
       case 'pending': return <Mail className="h-4 w-4" />;
+      case 'expired': return <UserX className="h-4 w-4" />;
+      case 'cancelled': return <UserX className="h-4 w-4" />;
       default: return <UserX className="h-4 w-4" />;
     }
   };

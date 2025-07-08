@@ -1,7 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { automationEngine } from './AutomationEngine';
-import type { TriggerContext } from '@/types/automation';
+import type { 
+  TriggerContext, 
+  Transaction,
+  StatusChangeTriggerData,
+  TaskCompletionTriggerData,
+  DocumentUploadTriggerData,
+  DateOffsetTriggerData,
+  TimeBasedTriggerData
+} from '@/types/automation';
 
 export class TriggerDetector {
   private static instance: TriggerDetector;
@@ -33,14 +41,16 @@ export class TriggerDetector {
         return;
       }
 
+      const triggerData: StatusChangeTriggerData = {
+        old_status: oldStatus,
+        new_status: newStatus,
+        trigger_type: 'status_change'
+      };
+
       const context: TriggerContext = {
         transaction_id: transactionId,
-        transaction,
-        trigger_data: {
-          old_status: oldStatus,
-          new_status: newStatus,
-          trigger_type: 'status_change'
-        },
+        transaction: transaction as Transaction,
+        trigger_data: triggerData,
         user_id: userId
       };
 
@@ -80,13 +90,15 @@ export class TriggerDetector {
         return;
       }
 
+      const triggerData: TaskCompletionTriggerData = {
+        task: task as any, // TODO: Create proper Task interface
+        trigger_type: 'task_completed'
+      };
+
       const context: TriggerContext = {
         transaction_id: transactionId,
-        transaction,
-        trigger_data: {
-          task,
-          trigger_type: 'task_completed'
-        },
+        transaction: transaction as Transaction,
+        trigger_data: triggerData,
         user_id: userId
       };
 
@@ -126,13 +138,15 @@ export class TriggerDetector {
         return;
       }
 
+      const triggerData: DocumentUploadTriggerData = {
+        document: document as any, // TODO: Create proper Document interface
+        trigger_type: 'document_uploaded'
+      };
+
       const context: TriggerContext = {
         transaction_id: transactionId,
-        transaction,
-        trigger_data: {
-          document,
-          trigger_type: 'document_uploaded'
-        },
+        transaction: transaction as Transaction,
+        trigger_data: triggerData,
         user_id: userId
       };
 
@@ -169,31 +183,35 @@ export class TriggerDetector {
     }
   }
 
-  private async checkContractDateTriggers(transaction: any): Promise<void> {
+  private async checkContractDateTriggers(transaction: Transaction): Promise<void> {
     if (!transaction.created_at) return;
+
+    const triggerData: DateOffsetTriggerData = {
+      reference_date: transaction.created_at,
+      trigger_type: 'contract_date_offset'
+    };
 
     const context: TriggerContext = {
       transaction_id: transaction.id,
       transaction,
-      trigger_data: {
-        reference_date: transaction.created_at,
-        trigger_type: 'contract_date_offset'
-      }
+      trigger_data: triggerData
     };
 
     await automationEngine.processTriggeredRules(context);
   }
 
-  private async checkClosingDateTriggers(transaction: any): Promise<void> {
+  private async checkClosingDateTriggers(transaction: Transaction): Promise<void> {
     if (!transaction.closing_date) return;
+
+    const triggerData: DateOffsetTriggerData = {
+      reference_date: transaction.closing_date,
+      trigger_type: 'closing_date_offset'
+    };
 
     const context: TriggerContext = {
       transaction_id: transaction.id,
       transaction,
-      trigger_data: {
-        reference_date: transaction.closing_date,
-        trigger_type: 'closing_date_offset'
-      }
+      trigger_data: triggerData
     };
 
     await automationEngine.processTriggeredRules(context);
@@ -215,13 +233,15 @@ export class TriggerDetector {
       }
 
       for (const transaction of transactions || []) {
+        const triggerData: TimeBasedTriggerData = {
+          current_time: new Date().toISOString(),
+          trigger_type: 'time_based'
+        };
+
         const context: TriggerContext = {
           transaction_id: transaction.id,
-          transaction,
-          trigger_data: {
-            current_time: new Date().toISOString(),
-            trigger_type: 'time_based'
-          }
+          transaction: transaction as Transaction,
+          trigger_data: triggerData
         };
 
         await automationEngine.processTriggeredRules(context);

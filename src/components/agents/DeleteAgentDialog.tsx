@@ -15,15 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DeleteAgentDialogProps } from "@/types/agent";
 
-interface DeleteAgentDialogProps {
-  agent: any;
-  open: boolean;
-  onClose: () => void;
-  onAgentDeleted: () => void;
-}
-
-export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: DeleteAgentDialogProps) => {
+export const DeleteAgentDialog = ({ agent, open, onClose, onSuccess }: DeleteAgentDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -66,17 +60,21 @@ export const DeleteAgentDialog = ({ agent, open, onClose, onAgentDeleted }: Dele
 
       // Close dialog and refresh the agents list
       onClose();
-      onAgentDeleted();
+      if (onSuccess) {
+        onSuccess(agent.id);
+      }
       
       // Force a small delay to ensure the deletion has propagated
       setTimeout(() => {
-        onAgentDeleted();
+        if (onSuccess) {
+          onSuccess(agent.id);
+        }
       }, 1000);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting agent:", error);
       
-      const errorMessage = error.message || "An unexpected error occurred while deleting the agent.";
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while deleting the agent.";
       setError(errorMessage);
       
       toast({

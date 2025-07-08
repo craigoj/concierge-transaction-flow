@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { logger } from '@/lib/logger';
 
 const AgentTasks = () => {
   const [activeTab, setActiveTab] = useState('pending');
@@ -67,7 +68,7 @@ const AgentTasks = () => {
 
       refetch();
     } catch (error) {
-      console.error('Error updating task:', error);
+      logger.error('Error updating task', error as Error, { taskId, isCompleted }, 'agent-tasks');
       toast({
         variant: "destructive",
         title: "Error",

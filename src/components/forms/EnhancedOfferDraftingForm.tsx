@@ -55,7 +55,7 @@ const EnhancedOfferDraftingForm = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleChange = (field: keyof OfferRequest, value: any) => {
+  const handleChange = (field: keyof OfferRequest, value: string | number | boolean | object) => {
     setOfferRequest(prev => ({ ...prev, [field]: value }));
   };
 
@@ -99,11 +99,11 @@ const EnhancedOfferDraftingForm = () => {
         title: "Offer Request Saved",
         description: "Your offer request has been saved successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Save Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
       setSaving(false);

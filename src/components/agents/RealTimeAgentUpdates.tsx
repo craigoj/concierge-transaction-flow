@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Users, Activity, TrendingUp, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RealtimePayload, AgentRealtimeUpdate } from "@/types/agent";
 
 interface RealtimeUpdate {
   id: string;
@@ -62,7 +63,7 @@ export const RealTimeAgentUpdates = () => {
     };
   }, []);
 
-  const handleRealtimeUpdate = (payload: any) => {
+  const handleRealtimeUpdate = (payload: RealtimePayload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
     
     let updateType: RealtimeUpdate['type'] = 'agent_updated';

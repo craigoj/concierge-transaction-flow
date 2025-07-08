@@ -3,12 +3,20 @@ import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  WorkflowMetadata, 
+  WorkflowTriggerCondition, 
+  IntakeCompleteData, 
+  OfferSubmitData, 
+  ServiceTierSelectData, 
+  TemplateError 
+} from '@/types/templates';
 
 interface WorkflowTrigger {
   event: string;
   transactionId?: string;
   serviceTier?: string;
-  metadata?: any;
+  metadata?: WorkflowMetadata;
 }
 
 export const useWorkflowIntegration = () => {
@@ -36,7 +44,7 @@ export const useWorkflowIntegration = () => {
       // Filter rules by service tier if provided
       const applicableRules = rules?.filter(rule => {
         if (!serviceTier) return true;
-        const condition = rule.trigger_condition as any;
+        const condition = rule.trigger_condition as WorkflowTriggerCondition;
         return !condition?.service_tier || condition.service_tier === serviceTier;
       }) || [];
 
@@ -67,7 +75,7 @@ export const useWorkflowIntegration = () => {
         });
       }
 
-    } catch (error: any) {
+    } catch (error: TemplateError) {
       console.error('Workflow trigger error:', error);
       toast({
         variant: 'destructive',
@@ -83,9 +91,9 @@ export const useWorkflowIntegration = () => {
 // Component for automatically triggering workflows based on form events
 export const FormWorkflowIntegration: React.FC<{
   children: React.ReactNode;
-  onIntakeComplete?: (data: any) => void;
-  onOfferSubmit?: (data: any) => void;
-  onServiceTierSelect?: (data: any) => void;
+  onIntakeComplete?: (data: IntakeCompleteData) => void;
+  onOfferSubmit?: (data: OfferSubmitData) => void;
+  onServiceTierSelect?: (data: ServiceTierSelectData) => void;
 }> = ({ 
   children, 
   onIntakeComplete, 
@@ -95,7 +103,7 @@ export const FormWorkflowIntegration: React.FC<{
   const { triggerWorkflow } = useWorkflowIntegration();
 
   // Enhanced event handlers that trigger workflows
-  const handleIntakeComplete = async (data: any) => {
+  const handleIntakeComplete = async (data: IntakeCompleteData) => {
     await triggerWorkflow({
       event: 'agent_intake_completed',
       metadata: { intake_data: data }
@@ -103,7 +111,7 @@ export const FormWorkflowIntegration: React.FC<{
     onIntakeComplete?.(data);
   };
 
-  const handleOfferSubmit = async (data: any) => {
+  const handleOfferSubmit = async (data: OfferSubmitData) => {
     await triggerWorkflow({
       event: 'offer_request_submitted',
       transactionId: data.transaction_id,
@@ -112,7 +120,7 @@ export const FormWorkflowIntegration: React.FC<{
     onOfferSubmit?.(data);
   };
 
-  const handleServiceTierSelect = async (data: any) => {
+  const handleServiceTierSelect = async (data: ServiceTierSelectData) => {
     await triggerWorkflow({
       event: 'service_tier_selected',
       transactionId: data.transaction_id,

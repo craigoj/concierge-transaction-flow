@@ -3,18 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tables } from '@/integrations/supabase/types';
-
-type Transaction = Tables<'transactions'> & {
-  clients: Tables<'clients'>[];
-  tasks: Tables<'tasks'>[];
-};
-
-interface AgentDataContextType {
-  transactions: Transaction[];
-  isLoading: boolean;
-  refreshData: () => Promise<void>;
-  hasAccess: (transactionId: string) => boolean;
-}
+import { AgentTransaction, AgentDataContextType } from '@/types/agent';
 
 const AgentDataContext = createContext<AgentDataContextType | undefined>(undefined);
 
@@ -23,7 +12,7 @@ interface SecureAgentDataProviderProps {
 }
 
 export const SecureAgentDataProvider = ({ children }: SecureAgentDataProviderProps) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<AgentTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -56,9 +45,10 @@ export const SecureAgentDataProvider = ({ children }: SecureAgentDataProviderPro
         return;
       }
 
-      setTransactions(transactionsData || []);
-    } catch (error) {
+      setTransactions(transactionsData as AgentTransaction[] || []);
+    } catch (error: unknown) {
       console.error('Error in fetchAgentData:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast({
         variant: "destructive",
         title: "Error",

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logger } from '@/lib/logger';
 
 const CreateClient = () => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const CreateClient = () => {
       navigate('/clients');
     },
     onError: (error: any) => {
-      console.error('Error creating contact:', error);
+      logger.error('Error creating contact', error as Error, { formData }, 'clients');
       toast.error(`Failed to create contact: ${error.message}`);
     }
   });

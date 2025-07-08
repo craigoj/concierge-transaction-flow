@@ -10,76 +10,30 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import XMLImportPreviewDialog from './XMLImportPreviewDialog';
 import XMLImportProgressDialog from './XMLImportProgressDialog';
+import { 
+  ParsedXMLTemplate, 
+  ParsedXMLTask, 
+  ParsedXMLEmail, 
+  XMLValidationIssue, 
+  XMLImportResult, 
+  XMLImportProgress,
+  DueDateRule,
+  TemplateError
+} from '@/types/templates';
 
 interface XMLTemplateImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface ParsedTask {
-  subject: string;
-  taskType: string;
-  dueDateRule: {
-    type: string;
-    event?: string;
-    days?: number;
-  };
-  isAgentVisible: boolean;
-  hasEmail: boolean;
-  sortOrder: number;
-}
-
-interface ParsedEmail {
-  name: string;
-  subject: string;
-  to: string;
-  cc: string;
-  bcc: string;
-}
-
-interface ParsedTemplate {
-  name: string;
-  type: string;
-  description: string;
-  folderName: string;
-  tasks: ParsedTask[];
-  emails: ParsedEmail[];
-}
-
-interface ValidationIssue {
-  type: 'error' | 'warning';
-  message: string;
-  location?: string;
-}
-
-interface ImportResult {
-  success: boolean;
-  templatesImported: number;
-  tasksImported: number;
-  emailsImported: number;
-  importId: string;
-  error?: string;
-}
-
-interface ImportProgress {
-  stage: 'parsing' | 'validating' | 'importing' | 'completed' | 'error';
-  templatesProcessed: number;
-  totalTemplates: number;
-  tasksProcessed: number;
-  totalTasks: number;
-  emailsProcessed: number;
-  totalEmails: number;
-  currentTemplate?: string;
-  error?: string;
-}
 
 const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialogProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedTemplate[] | null>(null);
-  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+  const [parsedData, setParsedData] = useState<ParsedXMLTemplate[] | null>(null);
+  const [validationIssues, setValidationIssues] = useState<XMLValidationIssue[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
-  const [importProgress, setImportProgress] = useState<ImportProgress>({
+  const [importProgress, setImportProgress] = useState<XMLImportProgress>({
     stage: 'parsing',
     templatesProcessed: 0,
     totalTemplates: 0,
@@ -88,11 +42,11 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
     emailsProcessed: 0,
     totalEmails: 0
   });
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importResult, setImportResult] = useState<XMLImportResult | null>(null);
   const queryClient = useQueryClient();
 
-  const validateXMLStructure = (xmlContent: string): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
+  const validateXMLStructure = (xmlContent: string): XMLValidationIssue[] => {
+    const issues: XMLValidationIssue[] = [];
     
     try {
       const parser = new DOMParser();
@@ -238,7 +192,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
     return issues;
   };
 
-  const parseXMLData = (xmlContent: string): ParsedTemplate[] => {
+  const parseXMLData = (xmlContent: string): ParsedXMLTemplate[] => {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlContent, "text/html");
     const taskTemplates = xmlDoc.querySelectorAll('taskTemplate');
@@ -266,7 +220,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
 
       // Parse tasks with enhanced property mapping
       const templateEntries = templateElement.querySelectorAll('taskTemplateEntry');
-      const tasks: ParsedTask[] = Array.from(templateEntries).map((entry, index) => {
+      const tasks: ParsedXMLTask[] = Array.from(templateEntries).map((entry, index) => {
         const subject = entry.querySelector('subject')?.textContent || '';
         const taskType = entry.querySelector('taskType')?.textContent || 'TODO';
         const agentVisible = entry.querySelector('agentVisible')?.textContent === 'true';
@@ -278,7 +232,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         const dueDateAdjustType = entry.querySelector('dueDateAdjustType')?.textContent || 'TEMPLATE_START_DATE';
 
         // Enhanced due date rule mapping
-        let dueDateRule: { type: string; event?: string; days?: number } = { type: 'no_due_date' };
+        let dueDateRule: DueDateRule = { type: 'no_due_date' };
         if (dueDateAdjustActive) {
           let event = 'ratified_date'; // Default
           
@@ -317,12 +271,14 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
           dueDateRule,
           isAgentVisible: agentVisible,
           hasEmail: !!letterTemplate,
-          sortOrder: sort
+          sortOrder: sort,
+          phase: '',
+          descriptionNotes: ''
         };
       });
 
       // Parse email templates with enhanced processing
-      const emails: ParsedEmail[] = Array.from(templateEntries)
+      const emails: ParsedXMLEmail[] = Array.from(templateEntries)
         .filter(entry => entry.querySelector('letterTemplate'))
         .map(entry => {
           const letterTemplate = entry.querySelector('letterTemplate')!;
@@ -331,7 +287,8 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
             subject: letterTemplate.querySelector('emailSubject')?.textContent || '',
             to: letterTemplate.querySelector('emailTo')?.textContent || '',
             cc: letterTemplate.querySelector('emailCc')?.textContent || '',
-            bcc: letterTemplate.querySelector('emailBcc')?.textContent || ''
+            bcc: letterTemplate.querySelector('emailBcc')?.textContent || '',
+            content: letterTemplate.querySelector('htmlText')?.textContent || ''
           };
         });
 
@@ -377,7 +334,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
   };
 
   const importMutation = useMutation({
-    mutationFn: async (file: File): Promise<ImportResult> => {
+    mutationFn: async (file: File): Promise<XMLImportResult> => {
       const xmlContent = await file.text();
       
       const { data, error } = await supabase.functions.invoke('xml-template-import', {
@@ -408,7 +365,7 @@ const XMLTemplateImportDialog = ({ open, onOpenChange }: XMLTemplateImportDialog
         handleClose();
       }, 2000);
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Import error:', error);
       setImportProgress({
         ...importProgress,

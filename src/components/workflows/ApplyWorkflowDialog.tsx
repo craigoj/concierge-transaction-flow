@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Zap, Clock, CheckCircle, Workflow } from 'lucide-react';
 import { toast } from 'sonner';
+import { TemplateTask } from '@/types/templates';
 
 interface ApplyWorkflowDialogProps {
   open: boolean;
@@ -23,7 +24,7 @@ interface WorkflowTemplate {
   name: string;
   type: string;
   description: string;
-  template_tasks: any[];
+  template_tasks: TemplateTask[];
   is_active: boolean;
 }
 
@@ -32,7 +33,7 @@ interface TaskTemplate {
   name: string;
   category: string;
   description: string;
-  tasks: any[];
+  tasks: TemplateTask[];
   transaction_type: string;
   service_tier: string;
 }
@@ -116,7 +117,7 @@ const ApplyWorkflowDialog = ({
       onOpenChange(false);
       setSelectedTemplateId('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Error applying workflow template:', error);
       toast.error('Failed to apply workflow template');
     },
@@ -139,7 +140,7 @@ const ApplyWorkflowDialog = ({
       onOpenChange(false);
       setSelectedTemplateId('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Error applying task template:', error);
       toast.error('Failed to apply task template');
     },
@@ -274,7 +275,12 @@ const ApplyWorkflowDialog = ({
                 <div className="space-y-2">
                   <h4 className="font-medium">Tasks to be created:</h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {getTasks().map((task: any, index: number) => (
+                    {getTasks().map((task: { 
+                      subject?: string; 
+                      title?: string; 
+                      due_date_rule?: { type?: string; days?: number; event?: string };
+                      days_from_contract?: number;
+                    }, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-muted-foreground" />

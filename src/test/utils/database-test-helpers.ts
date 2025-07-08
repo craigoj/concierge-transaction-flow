@@ -6,9 +6,20 @@
 import { vi } from 'vitest';
 import type { Database } from '@/integrations/supabase/types';
 
+// Database record type for testing
+interface DatabaseRecord {
+  id: string;
+  [key: string]: unknown;
+}
+
+// Query filter interface
+interface QueryFilter {
+  [key: string]: unknown;
+}
+
 // Mock Supabase client for database testing
 export class MockSupabaseClient {
-  private mockData: Map<string, any[]> = new Map();
+  private mockData: Map<string, DatabaseRecord[]> = new Map();
   private mockError: Error | null = null;
 
   constructor() {
@@ -22,7 +33,7 @@ export class MockSupabaseClient {
   }
 
   // Set mock data for a table
-  setMockData(table: string, data: any[]) {
+  setMockData(table: string, data: DatabaseRecord[]) {
     this.mockData.set(table, data);
   }
 
@@ -35,15 +46,15 @@ export class MockSupabaseClient {
   from(table: string) {
     return {
       select: (columns?: string) => ({
-        eq: (column: string, value: any) => this.createQueryBuilder(table, { [column]: value }),
-        neq: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__neq`]: value }),
-        gt: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__gt`]: value }),
-        gte: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__gte`]: value }),
-        lt: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__lt`]: value }),
-        lte: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__lte`]: value }),
+        eq: (column: string, value: unknown) => this.createQueryBuilder(table, { [column]: value }),
+        neq: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__neq`]: value }),
+        gt: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__gt`]: value }),
+        gte: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__gte`]: value }),
+        lt: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__lt`]: value }),
+        lte: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__lte`]: value }),
         like: (column: string, pattern: string) => this.createQueryBuilder(table, { [`${column}__like`]: pattern }),
-        in: (column: string, values: any[]) => this.createQueryBuilder(table, { [`${column}__in`]: values }),
-        is: (column: string, value: any) => this.createQueryBuilder(table, { [`${column}__is`]: value }),
+        in: (column: string, values: unknown[]) => this.createQueryBuilder(table, { [`${column}__in`]: values }),
+        is: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__is`]: value }),
         order: (column: string, options?: { ascending?: boolean }) => 
           this.createQueryBuilder(table, {}, `order_${column}_${options?.ascending ? 'asc' : 'desc'}`),
         limit: (count: number) => this.createQueryBuilder(table, {}, `limit_${count}`),
@@ -51,34 +62,41 @@ export class MockSupabaseClient {
         ...this.createQueryBuilder(table),
       }),
       
-      insert: (data: any | any[]) => ({
+      insert: (data: DatabaseRecord | DatabaseRecord[]) => ({
         select: (columns?: string) => this.createMutationBuilder('insert', table, data),
         ...this.createMutationBuilder('insert', table, data),
       }),
       
-      update: (data: any) => ({
-        eq: (column: string, value: any) => this.createMutationBuilder('update', table, data, { [column]: value }),
-        match: (query: Record<string, any>) => this.createMutationBuilder('update', table, data, query),
+      update: (data: Partial<DatabaseRecord>) => ({
+        eq: (column: string, value: unknown) => this.createMutationBuilder('update', table, data, { [column]: value }),
+        match: (query: QueryFilter) => this.createMutationBuilder('update', table, data, query),
+      }),
+      
+      upsert: (data: DatabaseRecord | DatabaseRecord[]) => ({
+        select: (columns?: string) => this.createMutationBuilder('upsert', table, data),
+        ...this.createMutationBuilder('upsert', table, data),
       }),
       
       delete: () => ({
-        eq: (column: string, value: any) => this.createMutationBuilder('delete', table, null, { [column]: value }),
-        match: (query: Record<string, any>) => this.createMutationBuilder('delete', table, null, query),
+        eq: (column: string, value: unknown) => this.createMutationBuilder('delete', table, null, { [column]: value }),
+        match: (query: QueryFilter) => this.createMutationBuilder('delete', table, null, query),
       }),
     };
   }
 
-  private createQueryBuilder(table: string, filters: Record<string, any> = {}, modifier?: string) {
+  private createQueryBuilder(table: string, filters: QueryFilter = {}, modifier?: string) {
     return {
-      then: (resolve: Function, reject?: Function) => {
+      then: (resolve: (value: { data: DatabaseRecord[] | DatabaseRecord | null; error: Error | null }) => void, reject?: (reason?: unknown) => void) => {
         if (this.mockError) {
           const error = this.mockError;
           this.mockError = null; // Reset after use
-          if (reject) reject(error);
-          return Promise.reject(error);
+          // Return error in result format instead of rejecting
+          const result = { data: null, error };
+          resolve(result);
+          return Promise.resolve(result);
         }
 
-        let data = this.mockData.get(table) || [];
+        let data: DatabaseRecord[] = this.mockData.get(table) || [];
         
         // Apply filters
         Object.entries(filters).forEach(([key, value]) => {
@@ -132,8 +150,8 @@ export class MockSupabaseClient {
           }
         }
 
-        const result = {
-          data: modifier === 'single' ? data : data,
+        const result: { data: DatabaseRecord[] | DatabaseRecord | null; error: Error | null } = {
+          data: modifier === 'single' ? (data || null) : data,
           error: null,
         };
 
@@ -143,23 +161,33 @@ export class MockSupabaseClient {
     };
   }
 
-  private createMutationBuilder(operation: string, table: string, data: any, filters?: Record<string, any>) {
+  private createMutationBuilder(
+    operation: string, 
+    table: string, 
+    data: DatabaseRecord | DatabaseRecord[] | Partial<DatabaseRecord> | null, 
+    filters?: QueryFilter
+  ) {
     return {
-      then: (resolve: Function, reject?: Function) => {
+      then: (resolve: (value: { data: DatabaseRecord[] | null; error: Error | null }) => void, reject?: (reason?: unknown) => void) => {
         if (this.mockError) {
           const error = this.mockError;
           this.mockError = null;
-          if (reject) reject(error);
-          return Promise.reject(error);
+          // Return error in result format instead of rejecting
+          const result = { data: null, error };
+          resolve(result);
+          return Promise.resolve(result);
         }
 
-        let result;
+        let result: { data: DatabaseRecord[] | null; error: Error | null };
         switch (operation) {
           case 'insert':
-            result = { data: Array.isArray(data) ? data : [data], error: null };
+            result = { data: Array.isArray(data) ? data as DatabaseRecord[] : [data as DatabaseRecord], error: null };
             break;
           case 'update':
-            result = { data: [{ ...data, ...filters }], error: null };
+            result = { data: [{ ...(data as Partial<DatabaseRecord>), ...filters } as DatabaseRecord], error: null };
+            break;
+          case 'upsert':
+            result = { data: Array.isArray(data) ? data as DatabaseRecord[] : [data as DatabaseRecord], error: null };
             break;
           case 'delete':
             result = { data: [], error: null };
@@ -212,13 +240,13 @@ export const RLSTestHelpers = {
   },
 
   // Test that RLS allows access for authenticated users with correct role
-  testAuthorizedAccess: async (mockClient: MockSupabaseClient, table: string, userData: any) => {
+  testAuthorizedAccess: async (mockClient: MockSupabaseClient, table: string, userData: { id: string; role?: string; [key: string]: unknown }) => {
     mockClient.auth.getUser.mockResolvedValue({ 
       data: { user: userData }, 
       error: null 
     });
     
-    const testData = [{ id: '1', name: 'Test Record' }];
+    const testData: DatabaseRecord[] = [{ id: '1', name: 'Test Record' }];
     mockClient.setMockData(table, testData);
     
     const { data, error } = await mockClient.from(table).select();
@@ -228,20 +256,16 @@ export const RLSTestHelpers = {
   },
 
   // Test that RLS denies access for wrong user/agent
-  testWrongUserAccess: async (mockClient: MockSupabaseClient, table: string, wrongUser: any) => {
+  testWrongUserAccess: async (mockClient: MockSupabaseClient, table: string, wrongUser: { id: string; role?: string; [key: string]: unknown }) => {
     mockClient.auth.getUser.mockResolvedValue({ 
       data: { user: wrongUser }, 
       error: null 
     });
     mockClient.setMockError(new Error('Access denied: insufficient privileges'));
     
-    const { error } = await mockClient.from(table).select().then(
-      (result) => result,
-      (error) => ({ data: null, error })
-    );
-    
-    expect(error).toBeTruthy();
-    expect(error.message).toContain('Access denied');
+    const result = await mockClient.from(table).select();
+    expect(result.error).toBeTruthy();
+    expect(result.error.message).toContain('Access denied');
   },
 };
 
@@ -349,14 +373,14 @@ export const createDatabaseTestSuite = (tableName: string) => {
     },
 
     testCRUDOperations: () => ({
-      create: async (data: any) => {
+      create: async (data: DatabaseRecord) => {
         const result = await mockClient.from(tableName).insert(data);
         expect(result.error).toBeNull();
         expect(result.data).toBeDefined();
         return result;
       },
 
-      read: async (filters: Record<string, any> = {}) => {
+      read: async (filters: QueryFilter = {}) => {
         const query = mockClient.from(tableName).select();
         Object.entries(filters).forEach(([key, value]) => {
           query.eq(key, value);
@@ -366,7 +390,7 @@ export const createDatabaseTestSuite = (tableName: string) => {
         return result;
       },
 
-      update: async (id: string, data: any) => {
+      update: async (id: string, data: Partial<DatabaseRecord>) => {
         const result = await mockClient.from(tableName).update(data).eq('id', id);
         expect(result.error).toBeNull();
         return result;

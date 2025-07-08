@@ -49,7 +49,7 @@ export class DuplicateDetectionService {
     email?: string,
     phone?: string
   ): Promise<ClientDuplicateMatch[]> {
-    let query = supabase
+    const query = supabase
       .from('clients')
       .select('id, full_name, email, phone, transaction_id');
 

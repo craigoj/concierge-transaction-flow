@@ -17,7 +17,6 @@ interface TransactionCardProps {
 }
 
 const TransactionCard = ({
-  id,
   property,
   client,
   agent,

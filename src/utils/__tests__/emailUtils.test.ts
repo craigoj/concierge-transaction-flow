@@ -18,7 +18,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }))
 
 describe('emailUtils', () => {
-  let mockInvoke: any
+  let mockInvoke: ReturnType<typeof vi.fn>
 
   beforeEach(async () => {
     vi.clearAllMocks()

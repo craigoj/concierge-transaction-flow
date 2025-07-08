@@ -4,6 +4,8 @@
  */
 
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
+import { sentryUtils } from './sentry';
+import { logger } from './logger';
 
 interface PerformanceMetric {
   name: string;
@@ -89,15 +91,27 @@ class PerformanceMonitor {
       });
     }
 
-    // Log for debugging (remove in production)
-    console.log(`Performance Metric: ${metric.name} = ${metric.value}ms (${metric.rating})`);
+    // Log metric collection
+    logger.info('Performance metric collected', {
+      metric: metric.name,
+      value: metric.value,
+      rating: metric.rating,
+      url: metric.url
+    }, 'performance');
   }
 
   private checkThresholds(metric: PerformanceMetric): void {
     const threshold = this.thresholds[metric.name as keyof PerformanceThresholds];
     
     if (threshold && metric.value > threshold) {
-      console.warn(`⚠️ Performance threshold exceeded: ${metric.name} = ${metric.value} (threshold: ${threshold})`);
+      logger.warn('Performance threshold exceeded', {
+        metric: metric.name,
+        value: metric.value,
+        threshold: threshold,
+        exceedsBy: metric.value - threshold,
+        rating: metric.rating,
+        url: metric.url
+      }, 'performance');
       
       // Send alert to monitoring system
       this.sendAlert(metric, threshold);
@@ -105,6 +119,9 @@ class PerformanceMonitor {
   }
 
   private sendAlert(metric: PerformanceMetric, threshold: number): void {
+    // Send to Sentry for performance tracking
+    sentryUtils.trackPerformanceIssue(metric.name, metric.value, threshold);
+    
     // Integration with alerting system
     fetch('/api/performance-alert', {
       method: 'POST',
@@ -119,7 +136,18 @@ class PerformanceMonitor {
         userAgent: metric.userAgent
       })
     }).catch(error => {
-      console.error('Failed to send performance alert:', error);
+      logger.error('Failed to send performance alert', error as Error, {
+        metric: metric.name,
+        value: metric.value,
+        threshold: threshold,
+        apiEndpoint: '/api/performance-alert'
+      }, 'performance');
+      
+      sentryUtils.captureException(new Error('Performance alert API failed'), {
+        metric: metric.name,
+        value: metric.value,
+        originalError: error
+      });
     });
   }
 
@@ -215,7 +243,13 @@ class PerformanceMonitor {
       try {
         observer.observe({ entryTypes: ['resource'] });
       } catch (error) {
-        console.warn('PerformanceObserver not supported for resource timing');
+        logger.warn('PerformanceObserver not supported for resource timing', {
+          userAgent: navigator.userAgent,
+          supportedAPIs: {
+            performanceObserver: 'PerformanceObserver' in window,
+            performance: 'performance' in window
+          }
+        }, 'performance');
       }
     }
   }

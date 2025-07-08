@@ -56,7 +56,7 @@ export class DatabasePerformanceMonitor {
     return results;
   }
 
-  static async getTableStats(): Promise<Record<string, any>> {
+  static async getTableStats(): Promise<Record<string, number | null>> {
     try {
       const { data: transactionCount } = await supabase
         .from('transactions')

@@ -281,15 +281,7 @@ describe('Role-Based Routing', () => {
 
 // Integration test with real AuthGuard component
 describe('AuthGuard Role-Based Routing Integration', () => {
-  let queryClient: QueryClient
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false }
-      }
-    })
     vi.clearAllMocks()
   })
 

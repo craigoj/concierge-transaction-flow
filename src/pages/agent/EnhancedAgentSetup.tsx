@@ -11,6 +11,7 @@ import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 const setupSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -111,7 +112,7 @@ const EnhancedAgentSetup = () => {
           });
         }
       } catch (error: any) {
-        console.error("Token validation error:", error);
+        logger.error('Token validation error', error as Error, { token }, 'agent-setup');
         toast({
           variant: "destructive",
           title: "Invalid Setup Link",
@@ -190,7 +191,7 @@ const EnhancedAgentSetup = () => {
         navigate("/agent/intake");
       }
     } catch (error: any) {
-      console.error("Setup error:", error);
+      logger.error('Setup error', error as Error, { agentEmail: agentInfo.email, setupMethod: agentInfo.setupMethod }, 'agent-setup');
       toast({
         variant: "destructive",
         title: "Setup Failed",

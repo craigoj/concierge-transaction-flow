@@ -39,7 +39,7 @@ describe('OfferDraftingForm', () => {
   it('renders the first step by default', () => {
     render(<OfferDraftingForm />);
     
-    expect(screen.getByText('Property Details')).toBeInTheDocument();
+    expect(screen.getByText('Property Information')).toBeInTheDocument();
     expect(screen.getByText('Step 1 of 6: Property Details')).toBeInTheDocument();
   });
 

@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { logger } from '@/lib/logger';
 import { 
   ArrowLeft, 
   Edit, 
@@ -31,22 +32,15 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog';
+import { 
+  SafeError, 
+  SupabaseError, 
+  isSupabaseError, 
+  hasErrorMessage,
+  Transaction as TransactionType 
+} from '@/types/common';
 
-interface Transaction {
-  id: string;
-  property_address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  purchase_price: number;
-  closing_date: string;
-  status: string;
-  agent_id: string;
-  created_at: string;
-  updated_at: string;
-  service_tier?: string;
-  transaction_type?: string;
-}
+// Using TransactionType from common types instead of local interface
 
 const TransactionDetail = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -54,7 +48,7 @@ const TransactionDetail = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { role } = useUserRole();
-  const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [transaction, setTransaction] = useState<TransactionType | null>(null);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -66,7 +60,13 @@ const TransactionDetail = () => {
     }
   }, [transactionId]);
 
-  const fetchTransaction = async () => {
+  const fetchTransaction = async (): Promise<void> => {
+    if (!transactionId) {
+      logger.error('fetchTransaction: No transactionId provided', undefined, {}, 'transactions');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -79,11 +79,20 @@ const TransactionDetail = () => {
       }
 
       setTransaction(data);
-    } catch (error) {
-      console.error('Error fetching transaction:', error);
+    } catch (error: unknown) {
+      const safeError = error as SafeError;
+      
+      logger.error('Error fetching transaction', safeError, { transactionId }, 'transactions');
+      
+      const errorMessage = isSupabaseError(safeError) 
+        ? safeError.message 
+        : hasErrorMessage(safeError) 
+          ? safeError.message 
+          : 'Failed to load transaction details';
+      
       toast({
         title: 'Error',
-        description: 'Failed to load transaction details',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -91,7 +100,7 @@ const TransactionDetail = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -101,7 +110,7 @@ const TransactionDetail = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -110,7 +119,7 @@ const TransactionDetail = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
@@ -118,9 +127,9 @@ const TransactionDetail = () => {
     });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<void> => {
     if (!transaction) {
-      console.error('handleDelete: No transaction found');
+      logger.error('handleDelete: No transaction found', undefined, { transactionId }, 'transactions');
       return;
     }
 
@@ -140,7 +149,7 @@ const TransactionDetail = () => {
       console.log('Delete operation result:', { data, error });
 
       if (error) {
-        console.error('Delete operation failed:', error);
+        logger.error('Delete operation failed', error, { transactionId: transaction.id }, 'transactions');
         throw error;
       }
 
@@ -152,19 +161,32 @@ const TransactionDetail = () => {
       });
 
       navigate('/transactions');
-    } catch (error: any) {
-      console.error('Delete operation caught error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
+    } catch (error: unknown) {
+      const safeError = error as SafeError;
+      
+      logger.error('Delete operation caught error', safeError, { transactionId: transaction.id }, 'transactions');
+      
+      // Log detailed error information for debugging
+      if (isSupabaseError(safeError)) {
+        logger.error('Transaction delete error details', safeError, {
+          transactionId: transaction.id,
+          message: safeError.message,
+          code: safeError.code,
+          details: safeError.details,
+          hint: safeError.hint
+        });
+      }
+      
+      const errorMessage = isSupabaseError(safeError) 
+        ? safeError.message 
+        : hasErrorMessage(safeError) 
+          ? safeError.message 
+          : 'Failed to delete transaction. Check console for details.';
       
       toast({
         variant: "destructive",
         title: "Delete Failed",
-        description: error.message || "Failed to delete transaction. Check console for details.",
+        description: errorMessage,
       });
     } finally {
       setDeleting(false);

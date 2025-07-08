@@ -1,114 +1,75 @@
-# Testing Workflow: Parallel Repository Strategy
+# Testing Workflow: Claude Code Integrated Testing
 
-This document outlines the workflow for managing development between lovable.dev and this testing repository.
+This document outlines the comprehensive testing workflow for the Concierge Transaction Flow application using Claude Code's integrated testing infrastructure.
 
 ## 🎯 Overview
 
-We use a **parallel repository strategy** where:
-- **lovable.dev**: Primary development platform for rapid UI development and feature iteration
-- **Clone repository**: Comprehensive testing environment with full CI/CD pipeline
+We use a **single-platform testing strategy** where:
+- **Claude Code**: Complete development and testing environment with integrated CI/CD pipeline
+- **Automated Testing**: Comprehensive test suite with unit, integration, and E2E testing
+- **Quality Assurance**: Continuous monitoring and validation throughout development lifecycle
 
-## 🔄 Sync Workflow
+## 🔄 Testing Workflow
 
-### 1. Development Phase (lovable.dev)
+### 1. Development & Testing Phase
 
-1. **Feature Development**: Build new features in lovable.dev
-2. **Rapid Iteration**: Use lovable.dev's fast feedback loop for UI/UX improvements
-3. **Basic Testing**: Use lovable.dev's built-in preview and basic testing
+1. **Feature Development**: Build new features with integrated testing
+2. **Continuous Testing**: Real-time test execution during development
+3. **Quality Validation**: Comprehensive validation before deployment
 
-### 2. Sync to Clone Repository
+### 2. Automated Testing Pipeline
 
-#### Manual Sync Process:
+#### Local Development Testing:
 
 ```bash
-# 1. Export changes from lovable.dev
-# Download your project as a ZIP file from lovable.dev
+# Development with hot testing
+npm run dev              # Start development server
+npm run test:watch       # Run tests in watch mode
+npm run lint:watch       # Continuous linting
 
-# 2. Extract and compare changes
-unzip lovable-export.zip
-rsync -av --exclude=node_modules --exclude=.git lovable-export/ ./
-
-# 3. Review changes
-git diff
-
-# 4. Commit changes with descriptive message
-git add .
-git commit -m "feat: sync from lovable.dev - [feature description]
-
-- Added: [new features]
-- Updated: [modified components]
-- Fixed: [bug fixes]
-
-Synced from lovable.dev on $(date)"
+# Pre-commit validation
+npm run test:all         # Complete test suite
+npm run build            # Production build test
+npm run typecheck        # TypeScript validation
 ```
 
-#### Semi-Automated Sync Script:
+#### Continuous Integration Testing:
 
 ```bash
-# Create sync script: sync-from-lovable.sh
-#!/bin/bash
+# CI/CD Pipeline (GitHub Actions)
+# Triggers on: push, pull request, scheduled
 
-echo "🔄 Syncing from lovable.dev..."
-
-# Check if we have a clean working directory
-if [[ -n $(git status --porcelain) ]]; then
-    echo "❌ Working directory not clean. Commit changes first."
-    exit 1
-fi
-
-# Create sync branch
-SYNC_BRANCH="sync/lovable-$(date +%Y%m%d-%H%M%S)"
-git checkout -b "$SYNC_BRANCH"
-
-echo "📁 Place your lovable.dev export in ./lovable-sync/ directory"
-echo "Press Enter when ready..."
-read
-
-if [ -d "./lovable-sync" ]; then
-    # Sync files (excluding sensitive directories)
-    rsync -av --delete \
-        --exclude=node_modules \
-        --exclude=.git \
-        --exclude=coverage \
-        --exclude=dist \
-        --exclude=build \
-        --exclude=test-results \
-        --exclude=testing \
-        --exclude=.github \
-        lovable-sync/ ./
-
-    # Add changes
-    git add .
-    
-    if [[ -n $(git status --porcelain) ]]; then
-        git commit -m "sync: update from lovable.dev on $(date)"
-        echo "✅ Sync complete! Branch: $SYNC_BRANCH"
-        echo "🔍 Review changes and merge when ready"
-    else
-        echo "ℹ️ No changes detected"
-        git checkout main
-        git branch -d "$SYNC_BRANCH"
-    fi
-else
-    echo "❌ ./lovable-sync/ directory not found"
-    git checkout main
-    git branch -d "$SYNC_BRANCH"
-fi
+# Test matrix execution:
+- Unit Tests (Vitest)
+- Integration Tests (Testing Library)
+- E2E Tests (Playwright)
+- Type Checking (TypeScript)
+- Code Quality (ESLint/Prettier)
+- Security Audit (npm audit)
+- Performance Testing (Lighthouse)
+- Accessibility Testing (axe-core)
 ```
 
-### 3. Testing Phase (Clone Repository)
+### 3. Comprehensive Testing Execution
 
-Once synced, run comprehensive tests:
+Execute full testing suite:
 
 ```bash
-# Run all tests
-npm run test:run          # Unit tests
-npm run test:coverage     # Coverage report
-npm run lint              # Code quality
-cd testing/ui-documentation && npm run test  # E2E tests
+# Complete test execution
+npm run test:unit         # Unit tests with coverage
+npm run test:integration  # Integration tests
+npm run test:e2e         # End-to-end tests
+npm run test:accessibility # Accessibility tests
+npm run test:performance  # Performance benchmarks
 
-# Check CI/CD pipeline
-git push origin main      # Triggers GitHub Actions
+# Quality assurance
+npm run lint             # Code quality checks
+npm run typecheck        # TypeScript validation
+npm run security:audit   # Security vulnerability scan
+
+# Build validation
+npm run build            # Production build
+npm run preview          # Production preview
 ```
 
 ### 4. Quality Assurance
@@ -147,16 +108,16 @@ git push origin main      # Triggers GitHub Actions
 
 ## 🔧 Development Commands
 
-### lovable.dev Development
+### Claude Code Development
 ```bash
-# Use lovable.dev interface for:
-- Component creation and editing
-- UI/UX iteration
-- Rapid prototyping
-- Real-time preview
+# Integrated development workflow:
+- Component creation and testing
+- UI/UX iteration with live testing
+- Rapid prototyping with validation
+- Real-time preview and feedback
 ```
 
-### Clone Repository Testing
+### Comprehensive Testing
 ```bash
 # Install dependencies
 npm install
@@ -190,70 +151,77 @@ npm run preview
 ## 📈 Sync Frequency Recommendations
 
 ### During Active Development
-- **Daily sync**: For rapid iteration periods
-- **Feature completion sync**: When feature is ready for testing
-- **Bug fix sync**: Immediately after critical fixes
+- **Real-time testing**: Continuous test execution during development
+- **Feature completion validation**: Complete test suite before integration
+- **Bug fix verification**: Immediate testing after critical fixes
 
 ### During Stable Periods
-- **Weekly sync**: For maintenance and minor updates
-- **Release sync**: Before major releases
+- **Scheduled testing**: Automated nightly test runs
+- **Regression testing**: Comprehensive validation for maintenance updates
 
 ### Before Production Deployment
-- **Final sync**: Ensure clone repo matches production code
-- **Full test suite**: Run complete testing pipeline
-- **Security audit**: Final security check
+- **Full validation**: Complete testing pipeline execution
+- **Performance benchmarking**: Load testing and optimization
+- **Security validation**: Comprehensive security audit
 
 ## 🚨 Troubleshooting
 
-### Common Sync Issues
+### Common Testing Issues
 
-#### File Conflicts
+#### Test Failures
 ```bash
-# Resolve conflicts manually
-git status
-git diff
-# Edit conflicted files
-git add .
-git commit -m "resolve: sync conflicts"
+# Diagnose and resolve test failures
+npm run test:debug       # Debug mode testing
+npm run test:verbose     # Detailed test output
+# Fix failing tests
+npm run test:affected    # Test only affected files
 ```
 
-#### Missing Dependencies
+#### Performance Issues
 ```bash
-# After sync, always check package.json changes
-npm install
+# Performance testing and optimization
+npm run test:performance # Performance benchmarks
+npm run analyze         # Bundle analysis
+npm run optimize        # Automated optimizations
 ```
 
-#### Test Failures After Sync
+#### Integration Problems
 ```bash
-# Check for breaking changes
-npm run test:run
-# Update tests if needed
-npm run test:coverage
+# Integration testing and resolution
+npm run test:integration # Integration test suite
+npm run test:api        # API integration tests
+npm run test:database   # Database integration tests
 ```
 
-### Emergency Rollback
+### Emergency Response
 ```bash
-# If sync introduces critical issues
-git log --oneline        # Find last good commit
-git reset --hard <commit-hash>
-git push --force-with-lease origin main
+# Critical issue response
+npm run test:critical   # Critical path testing
+git revert <commit-hash> # Revert problematic changes
+npm run deploy:rollback # Emergency rollback
 ```
 
 ## 📝 Sync Checklist
 
-### Pre-Sync
-- [ ] Commit all changes in clone repo
-- [ ] Create backup branch: `git checkout -b backup-$(date +%Y%m%d)`
-- [ ] Export latest code from lovable.dev
+### Pre-Development
+- [ ] Create feature branch: `git checkout -b feature/[name]`
+- [ ] Set up test environment: `npm run test:setup`
+- [ ] Run baseline tests: `npm run test:baseline`
 
-### Post-Sync
-- [ ] Review file changes: `git diff HEAD~1`
-- [ ] Update dependencies: `npm install`
-- [ ] Run test suite: `npm run test:run`
-- [ ] Check build: `npm run build`
-- [ ] Review visual changes: `cd testing/ui-documentation && npm run test`
-- [ ] Commit sync: `git commit -m "sync: [description]"`
-- [ ] Push and verify CI: `git push origin main`
+### During Development
+- [ ] Run continuous tests: `npm run test:watch`
+- [ ] Monitor code quality: `npm run lint:watch`
+- [ ] Validate changes: `npm run test:affected`
+- [ ] Check performance: `npm run perf:check`
+- [ ] Test accessibility: `npm run a11y:test`
+
+### Pre-Deployment
+- [ ] Complete test suite: `npm run test:all`
+- [ ] Security audit: `npm run security:check`
+- [ ] Performance validation: `npm run perf:validate`
+- [ ] Build verification: `npm run build:verify`
+- [ ] E2E testing: `npm run test:e2e:full`
+- [ ] Create deployment PR: `git push origin feature/[name]`
 
 ### Quality Verification
 - [ ] All tests pass ✅
@@ -265,8 +233,8 @@ git push --force-with-lease origin main
 ## 🎯 Success Metrics
 
 ### Development Velocity
-- **lovable.dev**: Fast feature development and UI iteration
-- **Clone repo**: Thorough testing and quality assurance
+- **Claude Code**: Integrated development with real-time testing feedback
+- **Automated Pipeline**: Thorough testing and quality assurance
 
 ### Quality Metrics
 - **Test Coverage**: Maintain >70%
@@ -283,10 +251,11 @@ git push --force-with-lease origin main
 
 ## 📞 Support
 
-For sync workflow issues:
+For testing workflow issues:
 1. Check this documentation
-2. Review Git history: `git log --oneline`
+2. Review test logs: `npm run test:logs`
 3. Check CI/CD pipeline status
-4. Create issue with sync details
+4. Create issue with test details and logs
+5. Use debugging tools: `npm run test:debug`
 
-**Remember**: This dual-repository approach maximizes both development speed and code quality! 🚀
+**Remember**: This integrated testing approach ensures high-quality, reliable code delivery! 🚀

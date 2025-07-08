@@ -77,7 +77,7 @@ export class FormRateLimiter {
 
 // Secure Field Encryption
 export class FieldEncryption {
-  private static readonly SECRET_KEY = 'concierge_field_encryption';
+  private static readonly SECRET_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'concierge_field_encryption_fallback';
 
   static encrypt(value: string): string {
     try {

@@ -1,73 +1,167 @@
-# Welcome to your Lovable project
+# 🏠 Concierge Transaction Flow
 
-## Project info
+**A comprehensive real estate transaction management system built with Claude Code**
 
-**URL**: https://lovable.dev/projects/0bfc22b0-8528-4f58-aca1-98f16c16dad6
+## 🎯 Project Overview
 
-## How can I edit this code?
+The Concierge Transaction Flow is a modern real estate transaction management platform that streamlines agent workflows, automates client communications, and provides differentiated service tiers. Built using Claude Code's single-platform development approach with full DevOps integration.
 
-There are several ways of editing your application.
+### Key Features
+- **Multi-tier Service System**: Core, Elite, and White Glove service levels
+- **Agent Concierge Workflows**: Digitized intake, vendor management, and offer processing
+- **Automation Engine**: Rule-based workflows for communications and task management
+- **Real-time Dashboard**: Transaction tracking, metrics, and progress monitoring
+- **Document Management**: Secure file storage and automated document workflows
 
-**Use Lovable**
+## 🛠️ Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/0bfc22b0-8528-4f58-aca1-98f16c16dad6) and start prompting.
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for build tooling
+- **Tailwind CSS** + **shadcn/ui** components
+- **React Router** for navigation
+- **Tanstack Query** for data fetching
 
-Changes made via Lovable will be committed automatically to this repo.
+### Backend
+- **Supabase** (PostgreSQL + Auth + Real-time)
+- **Row Level Security** for data protection
+- **Database Functions** for business logic
+- **Real-time subscriptions** for live updates
 
-**Use your preferred IDE**
+### Development & DevOps
+- **Claude Code** for complete development pipeline
+- **Docker** for containerization
+- **GitHub Actions** for CI/CD
+- **Sentry** for error monitoring
+- **Vitest** + **Playwright** for testing
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+- Supabase CLI (optional, for local development)
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd concierge-transaction-flow
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Copy `.env.example` to `.env.local`
+2. Configure your Supabase credentials
+3. Set up authentication providers
+4. Configure monitoring and analytics
 
-**Use GitHub Codespaces**
+## 📋 Available Scripts
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
 
-## What technologies are used for this project?
+# Testing
+npm run test         # Run unit tests
+npm run test:coverage # Run tests with coverage
+npm run test:e2e     # Run E2E tests
 
-This project is built with:
+# Code Quality
+npm run lint         # Run ESLint
+npm run typecheck    # Run TypeScript checks
+npm run format       # Format code with Prettier
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Database
+npx supabase start   # Start local Supabase
+npx supabase stop    # Stop local Supabase
+npx supabase db reset # Reset local database
+```
 
-## How can I deploy this project?
+## 🏗️ Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/0bfc22b0-8528-4f58-aca1-98f16c16dad6) and click on Share -> Publish.
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── forms/          # Form components
+│   └── workflows/      # Workflow components
+├── pages/              # Page components
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+├── services/           # API services
+├── types/              # TypeScript types
+└── integrations/       # Third-party integrations
+    └── supabase/       # Supabase integration
 
-## Can I connect a custom domain to my Lovable project?
+supabase/
+├── migrations/         # Database migrations
+├── functions/          # Edge functions
+└── config/            # Supabase configuration
+```
 
-Yes, you can!
+## 🔧 Development Workflow
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project follows a **Claude Code single-platform strategy** for complete development lifecycle:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **Plan & Design**: Feature architecture and database schema
+2. **Develop & Test**: Component development with comprehensive testing
+3. **Integrate & Validate**: End-to-end testing and validation
+4. **Deploy & Monitor**: Automated deployment with monitoring
+
+## 📊 Current Status
+
+- ✅ **Phase 1**: Agent Concierge Integration - Complete
+- 🔄 **Phase 2**: DevOps Infrastructure - In Progress
+- 📋 **Phase 3**: Offer Drafting System - Planned
+- 📋 **Phase 4**: Service Tier Enhancement - Planned
+- 📋 **Phase 5**: Dashboard Enhancement - Planned
+
+## 🤝 Contributing
+
+This project is developed using Claude Code's integrated development environment. All development, testing, and deployment processes are managed through the Claude Code platform.
+
+### Development Process
+1. Plan features with comprehensive documentation
+2. Develop and test in containerized local environment
+3. Validate quality through automated testing pipeline
+4. Deploy automatically through CI/CD to production
+5. Monitor and iterate based on production metrics
+
+## 📚 Documentation
+
+Detailed documentation is available in the `/docs` directory:
+- **CLAUDE.md**: Complete project documentation and instructions
+- **DEVELOPMENT.md**: Development guidelines and workflows
+- **DEPLOYMENT.md**: Deployment procedures and configuration
+- **TROUBLESHOOTING.md**: Common issues and solutions
+
+## 🛡️ Security
+
+This project implements comprehensive security measures:
+- Row Level Security (RLS) for all database operations
+- Authentication and authorization via Supabase Auth
+- Input validation and sanitization
+- Secure environment variable management
+- Regular security audits and updates
+
+## 📄 License
+
+This project is developed for the Concierge Transaction Flow platform. All rights reserved.
+
+---
+
+**🎯 Current Focus**: Implementing complete DevOps infrastructure for production-ready deployment with Phase 3 Offer Drafting System development.
+
+For questions or support, please refer to the comprehensive documentation in `CLAUDE.md`.

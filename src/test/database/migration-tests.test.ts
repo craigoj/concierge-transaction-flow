@@ -307,10 +307,10 @@ describe('Database Migration Tests', () => {
         const result = await mockClient
           .from('transactions')
           .select()
-          .eq('agent_id', 'different-agent')
-          .then(r => r, e => ({ data: null, error: e }));
-
+          .eq('agent_id', 'different-agent');
+        
         expect(result.error).toBeTruthy();
+        expect(result.error.message).toContain('RLS policy violation');
       });
 
       it('allows coordinators to access all transactions', async () => {
@@ -333,9 +333,9 @@ describe('Database Migration Tests', () => {
         const result = await mockClient
           .from('transaction_service_details')
           .select()
-          .eq('service_tier', 'white_glove')
-          .then(r => r, e => ({ data: null, error: e }));
-
+          .eq('service_tier', 'white_glove');
+        
+        expect(result.error).toBeTruthy();
         expect(result.error.message).toContain('Service tier restriction');
       });
     });
@@ -469,9 +469,9 @@ describe('Database Migration Tests', () => {
 
       const result = await mockClient
         .from('transactions')
-        .insert(incompleteTransaction)
-        .then(r => r, e => ({ data: null, error: e }));
-
+        .insert(incompleteTransaction);
+      
+      expect(result.error).toBeTruthy();
       expect(result.error.message).toContain('not-null constraint');
     });
 
@@ -485,9 +485,9 @@ describe('Database Migration Tests', () => {
 
       const result = await mockClient
         .from('transactions')
-        .insert(invalidStatus)
-        .then(r => r, e => ({ data: null, error: e }));
-
+        .insert(invalidStatus);
+      
+      expect(result.error).toBeTruthy();
       expect(result.error.message).toContain('invalid input value for enum');
     });
 
@@ -501,9 +501,9 @@ describe('Database Migration Tests', () => {
 
       const result = await mockClient
         .from('clients')
-        .insert(clientWithoutTransaction)
-        .then(r => r, e => ({ data: null, error: e }));
-
+        .insert(clientWithoutTransaction);
+      
+      expect(result.error).toBeTruthy();
       expect(result.error.message).toContain('foreign key constraint');
     });
 
@@ -512,9 +512,9 @@ describe('Database Migration Tests', () => {
 
       const result = await mockClient
         .from('profiles')
-        .insert({ id: 'duplicate-id', email: 'test@example.com' })
-        .then(r => r, e => ({ data: null, error: e }));
-
+        .insert({ id: 'duplicate-id', email: 'test@example.com' });
+      
+      expect(result.error).toBeTruthy();
       expect(result.error.message).toContain('duplicate key');
     });
   });

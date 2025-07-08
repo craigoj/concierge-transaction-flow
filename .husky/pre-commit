@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for code quality
+echo "📝 Checking code quality and formatting..."
+npx lint-staged
+
+# Run type checking
+echo "🔍 Running TypeScript type checking..."
+npm run type-check
+
+# Run tests (only affected by changes)
+echo "🧪 Running tests..."
+npm run test -- --run --reporter=verbose
+
+# Check for console logs in production code (warning only)
+echo "🔍 Checking for console statements..."
+if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -l 'console\.' 2>/dev/null; then
+  echo "⚠️  Warning: Console statements found in staged files. Consider removing them for production."
+  echo "   Use console.debug for development-only logs."
+fi
+
+# Check for TODO/FIXME comments
+echo "🔍 Checking for TODO/FIXME comments..."
+TODO_COUNT=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -c 'TODO\|FIXME' 2>/dev/null | wc -l)
+if [ "$TODO_COUNT" -gt 0 ]; then
+  echo "📝 Note: $TODO_COUNT TODO/FIXME comments found in staged files."
+fi
+
+# Security check for secrets
+echo "🔒 Checking for potential secrets..."
+if git diff --cached --name-only | xargs grep -l -E '(password|secret|key|token).*=' 2>/dev/null; then
+  echo "🚨 Warning: Potential secrets found in staged files. Please review."
+fi
+
+echo "✅ Pre-commit checks completed!"

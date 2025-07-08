@@ -30,7 +30,7 @@ const AppHeader = () => {
       } else {
         navigate('/auth');
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Sign Out Error",

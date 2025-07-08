@@ -111,23 +111,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('Initial session check:', session?.user?.id || 'null', error?.message || 'no error');
-      if (error) {
-        console.error('Session error:', error);
+    // Check for existing session with proper error handling
+    try {
+      if (supabase?.auth?.getSession) {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+          console.log('Initial session check:', session?.user?.id || 'null', error?.message || 'no error');
+          if (error) {
+            console.error('Session error:', error);
+            setLoading(false);
+            clearTimeout(loadingTimeout);
+            return;
+          }
+          handleSession(session).finally(() => {
+            clearTimeout(loadingTimeout);
+          });
+        }).catch((error) => {
+          console.error('Failed to get session:', error);
+          setLoading(false);
+          clearTimeout(loadingTimeout);
+        });
+      } else {
+        console.warn('Supabase client not properly initialized');
         setLoading(false);
         clearTimeout(loadingTimeout);
-        return;
       }
-      handleSession(session).finally(() => {
-        clearTimeout(loadingTimeout);
-      });
-    }).catch((error) => {
-      console.error('Failed to get session:', error);
+    } catch (error) {
+      console.error('Error accessing supabase auth:', error);
       setLoading(false);
       clearTimeout(loadingTimeout);
-    });
+    }
 
     return () => {
       subscription.unsubscribe();

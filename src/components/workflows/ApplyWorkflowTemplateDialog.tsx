@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Workflow, Calendar, Mail, CheckCircle, Filter, Clock, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { WorkflowTemplate, DueDateRule, TemplateSortOption, TemplateFilterSource, TemplateError } from '@/types/templates';
 
 interface ApplyWorkflowTemplateDialogProps {
   open: boolean;
@@ -20,24 +21,6 @@ interface ApplyWorkflowTemplateDialogProps {
   closingDate?: string;
 }
 
-interface WorkflowTemplate {
-  id: string;
-  name: string;
-  type: string;
-  description?: string;
-  is_active: boolean;
-  created_at: string;
-  template_tasks: {
-    id: string;
-    subject: string;
-    task_type?: string;
-    email_template_id?: string;
-    due_date_rule: any;
-    sort_order: number;
-    is_agent_visible: boolean;
-    is_milestone: boolean;
-  }[];
-}
 
 const ApplyWorkflowTemplateDialog = ({ 
   open, 
@@ -48,14 +31,14 @@ const ApplyWorkflowTemplateDialog = ({
 }: ApplyWorkflowTemplateDialogProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
-  const [sortBy, setSortBy] = useState<'name' | 'created_at' | 'task_count'>('name');
-  const [filterBySource, setFilterBySource] = useState<'all' | 'imported' | 'manual'>('all');
+  const [sortBy, setSortBy] = useState<TemplateSortOption>('name');
+  const [filterBySource, setFilterBySource] = useState<TemplateFilterSource>('all');
   const queryClient = useQueryClient();
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['workflow-templates-active', transactionType],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from('workflow_templates')
         .select(`
           *,
@@ -97,7 +80,7 @@ const ApplyWorkflowTemplateDialog = ({
       onOpenChange(false);
       setSelectedTemplate(null);
     },
-    onError: (error: any) => {
+    onError: (error: TemplateError) => {
       console.error('Error applying template:', error);
       toast.error('Failed to apply workflow template');
     },
@@ -107,7 +90,7 @@ const ApplyWorkflowTemplateDialog = ({
   const filteredAndSortedTemplates = React.useMemo(() => {
     if (!templates) return [];
 
-    let filtered = templates.filter(template => {
+    const filtered = templates.filter(template => {
       const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            template.description?.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -157,7 +140,7 @@ const ApplyWorkflowTemplateDialog = ({
     }
   };
 
-  const formatDueDateRule = (rule: any) => {
+  const formatDueDateRule = (rule: DueDateRule) => {
     if (!rule || rule.type === 'no_due_date') return 'No due date';
     
     if (rule.type === 'days_from_event') {
@@ -223,7 +206,7 @@ const ApplyWorkflowTemplateDialog = ({
               />
             </div>
             
-            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+            <Select value={sortBy} onValueChange={(value: TemplateSortOption) => setSortBy(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -234,7 +217,7 @@ const ApplyWorkflowTemplateDialog = ({
               </SelectContent>
             </Select>
 
-            <Select value={filterBySource} onValueChange={(value: any) => setFilterBySource(value)}>
+            <Select value={filterBySource} onValueChange={(value: TemplateFilterSource) => setFilterBySource(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>

@@ -23,11 +23,21 @@ interface Vendor {
   notes: string;
 }
 
+interface VendorPreferencesData {
+  titleCompany?: Vendor;
+  homeInspector?: Vendor;
+  termiteInspector?: Vendor;
+  lender?: Vendor;
+  photographer?: Vendor;
+  stagingCompany?: Vendor;
+  otherVendors?: Vendor[];
+}
+
 interface VendorPreferencesStepProps {
   onNext: () => void;
   onPrevious: () => void;
-  onSubmit: (data: any) => void;
-  initialData?: any;
+  onSubmit: (data: VendorPreferencesData) => void;
+  initialData?: VendorPreferencesData;
 }
 
 const VendorPreferencesStep: React.FC<VendorPreferencesStepProps> = ({ 
@@ -115,7 +125,7 @@ const VendorPreferencesStep: React.FC<VendorPreferencesStepProps> = ({
     setOtherVendors(newVendors);
   };
 
-  const handleOtherVendorChange = (index: number, field: string, value: string) => {
+  const handleOtherVendorChange = (index: number, field: keyof Vendor, value: string) => {
     const newVendors = [...otherVendors];
     newVendors[index][field] = value;
     setOtherVendors(newVendors);

@@ -40,8 +40,8 @@ export const AgentCreationTest = () => {
       }
 
       setAuthResult(`✅ Authentication successful! User: ${profile.first_name} ${profile.last_name} (${profile.email}) - Role: ${profile.role}`);
-    } catch (error: any) {
-      setAuthResult(`❌ Authentication failed: ${error.message}`);
+    } catch (error: unknown) {
+      setAuthResult(`❌ Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTestingAuth(false);
     }
@@ -77,7 +77,7 @@ export const AgentCreationTest = () => {
 
       if (error) {
         setDetailedError(`Function invocation error: ${JSON.stringify(error, null, 2)}`);
-        throw new Error(`Function error: ${error.message}`);
+        throw new Error(`Function error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
       if (!response) {
@@ -91,8 +91,8 @@ export const AgentCreationTest = () => {
       }
 
       setFunctionResult(`✅ Function test successful! Agent created: ${response.data?.email} (ID: ${response.data?.agent_id})`);
-    } catch (error: any) {
-      setFunctionResult(`❌ Function test failed: ${error.message}`);
+    } catch (error: unknown) {
+      setFunctionResult(`❌ Function test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTestingFunction(false);
     }

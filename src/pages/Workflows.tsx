@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Play, Pause, Zap, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumb from '@/components/navigation/Breadcrumb';
+import { logger } from '@/lib/logger';
 
 interface AutomationRule {
   id: string;
@@ -104,7 +105,7 @@ const Workflows = () => {
       toast.success('Rule status updated');
     },
     onError: (error) => {
-      console.error('Error updating rule:', error);
+      logger.error('Error updating automation rule', error as Error, { ruleId: undefined }, 'workflows');
       toast.error('Failed to update rule');
     }
   });
@@ -123,7 +124,7 @@ const Workflows = () => {
       toast.success('Rule deleted successfully');
     },
     onError: (error) => {
-      console.error('Error deleting rule:', error);
+      logger.error('Error deleting automation rule', error as Error, { ruleId: undefined }, 'workflows');
       toast.error('Failed to delete rule');
     }
   });
@@ -413,7 +414,7 @@ const WorkflowForm: React.FC<WorkflowFormProps> = ({ rule, onSuccess }) => {
       onSuccess();
     },
     onError: (error) => {
-      console.error('Error saving rule:', error);
+      logger.error('Error saving automation rule', error as Error, { ruleId: undefined }, 'workflows');
       toast.error('Failed to save rule');
     }
   });
