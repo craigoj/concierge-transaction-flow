@@ -8,10 +8,18 @@ import { initializeErrorHandling } from './lib/error-handling'
 import { logger } from './lib/logger'
 
 // Initialize Sentry before anything else
-initializeSentry();
+try {
+  initializeSentry();
+} catch (error) {
+  console.error('Failed to initialize Sentry:', error);
+}
 
 // Initialize centralized error handling
-initializeErrorHandling();
+try {
+  initializeErrorHandling();
+} catch (error) {
+  console.error('Failed to initialize error handling:', error);
+}
 
 // Initialize development tools in development mode
 if (import.meta.env.MODE === 'development') {
@@ -22,12 +30,20 @@ if (import.meta.env.MODE === 'development') {
 
 const container = document.getElementById("root");
 if (!container) {
+  console.error("Root element not found");
   throw new Error("Root element not found");
 }
 
+console.log("Starting app initialization...");
+
 const root = createRoot(container);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+try {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+  console.log("App rendered successfully");
+} catch (error) {
+  console.error("Failed to render app:", error);
+}
