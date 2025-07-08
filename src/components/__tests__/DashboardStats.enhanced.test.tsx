@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { renderWithProviders, mockUIComponents, mockIcons, createMockSupabaseClient } from '@/test/utils/enhanced-test-utils';
 import { DashboardStats } from '../DashboardStats';
 import transactionFixtures from '@/test/fixtures/transactions';
@@ -14,6 +15,12 @@ vi.mock('@/components/ui/card', () => mockUIComponents);
 vi.mock('@/components/ui/badge', () => ({ Badge: mockUIComponents.Badge }));
 vi.mock('@/components/ui/button', () => ({ Button: mockUIComponents.Button }));
 vi.mock('lucide-react', () => mockIcons);
+vi.mock('@vibe/icons', () => ({
+  Date: ({ className }: any) => <div data-testid="mock-date-icon" className={className} />,
+  Group: ({ className }: any) => <div data-testid="mock-group-icon" className={className} />,
+  Billing: ({ className }: any) => <div data-testid="mock-billing-icon" className={className} />,
+  Graph: ({ className }: any) => <div data-testid="mock-graph-icon" className={className} />,
+}));
 
 // Mock Supabase client
 let mockSupabaseClient: any;
@@ -41,17 +48,18 @@ describe('DashboardStats', () => {
   };
 
   const mockMetrics = {
-    totalTransactions: 15,
     activeTransactions: 8,
-    completedThisMonth: 7,
-    averageClosingTime: 18,
-    revenue: 125000,
-    pendingTasks: 12,
-    upcomingDeadlines: 3,
-    clientSatisfaction: 4.8,
+    pendingTransactions: 4,
+    closingThisWeek: 3,
+    totalClients: 15,
+    monthlyRevenue: 125000,
+    totalVolume: 2500000,
+    completionRate: 92,
+    actionRequired: 5,
+    incompleteTasks: 12,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
     mockSupabaseClient = createMockSupabaseClient({
@@ -66,8 +74,8 @@ describe('DashboardStats', () => {
     });
 
     // Mock the useDashboardMetrics hook
-    const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-    useDashboardMetrics.mockReturnValue({
+    const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+    (useDashboardMetrics as any).mockReturnValue({
       metrics: mockMetrics,
       isLoading: false,
       error: null,
@@ -79,16 +87,15 @@ describe('DashboardStats', () => {
     it('renders dashboard stats container', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
       
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getAllByTestId('mock-card')).toHaveLength(4);
     });
 
     it('displays key metrics', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
       
-      expect(screen.getByText('15')).toBeInTheDocument(); // totalTransactions
       expect(screen.getByText('8')).toBeInTheDocument(); // activeTransactions
-      expect(screen.getByText('7')).toBeInTheDocument(); // completedThisMonth
-      expect(screen.getByText('18')).toBeInTheDocument(); // averageClosingTime
+      expect(screen.getByText('15')).toBeInTheDocument(); // totalClients
+      expect(screen.getByText('92%')).toBeInTheDocument(); // completionRate
     });
 
     it('formats revenue correctly', () => {
@@ -120,9 +127,9 @@ describe('DashboardStats', () => {
       expect(card).toHaveClass(/premium/); // Should have premium styling
     });
 
-    it('renders mobile variant with optimized layout', () => {
-      const { useIsMobile } = require('@/hooks/use-mobile');
-      useIsMobile.mockReturnValue(true);
+    it('renders mobile variant with optimized layout', async () => {
+      const { useIsMobile } = await import('@/hooks/use-mobile');
+      (useIsMobile as any).mockReturnValue(true);
       
       renderWithProviders(<DashboardStats {...defaultProps} variant="mobile" />);
       
@@ -190,9 +197,9 @@ describe('DashboardStats', () => {
   });
 
   describe('Data Loading States', () => {
-    it('shows loading state', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('shows loading state', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: null,
         isLoading: true,
         error: null,
@@ -204,9 +211,9 @@ describe('DashboardStats', () => {
       expect(screen.getByText('Loading dashboard metrics...')).toBeInTheDocument();
     });
 
-    it('shows error state', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('shows error state', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: null,
         isLoading: false,
         error: new Error('Failed to load metrics'),
@@ -220,8 +227,8 @@ describe('DashboardStats', () => {
 
     it('provides retry functionality on error', async () => {
       const mockRefetch = vi.fn();
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: null,
         isLoading: false,
         error: new Error('Failed to load metrics'),
@@ -238,9 +245,9 @@ describe('DashboardStats', () => {
   });
 
   describe('Metrics Display and Formatting', () => {
-    it('formats large numbers correctly', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('formats large numbers correctly', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
           totalTransactions: 1250,
@@ -257,9 +264,9 @@ describe('DashboardStats', () => {
       expect(screen.getByText('$2,750,000')).toBeInTheDocument();
     });
 
-    it('handles zero values', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('handles zero values', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
           activeTransactions: 0,
@@ -277,9 +284,9 @@ describe('DashboardStats', () => {
       expect(screen.getByText('$0')).toBeInTheDocument();
     });
 
-    it('shows percentage changes and trends', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('shows percentage changes and trends', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
           trendsComparison: {
@@ -347,9 +354,9 @@ describe('DashboardStats', () => {
   });
 
   describe('Responsive Design', () => {
-    it('adapts layout for mobile screens', () => {
-      const { useIsMobile } = require('@/hooks/use-mobile');
-      useIsMobile.mockReturnValue(true);
+    it('adapts layout for mobile screens', async () => {
+      const { useIsMobile } = await import('@/hooks/use-mobile');
+      (useIsMobile as any).mockReturnValue(true);
       
       renderWithProviders(<DashboardStats {...defaultProps} />);
       
@@ -358,9 +365,9 @@ describe('DashboardStats', () => {
       expect(card).toHaveClass(/mobile/);
     });
 
-    it('shows full layout on desktop', () => {
-      const { useIsMobile } = require('@/hooks/use-mobile');
-      useIsMobile.mockReturnValue(false);
+    it('shows full layout on desktop', async () => {
+      const { useIsMobile } = await import('@/hooks/use-mobile');
+      (useIsMobile as any).mockReturnValue(false);
       
       renderWithProviders(<DashboardStats {...defaultProps} />);
       
@@ -406,8 +413,8 @@ describe('DashboardStats', () => {
   describe('Real-time Updates', () => {
     it('refreshes metrics periodically', async () => {
       const mockRefetch = vi.fn();
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: mockMetrics,
         isLoading: false,
         error: null,
@@ -469,9 +476,9 @@ describe('DashboardStats', () => {
       expect(screen.getByTestId('mock-card')).toBeInTheDocument();
     });
 
-    it('handles large datasets efficiently', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('handles large datasets efficiently', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
           totalTransactions: 10000,
@@ -492,9 +499,9 @@ describe('DashboardStats', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles missing metrics gracefully', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('handles missing metrics gracefully', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: {},
         isLoading: false,
         error: null,
@@ -507,9 +514,9 @@ describe('DashboardStats', () => {
       expect(screen.getByTestId('mock-card')).toBeInTheDocument();
     });
 
-    it('handles null/undefined metrics', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('handles null/undefined metrics', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: null,
         isLoading: false,
         error: null,
@@ -521,9 +528,9 @@ describe('DashboardStats', () => {
       }).not.toThrow();
     });
 
-    it('handles network connectivity issues', () => {
-      const { useDashboardMetrics } = require('@/hooks/useDashboardMetrics');
-      useDashboardMetrics.mockReturnValue({
+    it('handles network connectivity issues', async () => {
+      const { useDashboardMetrics } = await import('@/hooks/useDashboardMetrics');
+      (useDashboardMetrics as any).mockReturnValue({
         metrics: mockMetrics,
         isLoading: false,
         error: new Error('Network error'),

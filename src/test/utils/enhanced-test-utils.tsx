@@ -321,6 +321,9 @@ export const mockIcons = {
   Check: ({ className }: any) => (
     <div data-testid="mock-check-icon" className={className} />
   ),
+  CheckCircle: ({ className }: any) => (
+    <div data-testid="mock-check-circle-icon" className={className} />
+  ),
   X: ({ className }: any) => (
     <div data-testid="mock-x-icon" className={className} />
   ),
@@ -335,6 +338,69 @@ export const mockIcons = {
   ),
   Loader2: ({ className }: any) => (
     <div data-testid="mock-loader-icon" className={className} />
+  ),
+  ArrowRight: ({ className }: any) => (
+    <div data-testid="mock-arrow-right-icon" className={className} />
+  ),
+  ArrowLeft: ({ className }: any) => (
+    <div data-testid="mock-arrow-left-icon" className={className} />
+  ),
+  Search: ({ className }: any) => (
+    <div data-testid="mock-search-icon" className={className} />
+  ),
+  Filter: ({ className }: any) => (
+    <div data-testid="mock-filter-icon" className={className} />
+  ),
+  Settings: ({ className }: any) => (
+    <div data-testid="mock-settings-icon" className={className} />
+  ),
+  Home: ({ className }: any) => (
+    <div data-testid="mock-home-icon" className={className} />
+  ),
+  User: ({ className }: any) => (
+    <div data-testid="mock-user-icon" className={className} />
+  ),
+  Mail: ({ className }: any) => (
+    <div data-testid="mock-mail-icon" className={className} />
+  ),
+  Phone: ({ className }: any) => (
+    <div data-testid="mock-phone-icon" className={className} />
+  ),
+  FileText: ({ className }: any) => (
+    <div data-testid="mock-file-text-icon" className={className} />
+  ),
+  Upload: ({ className }: any) => (
+    <div data-testid="mock-upload-icon" className={className} />
+  ),
+  Download: ({ className }: any) => (
+    <div data-testid="mock-download-icon" className={className} />
+  ),
+  Eye: ({ className }: any) => (
+    <div data-testid="mock-eye-icon" className={className} />
+  ),
+  EyeOff: ({ className }: any) => (
+    <div data-testid="mock-eye-off-icon" className={className} />
+  ),
+  Bell: ({ className }: any) => (
+    <div data-testid="mock-bell-icon" className={className} />
+  ),
+  Star: ({ className }: any) => (
+    <div data-testid="mock-star-icon" className={className} />
+  ),
+  Heart: ({ className }: any) => (
+    <div data-testid="mock-heart-icon" className={className} />
+  ),
+  Info: ({ className }: any) => (
+    <div data-testid="mock-info-icon" className={className} />
+  ),
+  Warning: ({ className }: any) => (
+    <div data-testid="mock-warning-icon" className={className} />
+  ),
+  Error: ({ className }: any) => (
+    <div data-testid="mock-error-icon" className={className} />
+  ),
+  Success: ({ className }: any) => (
+    <div data-testid="mock-success-icon" className={className} />
   ),
 };
 

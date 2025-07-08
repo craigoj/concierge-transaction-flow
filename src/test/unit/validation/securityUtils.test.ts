@@ -7,6 +7,13 @@ import {
   secureFileValidation
 } from '@/lib/validation/securityUtils';
 
+// Mock DOMPurify
+vi.mock('dompurify', () => ({
+  default: {
+    sanitize: vi.fn((input: string) => input.replace(/<[^>]*>/g, ''))
+  }
+}));
+
 // Mock sessionStorage
 const mockSessionStorage = {
   getItem: vi.fn(),
