@@ -263,9 +263,7 @@ export function isHttpError(error: unknown): error is HttpError {
 
 export function isErrorWithCode(error: unknown): error is ErrorWithCode {
   return (
-    error instanceof Error &&
-    'code' in error &&
-    typeof (error as ErrorWithCode).code === 'string'
+    error instanceof Error && 'code' in error && typeof (error as ErrorWithCode).code === 'string'
   );
 }
 
@@ -295,9 +293,9 @@ export interface ValidationRule<T = unknown> {
   message?: string;
 }
 
-export interface ValidationSchema<T = Record<string, unknown>> {
+export type ValidationSchema<T = Record<string, unknown>> = {
   [K in keyof T]: ValidationRule<T[K]>;
-}
+};
 
 export type ValidationResult<T = Record<string, unknown>> = {
   isValid: boolean;
