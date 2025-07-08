@@ -282,7 +282,8 @@ ALTER TABLE public.automation_rules DROP CONSTRAINT IF EXISTS automation_rules_t
 ALTER TABLE public.automation_rules ADD CONSTRAINT automation_rules_trigger_event_check 
     CHECK (trigger_event IN (
         'task_completed', 'status_changed', 'document_signed', 'document_uploaded',
-        'offer_request_submitted', 'offer_approved', 'vendor_assigned', 'service_tier_selected'
+        'offer_request_submitted', 'offer_approved', 'vendor_assigned', 'service_tier_selected',
+        'client_created', 'contract_status_changed', 'inspection_scheduled'
     ));
 
 -- Extend workflow_executions table with Agent Concierge context
@@ -406,40 +407,32 @@ CREATE INDEX IF NOT EXISTS idx_email_templates_service_tier ON public.email_temp
 -- =============================================================================
 
 -- Insert sample automation rules for Agent Concierge workflows
-INSERT INTO public.automation_rules (id, name, trigger_event, trigger_condition, template_id, is_active, created_by, automation_category) VALUES
--- Get first coordinator for sample data
-('agent-offer-submitted-rule', 'Offer Request Submitted', 'offer_request_submitted', 
+INSERT INTO public.automation_rules (name, trigger_event, conditions, actions, is_active, automation_category) VALUES
+('Offer Request Submitted', 'offer_request_submitted', 
  '{"auto_draft": true}'::jsonb, 
- (SELECT id FROM public.email_templates WHERE name LIKE '%offer%' LIMIT 1),
+ '{"send_email": {"template": "offer_submitted"}}'::jsonb,
  true, 
- (SELECT id FROM public.profiles WHERE role = 'coordinator' LIMIT 1),
  'offer_management'),
 
-('agent-vendor-assigned-rule', 'Vendor Assignment Notification', 'vendor_assigned',
+('Vendor Assignment Notification', 'vendor_assigned',
  '{"notify_vendor": true}'::jsonb,
- (SELECT id FROM public.email_templates LIMIT 1),
+ '{"send_email": {"template": "vendor_assigned"}}'::jsonb,
  true,
- (SELECT id FROM public.profiles WHERE role = 'coordinator' LIMIT 1),
- 'vendor_coordination')
-ON CONFLICT (id) DO NOTHING;
+ 'vendor_coordination');
 
 -- Add sample email templates for Agent Concierge
-INSERT INTO public.email_templates (id, name, subject, body_html, category, template_type, service_tier_filter, created_by) VALUES
-('agent-intake-welcome', 'Agent Intake Welcome', 'Welcome to Agent Concierge Services', 
- '<h2>Welcome to Agent Concierge!</h2><p>Thank you for completing your agent intake. We''re excited to provide you with personalized service coordination.</p>',
- 'welcome', 'agent_onboarding', NULL,
- (SELECT id FROM public.profiles WHERE role = 'coordinator' LIMIT 1)),
+INSERT INTO public.email_templates (name, subject, content, template_type, service_tier) VALUES
+('Agent Intake Welcome', 'Welcome to Agent Concierge Services', 
+ 'Welcome to Agent Concierge! Thank you for completing your agent intake. We are excited to provide you with personalized service coordination.',
+ 'agent_onboarding', 'buyer_core'),
 
-('offer-request-received', 'Offer Request Received', 'Your Offer Request is Being Processed', 
- '<h2>Offer Request Received</h2><p>We''ve received your offer request for {{property_address}} and are now drafting your documents.</p>',
- 'notifications', 'offer_management', NULL,
- (SELECT id FROM public.profiles WHERE role = 'coordinator' LIMIT 1)),
+('Offer Request Received', 'Your Offer Request is Being Processed', 
+ 'We have received your offer request for {{property_address}} and are now drafting your documents.',
+ 'offer_management', 'buyer_core'),
 
-('vendor-coordination-email', 'Vendor Coordination Request', 'New Transaction Coordination Request', 
- '<h2>New Coordination Request</h2><p>You''ve been assigned to coordinate services for {{property_address}}. Please contact {{agent_name}} at {{agent_email}}.</p>',
- 'vendor_coordination', 'vendor_management', NULL,
- (SELECT id FROM public.profiles WHERE role = 'coordinator' LIMIT 1))
-ON CONFLICT (id) DO NOTHING;
+('Vendor Coordination Request', 'New Transaction Coordination Request', 
+ 'You have been assigned to coordinate services for {{property_address}}. Please contact {{agent_name}} at {{agent_email}}.',
+ 'vendor_management', 'buyer_elite');
 
 -- =============================================================================
 -- MIGRATION COMPLETE

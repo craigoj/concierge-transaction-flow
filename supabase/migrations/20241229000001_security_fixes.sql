@@ -255,45 +255,81 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- CREATE MISSING TRIGGERS (if needed)
 -- =============================================================================
 
--- Ensure updated_at triggers exist
-DROP TRIGGER IF EXISTS trigger_update_offer_requests_updated_at ON public.offer_requests;
-CREATE TRIGGER trigger_update_offer_requests_updated_at
-    BEFORE UPDATE ON public.offer_requests
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_offer_requests_updated_at();
+-- Ensure updated_at triggers exist (only if tables exist)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'offer_requests' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_update_offer_requests_updated_at ON public.offer_requests;
+    END IF;
+END $$;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'offer_requests' AND table_schema = 'public') THEN
+        CREATE TRIGGER trigger_update_offer_requests_updated_at
+            BEFORE UPDATE ON public.offer_requests
+            FOR EACH ROW
+            EXECUTE FUNCTION public.update_offer_requests_updated_at();
+    END IF;
+END $$;
 
-DROP TRIGGER IF EXISTS trigger_update_transaction_service_details_updated_at ON public.transaction_service_details;
-CREATE TRIGGER trigger_update_transaction_service_details_updated_at
-    BEFORE UPDATE ON public.transaction_service_details
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_transaction_service_details_updated_at();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transaction_service_details' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_update_transaction_service_details_updated_at ON public.transaction_service_details;
+    END IF;
+END $$;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transaction_service_details' AND table_schema = 'public') THEN
+        CREATE TRIGGER trigger_update_transaction_service_details_updated_at
+            BEFORE UPDATE ON public.transaction_service_details
+            FOR EACH ROW
+            EXECUTE FUNCTION public.update_transaction_service_details_updated_at();
+    END IF;
+END $$;
 
 -- Ensure validation triggers exist
-DROP TRIGGER IF EXISTS trigger_validate_offer_request_date ON public.offer_requests;
-CREATE TRIGGER trigger_validate_offer_request_date
-    BEFORE INSERT OR UPDATE ON public.offer_requests
-    FOR EACH ROW
-    EXECUTE FUNCTION public.validate_offer_request_date();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'offer_requests' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_validate_offer_request_date ON public.offer_requests;
+    END IF;
+END $$;
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'offer_requests' AND table_schema = 'public') THEN
+        CREATE TRIGGER trigger_validate_offer_request_date
+            BEFORE INSERT OR UPDATE ON public.offer_requests
+            FOR EACH ROW
+            EXECUTE FUNCTION public.validate_offer_request_date();
+    END IF;
+END $$;
 
 -- Ensure completion triggers exist
-DROP TRIGGER IF EXISTS trigger_handle_intake_completion ON public.agent_intake_sessions;
-CREATE TRIGGER trigger_handle_intake_completion
-    AFTER UPDATE ON public.agent_intake_sessions
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_intake_completion();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'agent_intake_sessions' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_handle_intake_completion ON public.agent_intake_sessions;
+        CREATE TRIGGER trigger_handle_intake_completion
+            AFTER UPDATE ON public.agent_intake_sessions
+            FOR EACH ROW
+            EXECUTE FUNCTION public.handle_intake_completion();
+    END IF;
+END $$;
 
-DROP TRIGGER IF EXISTS trigger_handle_task_completion ON public.tasks;
-CREATE TRIGGER trigger_handle_task_completion
-    AFTER UPDATE ON public.tasks
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_task_completion();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_handle_task_completion ON public.tasks;
+        CREATE TRIGGER trigger_handle_task_completion
+            AFTER UPDATE ON public.tasks
+            FOR EACH ROW
+            EXECUTE FUNCTION public.handle_task_completion();
+    END IF;
+END $$;
 
 -- Ensure new user trigger exists
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users' AND table_schema = 'auth') THEN
+        DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+        CREATE TRIGGER on_auth_user_created
+            AFTER INSERT ON auth.users
+            FOR EACH ROW
+            EXECUTE FUNCTION public.handle_new_user();
+    END IF;
+END $$;
 
 -- =============================================================================
 -- SECURITY IMPROVEMENTS
