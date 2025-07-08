@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 export type TransactionWithRelations = Database['public']['Tables']['transactions']['Row'] & {
-  clients: Database['public']['Tables']['clients']['Row'][] | null;
+  properties: Database['public']['Tables']['properties']['Row'] | null;
+  transaction_clients: Database['public']['Tables']['transaction_clients']['Row'][] | null;
   tasks: Database['public']['Tables']['tasks']['Row'][] | null;
 };
 
@@ -21,29 +21,36 @@ interface EnhancedTransactionListProps {
 }
 
 export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = ({
-  className = ''
+  className = '',
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Fetch all transactions
-  const { data: transactions = [], isLoading, refetch } = useQuery({
+  const {
+    data: transactions = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['transactions-enhanced'],
     queryFn: async (): Promise<TransactionWithRelations[]> => {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
+        .select(
+          `
           *,
-          clients (*),
+          properties (*),
+          transaction_clients (*),
           tasks (*)
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       if (error) {
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load transactions",
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load transactions',
         });
         throw error;
       }
@@ -59,7 +66,7 @@ export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = (
     savedFilters,
     saveFilter,
     loadFilter,
-    filterStats
+    filterStats,
   } = useTransactionFilters(transactions);
 
   const handleTransactionClick = (id: string) => {
@@ -88,16 +95,16 @@ export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
-                  Showing <strong>{filterStats.filtered}</strong> of <strong>{filterStats.total}</strong> transactions
+                  Showing <strong>{filterStats.filtered}</strong> of{' '}
+                  <strong>{filterStats.total}</strong> transactions
                 </span>
                 {filterStats.hidden > 0 && (
-                  <Badge variant="outline">
-                    {filterStats.hidden} hidden by filters
-                  </Badge>
+                  <Badge variant="outline">{filterStats.hidden} hidden by filters</Badge>
                 )}
               </div>
               <Badge variant="secondary">
-                {filterStats.activeFilterCount} filter{filterStats.activeFilterCount !== 1 ? 's' : ''} active
+                {filterStats.activeFilterCount} filter
+                {filterStats.activeFilterCount !== 1 ? 's' : ''} active
               </Badge>
             </div>
           </CardContent>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,24 +18,18 @@ interface TransactionListWithBulkProps {
   onSuccess?: () => void;
 }
 
-export const TransactionListWithBulk = ({ 
-  transactions, 
-  isLoading, 
+export const TransactionListWithBulk = ({
+  transactions,
+  isLoading,
   onTransactionClick,
   enableBulkActions = true,
-  onSuccess
+  onSuccess,
 }: TransactionListWithBulkProps) => {
   const isMobile = useIsMobile();
-  const {
-    selectedIds,
-    toggleSelection,
-    toggleAll,
-    clearSelection,
-    isSelected,
-    isAllSelected,
-  } = useBulkSelection();
+  const { selectedIds, toggleSelection, toggleAll, clearSelection, isSelected, isAllSelected } =
+    useBulkSelection();
 
-  const transactionIds = transactions.map(t => t.id);
+  const transactionIds = transactions.map((t) => t.id);
 
   const handleSuccess = () => {
     if (onSuccess) {
@@ -46,11 +39,15 @@ export const TransactionListWithBulk = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'intake':
+      case 'pending':
         return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'active':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'closed':
+      case 'under_contract':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'closing':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'completed':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -61,15 +58,17 @@ export const TransactionListWithBulk = ({
 
   const getServiceTierDisplay = (tier: string | null) => {
     if (!tier) return 'Standard';
-    return tier.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return tier.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   if (isLoading) {
     return (
-      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+      <div
+        className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}
+      >
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className={isMobile ? "h-32" : "h-80"}>
-            <CardHeader className={isMobile ? "pb-2" : ""}>
+          <Card key={i} className={isMobile ? 'h-32' : 'h-80'}>
+            <CardHeader className={isMobile ? 'pb-2' : ''}>
               <Skeleton className="h-6 w-3/4" />
               <div className="flex gap-2">
                 <Skeleton className="h-6 w-16" />
@@ -121,23 +120,25 @@ export const TransactionListWithBulk = ({
             Select All ({transactions.length} transactions)
           </span>
           {selectedIds.length > 0 && (
-            <Badge variant="secondary">
-              {selectedIds.length} selected
-            </Badge>
+            <Badge variant="secondary">{selectedIds.length} selected</Badge>
           )}
         </div>
       )}
 
       {/* Transaction Grid */}
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+      <div
+        className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}
+      >
         {transactions.map((transaction) => {
-          const completedTasks = transaction.tasks?.filter(task => task.is_completed).length || 0;
+          const completedTasks = transaction.tasks?.filter((task) => task.completed_at).length || 0;
           const totalTasks = transaction.tasks?.length || 0;
-          const primaryClient = transaction.clients?.[0];
+          const primaryClient = transaction.transaction_clients?.find(
+            (client) => client.client_type === 'primary'
+          );
 
           return (
-            <Card 
-              key={transaction.id} 
+            <Card
+              key={transaction.id}
               className={`hover:shadow-brand-elevation transition-all duration-300 cursor-pointer group ${
                 isSelected(transaction.id) ? 'ring-2 ring-brand-charcoal' : ''
               }`}
@@ -153,62 +154,78 @@ export const TransactionListWithBulk = ({
                       />
                     )}
                     <CardTitle className="text-lg font-brand-heading tracking-wide text-brand-charcoal line-clamp-2 uppercase">
-                      {transaction.property_address}
+                      {transaction.properties?.address_street || 'Unknown Address'}
                     </CardTitle>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Badge className={`${getStatusColor(transaction.status)} font-brand-heading tracking-wide text-xs px-3 py-1 border`}>
-                    {transaction.status.toUpperCase()}
+                  <Badge
+                    className={`${getStatusColor(transaction.status || 'pending')} font-brand-heading tracking-wide text-xs px-3 py-1 border`}
+                  >
+                    {(transaction.status || 'pending').toUpperCase()}
                   </Badge>
-                  {transaction.transaction_type && (
-                    <Badge variant="outline" className="font-brand-heading tracking-wide text-xs px-3 py-1">
-                      {transaction.transaction_type.toUpperCase()}
+                  {transaction.transaction_type_enum && (
+                    <Badge
+                      variant="outline"
+                      className="font-brand-heading tracking-wide text-xs px-3 py-1"
+                    >
+                      {transaction.transaction_type_enum.toUpperCase()}
                     </Badge>
                   )}
                   {transaction.service_tier && (
-                    <Badge variant="secondary" className="font-brand-heading tracking-wide text-xs px-3 py-1">
+                    <Badge
+                      variant="secondary"
+                      className="font-brand-heading tracking-wide text-xs px-3 py-1"
+                    >
                       {getServiceTierDisplay(transaction.service_tier)}
                     </Badge>
                   )}
                 </div>
               </CardHeader>
-              
-              <CardContent 
+
+              <CardContent
                 className="pt-0 space-y-4"
                 onClick={() => onTransactionClick(transaction.id)}
               >
                 <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
                   <MapPin className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
                   <span className="truncate">
-                    {transaction.city}, {transaction.state} {transaction.zip_code}
+                    {transaction.properties?.address_city}, {transaction.properties?.address_state}{' '}
+                    {transaction.properties?.address_zip}
                   </span>
                 </div>
 
                 {primaryClient && (
                   <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
                     <User className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
-                    <span className="truncate">{primaryClient.full_name}</span>
+                    <span className="truncate">
+                      {primaryClient.first_name} {primaryClient.last_name}
+                    </span>
                   </div>
                 )}
 
-                {transaction.closing_date && (
+                {transaction.expected_closing_date && (
                   <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
                     <Calendar className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
-                    <span>Closes {new Date(transaction.closing_date).toLocaleDateString()}</span>
+                    <span>
+                      Expected Close:{' '}
+                      {new Date(transaction.expected_closing_date).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
 
                 {totalTasks > 0 && (
                   <div className="flex items-center text-sm text-brand-charcoal/70 font-brand-body">
                     <CheckCircle className="w-4 h-4 mr-3 flex-shrink-0 text-brand-taupe" />
-                    <span>Tasks: {completedTasks}/{totalTasks} completed</span>
+                    <span>
+                      Tasks: {completedTasks}/{totalTasks} completed
+                    </span>
                   </div>
                 )}
 
                 <div className="pt-4">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="w-full font-brand-heading tracking-wide"
                     onClick={(e) => {
                       e.stopPropagation();
