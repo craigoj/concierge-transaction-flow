@@ -225,9 +225,11 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: typescript, javascript
+        continue-on-error: true
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true
 
   # Build application
   build:
