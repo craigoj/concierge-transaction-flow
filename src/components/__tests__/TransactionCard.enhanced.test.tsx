@@ -47,7 +47,7 @@ describe('TransactionCard', () => {
     it('renders transaction card with basic information', () => {
       renderWithProviders(<TransactionCard {...defaultProps} />);
 
-      expect(screen.getByRole('article')).toBeInTheDocument();
+      expect(screen.getByTestId(/mock-card-\d+/)).toBeInTheDocument();
       expect(screen.getByText('123 Oak Street')).toBeInTheDocument();
       expect(screen.getByText('$450,000')).toBeInTheDocument();
     });
@@ -311,7 +311,7 @@ describe('TransactionCard', () => {
       const mockClick = vi.fn();
       renderWithProviders(<TransactionCard {...defaultProps} onClick={mockClick} />);
 
-      const card = screen.getByTestId('mock-card');
+      const card = screen.getByTestId(/mock-card-\d+/);
       fireEvent.click(card);
 
       expect(mockClick).toHaveBeenCalledWith(defaultProps.transaction);
@@ -321,7 +321,7 @@ describe('TransactionCard', () => {
       const mockClick = vi.fn();
       renderWithProviders(<TransactionCard {...defaultProps} onClick={mockClick} />);
 
-      const card = screen.getByTestId('mock-card');
+      const card = screen.getByTestId(/mock-card-\d+/);
       fireEvent.keyDown(card, { key: 'Enter' });
 
       // Should handle Enter key for accessibility
@@ -331,7 +331,7 @@ describe('TransactionCard', () => {
     it('shows action buttons when hovering (if applicable)', async () => {
       renderWithProviders(<TransactionCard {...defaultProps} />);
 
-      const card = screen.getByTestId('mock-card');
+      const card = screen.getByTestId(/mock-card-\d+/);
       fireEvent.mouseEnter(card);
 
       // Action buttons might appear on hover
@@ -410,7 +410,7 @@ describe('TransactionCard', () => {
       const mockClick = vi.fn();
       renderWithProviders(<TransactionCard {...defaultProps} onClick={mockClick} />);
 
-      const card = screen.getByTestId('mock-card');
+      const card = screen.getByTestId(/mock-card-\d+/);
 
       // Should be accessible via keyboard
       expect(card).toHaveAttribute('tabIndex', '0');
@@ -430,7 +430,7 @@ describe('TransactionCard', () => {
       const mockClick = vi.fn();
       renderWithProviders(<TransactionCard {...defaultProps} onClick={mockClick} />);
 
-      const card = screen.getByTestId('mock-card');
+      const card = screen.getByTestId(/mock-card-\d+/);
 
       // Check that the card has the right attributes for focus
       expect(card).toHaveAttribute('tabIndex', '0');
@@ -449,14 +449,14 @@ describe('TransactionCard', () => {
       // Test mobile-specific rendering
       renderWithProviders(<TransactionCard {...defaultProps} variant="mobile" />);
 
-      expect(screen.getByRole('article')).toBeInTheDocument();
+      expect(screen.getByTestId(/mock-card-\d+/)).toBeInTheDocument();
       // Mobile variant might have different layout
     });
 
     it('adapts to desktop viewport', () => {
       renderWithProviders(<TransactionCard {...defaultProps} variant="default" />);
 
-      expect(screen.getByRole('article')).toBeInTheDocument();
+      expect(screen.getByTestId(/mock-card-\d+/)).toBeInTheDocument();
     });
   });
 
@@ -493,7 +493,7 @@ describe('TransactionCard', () => {
       }
 
       // Should handle rapid updates without issues
-      expect(screen.getByRole('article')).toBeInTheDocument();
+      expect(screen.getByTestId(/mock-card-\d+/)).toBeInTheDocument();
     });
   });
 });
