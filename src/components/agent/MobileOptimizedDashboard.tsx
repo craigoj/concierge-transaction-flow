@@ -10,11 +10,9 @@ import {
   Calendar,
   CheckSquare,
   MessageCircle,
-  Bell,
   Menu,
   Phone,
   Mail,
-  MapPin,
   Clock,
   AlertCircle,
   TrendingUp,
@@ -45,7 +43,6 @@ interface MobileOptimizedDashboardProps {
 const MobileOptimizedDashboard = ({
   transactions = [],
   tasks = [],
-  notifications = [],
 }: MobileOptimizedDashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);

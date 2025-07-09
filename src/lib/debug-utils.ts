@@ -2,6 +2,7 @@
  * Enhanced Debugging Utilities for Concierge Transaction Flow
  * Provides comprehensive debugging tools for development
  */
+import { useEffect, useRef } from 'react';
 
 interface DebugConfig {
   enabled: boolean;
@@ -34,10 +35,11 @@ class DebugUtility {
 
   private constructor() {
     this.config = {
-      enabled: import.meta.env.VITE_ENABLE_DEBUG === 'true' || import.meta.env.MODE === 'development',
+      enabled:
+        import.meta.env.VITE_ENABLE_DEBUG === 'true' || import.meta.env.MODE === 'development',
       level: 'debug',
       categories: ['all'],
-      persist: false
+      persist: false,
     };
 
     this.initializeDebugPanel();
@@ -72,7 +74,7 @@ class DebugUtility {
       message,
       data,
       category,
-      stack: new Error().stack
+      stack: new Error().stack,
     };
 
     // Add to history
@@ -84,7 +86,7 @@ class DebugUtility {
     // Console output with styling
     const style = this.getLogStyle(level);
     const prefix = `[${timestamp}] [${level.toUpperCase()}] [${category}]`;
-    
+
     if (data) {
       console.groupCollapsed(`%c${prefix} ${message}`, style);
       console.log('Data:', data);
@@ -107,7 +109,7 @@ class DebugUtility {
     const entry: PerformanceEntry = {
       name,
       startTime: performance.now(),
-      metadata
+      metadata,
     };
     this.performanceEntries.set(name, entry);
     this.log('debug', `Started timer: ${name}`, metadata, 'performance');
@@ -123,10 +125,15 @@ class DebugUtility {
     entry.endTime = performance.now();
     entry.duration = entry.endTime - entry.startTime;
 
-    this.log('info', `Timer completed: ${name}`, {
-      duration: entry.duration,
-      ...entry.metadata
-    }, 'performance');
+    this.log(
+      'info',
+      `Timer completed: ${name}`,
+      {
+        duration: entry.duration,
+        ...entry.metadata,
+      },
+      'performance'
+    );
 
     return entry.duration;
   }
@@ -135,11 +142,16 @@ class DebugUtility {
    * Component debugging utilities
    */
   public logComponentRender(componentName: string, props?: unknown, state?: unknown): void {
-    this.log('debug', `Component render: ${componentName}`, {
-      props,
-      state,
-      timestamp: Date.now()
-    }, 'react');
+    this.log(
+      'debug',
+      `Component render: ${componentName}`,
+      {
+        props,
+        state,
+        timestamp: Date.now(),
+      },
+      'react'
+    );
   }
 
   public logComponentLifecycle(componentName: string, lifecycle: string, data?: unknown): void {
@@ -150,74 +162,115 @@ class DebugUtility {
    * API debugging utilities
    */
   public logApiRequest(method: string, url: string, data?: unknown): void {
-    this.log('info', `API Request: ${method} ${url}`, {
-      method,
-      url,
-      data,
-      timestamp: Date.now()
-    }, 'api');
+    this.log(
+      'info',
+      `API Request: ${method} ${url}`,
+      {
+        method,
+        url,
+        data,
+        timestamp: Date.now(),
+      },
+      'api'
+    );
   }
 
-  public logApiResponse(method: string, url: string, status: number, data?: unknown, duration?: number): void {
+  public logApiResponse(
+    method: string,
+    url: string,
+    status: number,
+    data?: unknown,
+    duration?: number
+  ): void {
     const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info';
-    this.log(level, `API Response: ${method} ${url} - ${status}`, {
-      method,
-      url,
-      status,
-      data,
-      duration,
-      timestamp: Date.now()
-    }, 'api');
+    this.log(
+      level,
+      `API Response: ${method} ${url} - ${status}`,
+      {
+        method,
+        url,
+        status,
+        data,
+        duration,
+        timestamp: Date.now(),
+      },
+      'api'
+    );
   }
 
   /**
    * Database debugging utilities
    */
   public logDatabaseQuery(operation: string, table: string, query?: unknown): void {
-    this.log('debug', `DB Query: ${operation} on ${table}`, {
-      operation,
-      table,
-      query,
-      timestamp: Date.now()
-    }, 'database');
+    this.log(
+      'debug',
+      `DB Query: ${operation} on ${table}`,
+      {
+        operation,
+        table,
+        query,
+        timestamp: Date.now(),
+      },
+      'database'
+    );
   }
 
-  public logDatabaseResult(operation: string, table: string, result: unknown, duration?: number): void {
-    this.log('info', `DB Result: ${operation} on ${table}`, {
-      operation,
-      table,
-      result: Array.isArray(result) ? `${result.length} rows` : result,
-      duration,
-      timestamp: Date.now()
-    }, 'database');
+  public logDatabaseResult(
+    operation: string,
+    table: string,
+    result: unknown,
+    duration?: number
+  ): void {
+    this.log(
+      'info',
+      `DB Result: ${operation} on ${table}`,
+      {
+        operation,
+        table,
+        result: Array.isArray(result) ? `${result.length} rows` : result,
+        duration,
+        timestamp: Date.now(),
+      },
+      'database'
+    );
   }
 
   /**
    * State debugging utilities
    */
   public logStateChange(component: string, oldState: unknown, newState: unknown): void {
-    this.log('debug', `State change: ${component}`, {
-      component,
-      oldState,
-      newState,
-      diff: this.getStateDiff(oldState, newState),
-      timestamp: Date.now()
-    }, 'state');
+    this.log(
+      'debug',
+      `State change: ${component}`,
+      {
+        component,
+        oldState,
+        newState,
+        diff: this.getStateDiff(oldState, newState),
+        timestamp: Date.now(),
+      },
+      'state'
+    );
   }
 
   /**
    * Error debugging utilities
    */
   public logError(error: Error, context?: unknown): void {
-    this.log('error', `Error: ${error.message}`, {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+    this.log(
+      'error',
+      `Error: ${error.message}`,
+      {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+        context,
+        timestamp: Date.now(),
       },
-      context,
-      timestamp: Date.now()
-    }, 'error');
+      'error'
+    );
   }
 
   /**
@@ -225,13 +278,22 @@ class DebugUtility {
    */
   public logMemoryUsage(): void {
     if ('memory' in performance) {
-      const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-      this.log('info', 'Memory Usage', {
-        used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
-        total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
-        limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
-        unit: 'MB'
-      }, 'performance');
+      const memory = (
+        performance as {
+          memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+        }
+      ).memory;
+      this.log(
+        'info',
+        'Memory Usage',
+        {
+          used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+          total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+          limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
+          unit: 'MB',
+        },
+        'performance'
+      );
     }
   }
 
@@ -239,12 +301,17 @@ class DebugUtility {
    * Network debugging utilities
    */
   public logNetworkRequest(url: string, options?: RequestInit): void {
-    this.log('debug', `Network Request: ${url}`, {
-      url,
-      method: options?.method || 'GET',
-      headers: options?.headers,
-      timestamp: Date.now()
-    }, 'network');
+    this.log(
+      'debug',
+      `Network Request: ${url}`,
+      {
+        url,
+        method: options?.method || 'GET',
+        headers: options?.headers,
+        timestamp: Date.now(),
+      },
+      'network'
+    );
   }
 
   /**
@@ -290,7 +357,10 @@ class DebugUtility {
       console.log('Element:', element);
       console.log('Styles:', getComputedStyle(element));
       console.log('Attributes:', Array.from(element.attributes));
-      console.log('Event listeners:', (element as Element & { getEventListeners?: () => unknown }).getEventListeners?.());
+      console.log(
+        'Event listeners:',
+        (element as Element & { getEventListeners?: () => unknown }).getEventListeners?.()
+      );
     } else {
       console.warn(`Element not found: ${selector}`);
     }
@@ -301,10 +371,15 @@ class DebugUtility {
       const observer = new PerformanceObserver((list) => {
         list.getEntries().forEach((entry) => {
           if (entry.entryType === 'layout-shift') {
-            this.log('warn', 'Layout Shift detected', {
-              value: (entry as PerformanceEntry & { value?: number }).value,
-              sources: (entry as PerformanceEntry & { sources?: unknown }).sources
-            }, 'performance');
+            this.log(
+              'warn',
+              'Layout Shift detected',
+              {
+                value: (entry as PerformanceEntry & { value?: number }).value,
+                sources: (entry as PerformanceEntry & { sources?: unknown }).sources,
+              },
+              'performance'
+            );
           }
         });
       });
@@ -322,31 +397,46 @@ class DebugUtility {
       warn: 'color: #ffaa00; font-weight: bold;',
       info: 'color: #0088ff; font-weight: bold;',
       debug: 'color: #888888;',
-      trace: 'color: #cccccc;'
+      trace: 'color: #cccccc;',
     };
     return styles[level as keyof typeof styles] || styles.debug;
   }
 
-  private persistLog(logEntry: { timestamp: string; level: string; message: string; data?: unknown; category: string; stack?: string }): void {
+  private persistLog(logEntry: {
+    timestamp: string;
+    level: string;
+    message: string;
+    data?: unknown;
+    category: string;
+    stack?: string;
+  }): void {
     try {
       const existingLogs = JSON.parse(localStorage.getItem('debug-logs') || '[]');
       existingLogs.push(logEntry);
-      
+
       // Keep only last 100 entries in localStorage
       if (existingLogs.length > 100) {
         existingLogs.splice(0, existingLogs.length - 100);
       }
-      
+
       localStorage.setItem('debug-logs', JSON.stringify(existingLogs));
     } catch (error) {
       console.warn('Failed to persist debug log:', error);
     }
   }
 
-  private getStateDiff(oldState: unknown, newState: unknown): Record<string, { old: unknown; new: unknown }> {
+  private getStateDiff(
+    oldState: unknown,
+    newState: unknown
+  ): Record<string, { old: unknown; new: unknown }> {
     const diff: Record<string, { old: unknown; new: unknown }> = {};
-    
-    if (typeof oldState !== 'object' || typeof newState !== 'object' || oldState === null || newState === null) {
+
+    if (
+      typeof oldState !== 'object' ||
+      typeof newState !== 'object' ||
+      oldState === null ||
+      newState === null
+    ) {
       return { root: { old: oldState, new: newState } };
     }
 
@@ -418,14 +508,14 @@ class DebugUtility {
       this.logError(event.error, {
         filename: event.filename,
         lineno: event.lineno,
-        colno: event.colno
+        colno: event.colno,
       });
     });
 
     // Capture unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
       this.logError(new Error(event.reason), {
-        type: 'unhandled_promise_rejection'
+        type: 'unhandled_promise_rejection',
       });
     });
   }
@@ -436,24 +526,24 @@ export const debugUtils = DebugUtility.getInstance();
 
 // React debugging hooks
 export const useDebugRender = (componentName: string, props?: unknown) => {
-  if (import.meta.env.MODE === 'development') {
-    React.useEffect(() => {
+  useEffect(() => {
+    if (import.meta.env.MODE === 'development') {
       debugUtils.logComponentRender(componentName, props);
-    });
-  }
+    }
+  }, [componentName, props]);
 };
 
 export const useDebugState = <T>(componentName: string, state: T) => {
-  const prevState = React.useRef<T>(state);
-  
-  if (import.meta.env.MODE === 'development') {
-    React.useEffect(() => {
+  const prevState = useRef<T>(state);
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'development') {
       if (prevState.current !== state) {
         debugUtils.logStateChange(componentName, prevState.current, state);
         prevState.current = state;
       }
-    }, [state]);
-  }
+    }
+  }, [state, componentName]);
 };
 
 // Performance debugging utilities
@@ -481,7 +571,7 @@ export const debugFetch = async (url: string, options?: RequestInit): Promise<Re
 
   try {
     const response = await fetch(url, options);
-    
+
     if (import.meta.env.MODE === 'development') {
       const duration = debugUtils.endTimer(`fetch-${url}`);
       debugUtils.logApiResponse(

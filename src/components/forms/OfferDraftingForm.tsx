@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { documentGenerator } from '@/lib/document-generation/document-generator';
+import { initializeStorage } from '@/lib/storage/initialize-storage';
 import { PropertyDetailsStep } from './offer-steps/PropertyDetailsStep';
 import { OfferTermsStep } from './offer-steps/OfferTermsStep';
 import { FinancingDetailsStep } from './offer-steps/FinancingDetailsStep';
@@ -21,14 +23,14 @@ export interface OfferFormData {
   property_type: string;
   lot_size: string;
   square_footage: string;
-  
+
   // Offer Terms
   offer_price: string;
   earnest_money_amount: string;
   down_payment_percentage: string;
   financing_type: string;
   closing_date_preference: string;
-  
+
   // Financing Details (keep existing names for database compatibility)
   purchase_price: string;
   emd_amount: string;
@@ -38,14 +40,14 @@ export interface OfferFormData {
   lending_company: string;
   settlement_company: string;
   closing_cost_assistance: string;
-  
+
   // Contingencies
   inspection_period_days: string;
   appraisal_contingency: boolean;
   financing_contingency: boolean;
   sale_contingency: boolean;
   other_contingencies: string;
-  
+
   // Additional Terms
   personal_property_included: string;
   seller_concessions_requested: string;
@@ -107,7 +109,7 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
   const { user } = useAuth();
 
   const updateFormData = (updates: Partial<OfferFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   // Auto-save functionality
@@ -143,13 +145,13 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
 
   const handleNext = () => {
     if (currentStep < steps.length) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
     }
   };
 
@@ -158,6 +160,9 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
 
     setLoading(true);
     try {
+      // Initialize storage if needed
+      await initializeStorage();
+
       const offerData = {
         transaction_id: transactionId,
         agent_id: user.id,
@@ -180,27 +185,95 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
         inspection_contingency_days: parseInt(formData.inspection_period_days) || 0,
         appraisal_contingency_days: formData.appraisal_contingency ? 30 : 0,
         settlement_date_contingency_days: 0,
-        status: 'pending'
+        status: 'pending',
       };
 
-      const { error } = await supabase
-        .from('offer_requests')
-        .insert(offerData);
+      const { error } = await supabase.from('offer_requests').insert(offerData);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Offer request submitted successfully",
-      });
+      // Generate PDF document from offer data
+      try {
+        // Find the Offer Letter template
+        const { data: templates, error: templateError } = await supabase
+          .from('document_templates')
+          .select('*')
+          .eq('type', 'offer_letter')
+          .eq('is_active', true)
+          .limit(1);
+
+        if (templateError) {
+          console.error('Error fetching template:', templateError);
+        } else if (templates && templates.length > 0) {
+          const template = templates[0];
+
+          // Map form data to template variables
+          const templateVariables = {
+            offer_date: new Date().toLocaleDateString(),
+            seller_name: 'Seller Name', // This would come from listing data
+            buyer_name: formData.buyer_names,
+            property_address: formData.property_address,
+            offer_price: formData.offer_price || formData.purchase_price,
+            earnest_money: formData.earnest_money_amount || formData.emd_amount,
+            down_payment: formData.down_payment_percentage
+              ? `${formData.down_payment_percentage}%`
+              : '',
+            financing_type: formData.financing_type || formData.loan_type,
+            closing_date: formData.closing_date_preference || formData.projected_closing_date,
+            inspection_period: formData.inspection_period_days,
+            financing_contingency: formData.financing_contingency ? '30' : '0',
+            additional_terms: formData.special_terms || 'None',
+            offer_expiration: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(), // 7 days from now
+            buyer_contact: 'Contact information', // This would come from user profile
+          };
+
+          // Generate the document
+          const generateResult = await documentGenerator.generateDocument({
+            templateId: template.id,
+            transactionId: transactionId,
+            variables: templateVariables,
+            fileName: `offer_letter_${formData.property_address.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+            metadata: {
+              offerType: 'offer_letter',
+              propertyAddress: formData.property_address,
+              buyerName: formData.buyer_names,
+            },
+          });
+
+          if (generateResult.success) {
+            toast({
+              title: 'Success',
+              description: 'Offer request submitted and PDF generated successfully',
+            });
+          } else {
+            console.error('Document generation failed:', generateResult.error);
+            toast({
+              title: 'Offer Submitted',
+              description: 'Offer request submitted successfully, but PDF generation failed',
+            });
+          }
+        } else {
+          toast({
+            title: 'Offer Submitted',
+            description:
+              'Offer request submitted successfully (no template found for PDF generation)',
+          });
+        }
+      } catch (docError) {
+        console.error('Document generation error:', docError);
+        toast({
+          title: 'Offer Submitted',
+          description: 'Offer request submitted successfully, but PDF generation failed',
+        });
+      }
 
       localStorage.removeItem('offerDraftFormData');
       setFormData(initialFormData);
       setCurrentStep(1);
     } catch (error: unknown) {
       toast({
-        variant: "destructive",
-        title: "Error",
+        variant: 'destructive',
+        title: 'Error',
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
@@ -216,9 +289,7 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Offer Drafting Request</span>
-          {autoSaving && (
-            <span className="text-sm text-muted-foreground">Auto-saving...</span>
-          )}
+          {autoSaving && <span className="text-sm text-muted-foreground">Auto-saving...</span>}
         </CardTitle>
         <div className="space-y-2">
           <Progress value={progressPercentage} className="w-full" />
@@ -227,13 +298,10 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
           </p>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
-        <CurrentStepComponent
-          formData={formData}
-          updateFormData={updateFormData}
-        />
-        
+        <CurrentStepComponent formData={formData} updateFormData={updateFormData} />
+
         <div className="flex justify-between">
           <Button
             type="button"
@@ -243,21 +311,14 @@ export const OfferDraftingForm: React.FC<OfferDraftingFormProps> = ({ transactio
           >
             Previous
           </Button>
-          
+
           {currentStep < steps.length ? (
-            <Button
-              type="button"
-              onClick={handleNext}
-            >
+            <Button type="button" onClick={handleNext}>
               Next
             </Button>
           ) : (
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? "Submitting..." : "Submit Offer Request"}
+            <Button type="button" onClick={handleSubmit} disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Offer Request'}
             </Button>
           )}
         </div>

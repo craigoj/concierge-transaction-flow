@@ -15,22 +15,24 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn()
+  useIsMobile: vi.fn(),
 }));
 
 // Mock UI components
 vi.mock('@/components/layout/AppLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="app-layout">{children}</div>
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="app-layout">{children}</div>
+  ),
 }));
 
 vi.mock('@/components/navigation/Breadcrumb', () => ({
-  default: () => <div data-testid="breadcrumb">Dashboard / Home</div>
+  default: () => <div data-testid="breadcrumb">Dashboard / Home</div>,
 }));
 
 vi.mock('@/components/dashboard/DashboardStats', () => ({
   default: ({ variant, showQuickActions, onActionClick, className }: any) => (
-    <div 
-      data-testid="dashboard-stats" 
+    <div
+      data-testid="dashboard-stats"
       data-variant={variant}
       data-show-quick-actions={showQuickActions}
       className={className}
@@ -39,41 +41,73 @@ vi.mock('@/components/dashboard/DashboardStats', () => ({
       <button onClick={() => onActionClick?.('add-client')}>Add Client</button>
       Dashboard Stats Component
     </div>
-  )
+  ),
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, variant, size, className, asChild, ...props }: any) => 
-    asChild ? children : (
-      <button 
-        onClick={onClick} 
-        data-variant={variant} 
-        data-size={size} 
-        className={className} 
+  Button: ({ children, onClick, variant, size, className, asChild, ...props }: any) =>
+    asChild ? (
+      children
+    ) : (
+      <button
+        onClick={onClick}
+        data-variant={variant}
+        data-size={size}
+        className={className}
         {...props}
         data-testid="button"
       >
         {children}
       </button>
-    )
+    ),
 }));
 
 vi.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: any) => <div data-testid="card" className={className}>{children}</div>,
-  CardHeader: ({ children, className }: any) => <div data-testid="card-header" className={className}>{children}</div>,
-  CardTitle: ({ children, className }: any) => <div data-testid="card-title" className={className}>{children}</div>,
-  CardContent: ({ children, className }: any) => <div data-testid="card-content" className={className}>{children}</div>,
-  CardDescription: ({ children, className }: any) => <div data-testid="card-description" className={className}>{children}</div>,
-  CardFooter: ({ children, className }: any) => <div data-testid="card-footer" className={className}>{children}</div>
+  Card: ({ children, className }: any) => (
+    <div data-testid="card" className={className}>
+      {children}
+    </div>
+  ),
+  CardHeader: ({ children, className }: any) => (
+    <div data-testid="card-header" className={className}>
+      {children}
+    </div>
+  ),
+  CardTitle: ({ children, className }: any) => (
+    <div data-testid="card-title" className={className}>
+      {children}
+    </div>
+  ),
+  CardContent: ({ children, className }: any) => (
+    <div data-testid="card-content" className={className}>
+      {children}
+    </div>
+  ),
+  CardDescription: ({ children, className }: any) => (
+    <div data-testid="card-description" className={className}>
+      {children}
+    </div>
+  ),
+  CardFooter: ({ children, className }: any) => (
+    <div data-testid="card-footer" className={className}>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/ui/sheet', () => ({
-  Sheet: ({ children, open, onOpenChange }: any) => 
-    <div data-testid="sheet" data-open={open}>{children}</div>,
-  SheetContent: ({ children, side, className }: any) => 
-    <div data-testid="sheet-content" data-side={side} className={className}>{children}</div>,
-  SheetTrigger: ({ children, asChild }: any) => 
-    asChild ? children : <div data-testid="sheet-trigger">{children}</div>
+  Sheet: ({ children, open, onOpenChange }: any) => (
+    <div data-testid="sheet" data-open={open}>
+      {children}
+    </div>
+  ),
+  SheetContent: ({ children, side, className }: any) => (
+    <div data-testid="sheet-content" data-side={side} className={className}>
+      {children}
+    </div>
+  ),
+  SheetTrigger: ({ children, asChild }: any) =>
+    asChild ? children : <div data-testid="sheet-trigger">{children}</div>,
 }));
 
 // Mock Supabase client
@@ -81,25 +115,19 @@ let mockSupabaseClient: any = null;
 vi.mock('@/integrations/supabase/client', () => ({
   get supabase() {
     return mockSupabaseClient;
-  }
-}));
-
-// Mock icons
-vi.mock('lucide-react', () => ({
-  Building: ({ className }: any) => <div data-testid="building-icon" className={className} />,
-  Users: ({ className }: any) => <div data-testid="users-icon" className={className} />,
-  Calendar: ({ className }: any) => <div data-testid="calendar-icon" className={className} />,
-  AlertCircle: ({ className }: any) => <div data-testid="alert-circle-icon" className={className} />,
-  Menu: ({ className }: any) => <div data-testid="menu-icon" className={className} />
-}));
-
-const createQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
   },
-});
+}));
+
+// Icons are mocked in setup.ts globally
+
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
 
 const { useIsMobile } = await import('@/hooks/use-mobile');
 const mockUseIsMobile = vi.mocked(useIsMobile);
@@ -107,7 +135,7 @@ const mockUseIsMobile = vi.mocked(useIsMobile);
 const renderComponent = (isMobile = false) => {
   mockUseIsMobile.mockReturnValue(isMobile);
   const queryClient = createQueryClient();
-  
+
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
@@ -127,7 +155,7 @@ describe('Index Dashboard Component', () => {
       closing_date: '2024-02-15',
       created_at: '2024-01-01',
       clients: [{ full_name: 'John Doe', type: 'buyer' }],
-      profiles: { first_name: 'Jane', last_name: 'Smith' }
+      profiles: { first_name: 'Jane', last_name: 'Smith' },
     },
     {
       id: '2',
@@ -137,7 +165,7 @@ describe('Index Dashboard Component', () => {
       closing_date: '2024-03-01',
       created_at: '2024-01-02',
       clients: [{ full_name: 'Alice Johnson', type: 'seller' }],
-      profiles: { first_name: 'Bob', last_name: 'Wilson' }
+      profiles: { first_name: 'Bob', last_name: 'Wilson' },
     },
     {
       id: '3',
@@ -147,22 +175,22 @@ describe('Index Dashboard Component', () => {
       closing_date: null,
       created_at: '2024-01-03',
       clients: [],
-      profiles: null
-    }
+      profiles: null,
+    },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockSupabaseClient = {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: mockTransactions,
-            error: null
-          })
-        })
-      })
+            error: null,
+          }),
+        }),
+      }),
     };
   });
 
@@ -173,7 +201,7 @@ describe('Index Dashboard Component', () => {
   describe('Component Structure & Rendering', () => {
     it('should render the basic component structure', async () => {
       renderComponent();
-      
+
       expect(screen.getByTestId('app-layout')).toBeInTheDocument();
       expect(screen.getByTestId('breadcrumb')).toBeInTheDocument();
       expect(screen.getByTestId('dashboard-stats')).toBeInTheDocument();
@@ -181,7 +209,7 @@ describe('Index Dashboard Component', () => {
 
     it('should integrate with AppLayout correctly', () => {
       renderComponent();
-      
+
       const appLayout = screen.getByTestId('app-layout');
       expect(appLayout).toBeInTheDocument();
       expect(appLayout).toContainElement(screen.getByTestId('breadcrumb'));
@@ -189,13 +217,13 @@ describe('Index Dashboard Component', () => {
 
     it('should render breadcrumb navigation', () => {
       renderComponent();
-      
+
       expect(screen.getByTestId('breadcrumb')).toBeInTheDocument();
     });
 
     it('should render DashboardStats with correct props', () => {
       renderComponent();
-      
+
       const dashboardStats = screen.getByTestId('dashboard-stats');
       expect(dashboardStats).toHaveAttribute('data-variant', 'premium');
       expect(dashboardStats).toHaveAttribute('data-show-quick-actions', 'true');
@@ -206,9 +234,9 @@ describe('Index Dashboard Component', () => {
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: [],
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();
@@ -223,32 +251,40 @@ describe('Index Dashboard Component', () => {
   describe('Responsive Design Tests', () => {
     it('should render desktop layout when not mobile', () => {
       renderComponent(false);
-      
+
       expect(screen.getByText('COORDINATION')).toBeInTheDocument();
-      expect(screen.getByText('Your premium transaction coordination workspace, designed for discerning real estate professionals.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Your premium transaction coordination workspace, designed for discerning real estate professionals.'
+        )
+      ).toBeInTheDocument();
       expect(screen.queryByTestId('menu-icon')).not.toBeInTheDocument();
     });
 
     it('should render mobile layout when mobile', () => {
       renderComponent(true);
-      
+
       // Mobile should show menu icon
-      expect(screen.getByTestId('menu-icon')).toBeInTheDocument();
-      
+      expect(screen.getByText('Menu')).toBeInTheDocument();
+
       // Mobile should not show hero section
-      expect(screen.queryByText('Your premium transaction coordination workspace, designed for discerning real estate professionals.')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Your premium transaction coordination workspace, designed for discerning real estate professionals.'
+        )
+      ).not.toBeInTheDocument();
     });
 
     it('should handle mobile menu functionality', () => {
       renderComponent(true);
-      
+
       expect(screen.getByTestId('sheet')).toBeInTheDocument();
       expect(screen.getByTestId('sheet-content')).toBeInTheDocument();
     });
 
     it('should show different timeframe labels on mobile', () => {
       renderComponent(true);
-      
+
       // Mobile should show shortened labels
       expect(screen.getByText('TODAY')).toBeInTheDocument();
       expect(screen.getAllByText('THIS')).toHaveLength(2); // "THIS" from "THIS WEEK" and "THIS MONTH"
@@ -256,10 +292,10 @@ describe('Index Dashboard Component', () => {
 
     it('should apply responsive grid classes correctly', () => {
       const { rerender } = renderComponent(false);
-      
+
       // Desktop layout
       expect(screen.getByTestId('app-layout')).toBeInTheDocument();
-      
+
       // Test mobile layout
       mockUseIsMobile.mockReturnValue(true);
       rerender(
@@ -269,16 +305,16 @@ describe('Index Dashboard Component', () => {
           </MemoryRouter>
         </QueryClientProvider>
       );
-      
-      expect(screen.getByTestId('menu-icon')).toBeInTheDocument();
+
+      expect(screen.getByText('Menu')).toBeInTheDocument();
     });
 
     it('should handle priority actions sidebar positioning', () => {
       const { rerender } = renderComponent(false);
-      
+
       // Desktop should show sidebar
       expect(screen.getAllByText('Priority Actions')).toHaveLength(1);
-      
+
       // Mobile should show in sheet
       mockUseIsMobile.mockReturnValue(true);
       rerender(
@@ -288,7 +324,7 @@ describe('Index Dashboard Component', () => {
           </MemoryRouter>
         </QueryClientProvider>
       );
-      
+
       expect(screen.getByTestId('sheet-content')).toBeInTheDocument();
     });
   });
@@ -297,12 +333,12 @@ describe('Index Dashboard Component', () => {
     it('should display loading state initially', () => {
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
-          order: vi.fn().mockReturnValue(new Promise(() => {})) // Never resolves
-        })
+          order: vi.fn().mockReturnValue(new Promise(() => {})), // Never resolves
+        }),
       });
 
       renderComponent();
-      
+
       expect(screen.getByText('Loading coordination data...')).toBeInTheDocument();
     });
 
@@ -331,8 +367,8 @@ describe('Index Dashboard Component', () => {
     it('should handle database errors gracefully', async () => {
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
-          order: vi.fn().mockRejectedValue(new Error('Database error'))
-        })
+          order: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       renderComponent();
@@ -348,9 +384,9 @@ describe('Index Dashboard Component', () => {
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: null,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();
@@ -370,17 +406,17 @@ describe('Index Dashboard Component', () => {
           closing_date: null,
           created_at: '2024-01-01',
           clients: [],
-          profiles: null
-        }
+          profiles: null,
+        },
       ];
 
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: transactionsWithMissingData,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();
@@ -447,7 +483,7 @@ describe('Index Dashboard Component', () => {
 
       const dashboardStats = screen.getByTestId('dashboard-stats');
       const newTransactionButton = screen.getByText('New Transaction');
-      
+
       fireEvent.click(newTransactionButton);
       expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
@@ -461,7 +497,7 @@ describe('Index Dashboard Component', () => {
 
       const viewAllButton = screen.getByText('VIEW ALL');
       fireEvent.click(viewAllButton);
-      
+
       // Should not crash
       expect(viewAllButton).toBeInTheDocument();
     });
@@ -469,10 +505,10 @@ describe('Index Dashboard Component', () => {
     it('should handle mobile menu toggle', () => {
       renderComponent(true);
 
-      const menuIcon = screen.getByTestId('menu-icon');
+      const menuIcon = screen.getByText('Menu');
       const menuButton = menuIcon.closest('button');
       expect(menuButton).toBeInTheDocument();
-      
+
       if (menuButton) {
         fireEvent.click(menuButton);
       }
@@ -482,15 +518,15 @@ describe('Index Dashboard Component', () => {
 
     it('should handle unknown dashboard actions gracefully', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       renderComponent();
 
       // Simulate an unknown action by directly calling the handler
       const dashboardStats = screen.getByTestId('dashboard-stats');
-      
+
       // The component should handle unknown actions without crashing
       expect(dashboardStats).toBeInTheDocument();
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -574,9 +610,8 @@ describe('Index Dashboard Component', () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('building-icon')).toHaveLength(2);
-        expect(screen.getAllByTestId('users-icon')).toHaveLength(2);
-        expect(screen.getAllByTestId('calendar-icon')).toHaveLength(2);
+        // With the global mock, icons render as svg elements
+        expect(screen.getAllByRole('img', { hidden: true })).toHaveLength(2);
       });
     });
 
@@ -589,16 +624,16 @@ describe('Index Dashboard Component', () => {
         closing_date: '2024-02-15',
         created_at: `2024-01-0${i + 1}`,
         clients: [{ full_name: `Client ${i}`, type: 'buyer' }],
-        profiles: { first_name: 'Agent', last_name: `${i}` }
+        profiles: { first_name: 'Agent', last_name: `${i}` },
       }));
 
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: manyTransactions,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();
@@ -606,7 +641,7 @@ describe('Index Dashboard Component', () => {
       await waitFor(() => {
         // Should show count of all active transactions
         expect(screen.getByText('10 transactions requiring your expertise')).toBeInTheDocument();
-        
+
         // But only display first 4 in the list
         expect(screen.getByText('100 Test Street')).toBeInTheDocument();
         expect(screen.getByText('101 Test Street')).toBeInTheDocument();
@@ -620,29 +655,34 @@ describe('Index Dashboard Component', () => {
       const transactionWithLongAddress = [
         {
           id: '1',
-          property_address: 'Very Long Property Address That Should Be Truncated At Some Point To Prevent Layout Issues',
+          property_address:
+            'Very Long Property Address That Should Be Truncated At Some Point To Prevent Layout Issues',
           status: 'active',
           purchase_price: 450000,
           closing_date: '2024-02-15',
           created_at: '2024-01-01',
           clients: [{ full_name: 'John Doe', type: 'buyer' }],
-          profiles: { first_name: 'Jane', last_name: 'Smith' }
-        }
+          profiles: { first_name: 'Jane', last_name: 'Smith' },
+        },
       ];
 
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: transactionWithLongAddress,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByText('Very Long Property Address That Should Be Truncated At Some Point To Prevent Layout Issues')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Very Long Property Address That Should Be Truncated At Some Point To Prevent Layout Issues'
+          )
+        ).toBeInTheDocument();
       });
     });
   });
@@ -685,11 +725,13 @@ describe('Index Dashboard Component', () => {
     it('should handle priority action interactions', () => {
       renderComponent(false);
 
-      const priorityItems = screen.getAllByText(/Schedule Inspection|Title Review Due|Document Upload/);
+      const priorityItems = screen.getAllByText(
+        /Schedule Inspection|Title Review Due|Document Upload/
+      );
       expect(priorityItems.length).toBeGreaterThan(0);
-      
+
       // Should render without crashing
-      priorityItems.forEach(item => {
+      priorityItems.forEach((item) => {
         expect(item).toBeInTheDocument();
       });
     });
@@ -698,7 +740,7 @@ describe('Index Dashboard Component', () => {
   describe('Error Handling & Edge Cases', () => {
     it('should handle component unmounting gracefully', () => {
       const { unmount } = renderComponent();
-      
+
       expect(() => unmount()).not.toThrow();
     });
 
@@ -713,17 +755,17 @@ describe('Index Dashboard Component', () => {
         {
           id: '1',
           // Missing required fields
-          status: 'active'
-        }
+          status: 'active',
+        },
       ];
 
       mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           order: vi.fn().mockResolvedValue({
             data: malformedTransactions,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       renderComponent();

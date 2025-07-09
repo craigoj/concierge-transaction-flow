@@ -11,8 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 export type TransactionWithRelations = Database['public']['Tables']['transactions']['Row'] & {
-  properties: Database['public']['Tables']['properties']['Row'] | null;
-  transaction_clients: Database['public']['Tables']['transaction_clients']['Row'][] | null;
   tasks: Database['public']['Tables']['tasks']['Row'][] | null;
 };
 
@@ -39,8 +37,6 @@ export const EnhancedTransactionList: React.FC<EnhancedTransactionListProps> = (
         .select(
           `
           *,
-          properties (*),
-          transaction_clients (*),
           tasks (*)
         `
         )

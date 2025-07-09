@@ -2,12 +2,12 @@ module.exports = {
   ci: {
     collect: {
       url: [
-        'http://localhost:3000/',
-        'http://localhost:3000/transactions',
-        'http://localhost:3000/agents',
-        'http://localhost:3000/analytics',
+        'http://localhost:4173/',
+        'http://localhost:4173/transactions',
+        'http://localhost:4173/agents',
+        'http://localhost:4173/analytics',
       ],
-      startServerCommand: 'serve -s dist -l 3000',
+      startServerCommand: 'npx vite preview --port 4173 --host',
       numberOfRuns: 3,
       settings: {
         chromeFlags: '--no-sandbox --disable-dev-shm-usage',

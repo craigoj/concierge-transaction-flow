@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,35 +30,69 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (userId: string): Promise<string> => {
-    try {
-      console.log('Fetching user role for:', userId);
-      
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 10000); // 10 second timeout
-      });
-      
-      const queryPromise = supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
-      
-      if (error) {
-        console.error('Error fetching user role:', error);
-        return 'agent';
+  const fetchUserRole = async (userId: string, retries = 3): Promise<string> => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`Fetching user role for: ${userId} (attempt ${attempt}/${retries})`);
+
+        // Exponential backoff delay for retries
+        if (attempt > 1) {
+          const delay = Math.pow(2, attempt - 1) * 1000; // 2s, 4s, 8s
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        // Add timeout with longer duration for better reliability
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout')), 15000); // 15 second timeout
+        });
+
+        const queryPromise = supabase.from('profiles').select('role').eq('id', userId).single();
+
+        const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+        if (error) {
+          console.error(`Error fetching user role (attempt ${attempt}):`, error);
+
+          // If it's the last attempt, return fallback
+          if (attempt === retries) {
+            console.warn('All retry attempts exhausted, using fallback role');
+            return 'agent';
+          }
+
+          // If it's a network/timeout error, retry
+          if (
+            error.message.includes('timeout') ||
+            error.message.includes('network') ||
+            error.message.includes('fetch')
+          ) {
+            console.log(`Retrying due to network/timeout error...`);
+            continue;
+          }
+
+          // If it's a different error, don't retry
+          console.warn('Non-retryable error, using fallback role');
+          return 'agent';
+        }
+
+        const role = profile?.role || 'agent';
+        console.log('User role fetched successfully:', role);
+        return role;
+      } catch (error) {
+        console.error(`Failed to fetch user role (attempt ${attempt}):`, error);
+
+        // If it's the last attempt, return fallback
+        if (attempt === retries) {
+          console.warn('All retry attempts exhausted, using fallback role');
+          return 'agent';
+        }
+
+        // Otherwise, continue to next retry
+        console.log(`Retrying due to error...`);
       }
-      
-      const role = profile?.role || 'agent';
-      console.log('User role fetched:', role);
-      return role;
-    } catch (error) {
-      console.error('Failed to fetch user role:', error);
-      return 'agent';
     }
+
+    // Fallback (should never reach here)
+    return 'agent';
   };
 
   const signOut = async () => {
@@ -70,7 +103,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('Handling session:', newSession?.user?.id || 'null');
     setSession(newSession);
     setUser(newSession?.user ?? null);
-    
+
     if (newSession?.user) {
       try {
         const role = await fetchUserRole(newSession.user.id);
@@ -82,7 +115,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } else {
       setUserRole(null);
     }
-    
+
     console.log('Setting loading to false');
     setLoading(false);
   };
@@ -95,41 +128,48 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }, 15000); // 15 second absolute maximum
 
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
-          setLoading(false);
-          clearTimeout(loadingTimeout);
-          return;
-        }
-        
-        await handleSession(session);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setSession(null);
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
         clearTimeout(loadingTimeout);
+        return;
       }
-    );
+
+      await handleSession(session);
+      clearTimeout(loadingTimeout);
+    });
 
     // Check for existing session with proper error handling
     try {
       if (supabase?.auth?.getSession) {
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-          console.log('Initial session check:', session?.user?.id || 'null', error?.message || 'no error');
-          if (error) {
-            console.error('Session error:', error);
+        supabase.auth
+          .getSession()
+          .then(({ data: { session }, error }) => {
+            console.log(
+              'Initial session check:',
+              session?.user?.id || 'null',
+              error?.message || 'no error'
+            );
+            if (error) {
+              console.error('Session error:', error);
+              setLoading(false);
+              clearTimeout(loadingTimeout);
+              return;
+            }
+            handleSession(session).finally(() => {
+              clearTimeout(loadingTimeout);
+            });
+          })
+          .catch((error) => {
+            console.error('Failed to get session:', error);
             setLoading(false);
             clearTimeout(loadingTimeout);
-            return;
-          }
-          handleSession(session).finally(() => {
-            clearTimeout(loadingTimeout);
           });
-        }).catch((error) => {
-          console.error('Failed to get session:', error);
-          setLoading(false);
-          clearTimeout(loadingTimeout);
-        });
       } else {
         console.warn('Supabase client not properly initialized');
         setLoading(false);

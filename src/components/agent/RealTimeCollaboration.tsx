@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Users, MessageCircle, Send, Eye, Edit3, Clock } from 'lucide-react';
+import { Users, MessageCircle, Send, Eye, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 
@@ -58,7 +58,7 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
         }
         setPresenceData(transformedState);
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
         const user = newPresences[0] as PresenceState;
         if (user && user.user_name) {
           toast({
@@ -67,7 +67,7 @@ const RealTimeCollaboration = ({ transactionId }: RealTimeCollaborationProps) =>
           });
         }
       })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
         const user = leftPresences[0] as PresenceState;
         if (user && user.user_name) {
           toast({
