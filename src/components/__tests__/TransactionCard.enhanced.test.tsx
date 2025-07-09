@@ -47,7 +47,7 @@ describe('TransactionCard', () => {
     it('renders transaction card with basic information', () => {
       renderWithProviders(<TransactionCard {...defaultProps} />);
 
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByRole('article')).toBeInTheDocument();
       expect(screen.getByText('123 Oak Street')).toBeInTheDocument();
       expect(screen.getByText('$450,000')).toBeInTheDocument();
     });
@@ -449,14 +449,14 @@ describe('TransactionCard', () => {
       // Test mobile-specific rendering
       renderWithProviders(<TransactionCard {...defaultProps} variant="mobile" />);
 
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByRole('article')).toBeInTheDocument();
       // Mobile variant might have different layout
     });
 
     it('adapts to desktop viewport', () => {
       renderWithProviders(<TransactionCard {...defaultProps} variant="default" />);
 
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByRole('article')).toBeInTheDocument();
     });
   });
 
@@ -493,7 +493,7 @@ describe('TransactionCard', () => {
       }
 
       // Should handle rapid updates without issues
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByRole('article')).toBeInTheDocument();
     });
   });
 });

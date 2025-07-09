@@ -149,6 +149,9 @@ export const renderWithProviders = (ui: React.ReactElement, options: CustomRende
 };
 
 // Common UI component mocks
+// Counter for unique testids
+let cardCounter = 0;
+
 export const mockUIComponents = {
   Button: ({ children, onClick, className, ...props }: any) => (
     <button onClick={onClick} className={className} data-testid="mock-button" {...props}>
@@ -156,19 +159,22 @@ export const mockUIComponents = {
     </button>
   ),
 
-  Card: ({ children, className, onClick, onKeyDown, tabIndex, role, ...props }: any) => (
-    <div
-      data-testid="mock-card"
-      className={className}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
-      tabIndex={tabIndex}
-      role={role}
-      {...props}
-    >
-      {children}
-    </div>
-  ),
+  Card: ({ children, className, onClick, onKeyDown, tabIndex, role, ...props }: any) => {
+    const cardId = `mock-card-${++cardCounter}`;
+    return (
+      <div
+        data-testid={cardId}
+        className={className}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        tabIndex={tabIndex}
+        role={role}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  },
 
   CardHeader: ({ children, className }: any) => (
     <div data-testid="mock-card-header" className={className}>

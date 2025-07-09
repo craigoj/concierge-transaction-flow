@@ -4,7 +4,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createDatabaseTestSuite, MockSupabaseClient, RLSTestHelpers } from '@/test/utils/database-test-helpers';
+import {
+  createDatabaseTestSuite,
+  MockSupabaseClient,
+  RLSTestHelpers,
+} from '@/test/utils/database-test-helpers';
 import transactionFixtures from '@/test/fixtures/transactions';
 
 describe('Supabase Operations Integration', () => {
@@ -30,12 +34,14 @@ describe('Supabase Operations Integration', () => {
         });
 
         const result = await testSuite.testCRUDOperations().create(newTransaction);
-        
+
         expect(result.error).toBeNull();
-        expect(result.data).toContainEqual(expect.objectContaining({
-          property_address: '123 New Property St',
-          purchase_price: 500000,
-        }));
+        expect(result.data).toContainEqual(
+          expect.objectContaining({
+            property_address: '123 New Property St',
+            purchase_price: 500000,
+          })
+        );
       });
 
       it('reads transactions with filters', async () => {
@@ -43,7 +49,7 @@ describe('Supabase Operations Integration', () => {
         mockClient.setMockData('transactions', testTransactions);
 
         const result = await testSuite.testCRUDOperations().read({ status: 'active' });
-        
+
         expect(result.error).toBeNull();
         expect(result.data).toHaveLength(testTransactions.length);
         expect(result.data.every((t: any) => t.status === 'active')).toBe(true);
@@ -56,24 +62,24 @@ describe('Supabase Operations Integration', () => {
         };
 
         const result = await testSuite.testCRUDOperations().update('tx-123', updateData);
-        
+
         expect(result.error).toBeNull();
         expect(result.data).toContainEqual(expect.objectContaining(updateData));
       });
 
       it('deletes transactions', async () => {
         const result = await testSuite.testCRUDOperations().delete('tx-123');
-        
+
         expect(result.error).toBeNull();
       });
 
       it('handles bulk operations efficiently', async () => {
         const bulkTransactions = transactionFixtures.generateTransactionList(25);
-        
+
         const startTime = performance.now();
         const result = await testSuite.testCRUDOperations().create(bulkTransactions);
         const endTime = performance.now();
-        
+
         expect(result.error).toBeNull();
         expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
       });
@@ -94,9 +100,9 @@ describe('Supabase Operations Integration', () => {
           .eq('status', 'active');
 
         expect(result.error).toBeNull();
-        expect(result.data.every((t: any) => 
-          t.service_tier === 'elite' && t.status === 'active'
-        )).toBe(true);
+        expect(
+          result.data.every((t: any) => t.service_tier === 'elite' && t.status === 'active')
+        ).toBe(true);
       });
 
       it('orders results correctly', async () => {
@@ -117,10 +123,7 @@ describe('Supabase Operations Integration', () => {
         const testData = transactionFixtures.generateTransactionList(50);
         mockClient.setMockData('transactions', testData);
 
-        const result = await mockClient
-          .from('transactions')
-          .select()
-          .limit(20);
+        const result = await mockClient.from('transactions').select().limit(20);
 
         expect(result.error).toBeNull();
         expect(result.data).toHaveLength(20);
@@ -137,9 +140,9 @@ describe('Supabase Operations Integration', () => {
           .lte('purchase_price', 600000);
 
         expect(result.error).toBeNull();
-        expect(result.data.every((t: any) => 
-          t.purchase_price >= 400000 && t.purchase_price <= 600000
-        )).toBe(true);
+        expect(
+          result.data.every((t: any) => t.purchase_price >= 400000 && t.purchase_price <= 600000)
+        ).toBe(true);
       });
 
       it('searches with text patterns', async () => {
@@ -166,9 +169,7 @@ describe('Supabase Operations Integration', () => {
         const transactionWithClients = transactionFixtures.createTransactionWithRelations();
         mockClient.setMockData('transactions', [transactionWithClients]);
 
-        const result = await mockClient
-          .from('transactions')
-          .select(`
+        const result = await mockClient.from('transactions').select(`
             *,
             clients (
               id,
@@ -187,9 +188,7 @@ describe('Supabase Operations Integration', () => {
         const transactionWithProfile = transactionFixtures.createTransactionWithRelations();
         mockClient.setMockData('transactions', [transactionWithProfile]);
 
-        const result = await mockClient
-          .from('transactions')
-          .select(`
+        const result = await mockClient.from('transactions').select(`
             *,
             profiles (
               id,
@@ -207,9 +206,7 @@ describe('Supabase Operations Integration', () => {
         const complexTransaction = transactionFixtures.createTransactionWithRelations();
         mockClient.setMockData('transactions', [complexTransaction]);
 
-        const result = await mockClient
-          .from('transactions')
-          .select(`
+        const result = await mockClient.from('transactions').select(`
             *,
             clients (*),
             profiles (*),
@@ -244,7 +241,7 @@ describe('Supabase Operations Integration', () => {
         await RLSTestHelpers.testAuthorizedAccess(mockClient, 'transactions', agentUser);
       });
 
-      it('denies agents access to other agents\' transactions', async () => {
+      it("denies agents access to other agents' transactions", async () => {
         const wrongAgent = {
           id: 'different-agent',
           role: 'agent',
@@ -277,14 +274,14 @@ describe('Supabase Operations Integration', () => {
 
     describe('Client Table RLS', () => {
       it('protects client data based on transaction ownership', async () => {
-        const testData = [transactionFixtures.mockClients.buyer];
+        const testData = [transactionFixtures.clients.buyer];
         mockClient.setMockData('clients', testData);
 
         // Agent should access clients for their transactions
         const agentUser = { id: 'agent-123', role: 'agent' };
-        mockClient.auth.getUser.mockResolvedValue({ 
-          data: { user: agentUser }, 
-          error: null 
+        mockClient.auth.getUser.mockResolvedValue({
+          data: { user: agentUser },
+          error: null,
         });
 
         const result = await mockClient.from('clients').select();
@@ -321,11 +318,13 @@ describe('Supabase Operations Integration', () => {
 
       // Simulate setting up real-time subscription
       const channel = mockClient.channel('transactions');
-      channel.on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'transactions',
-      }).subscribe();
+      channel
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'transactions',
+        })
+        .subscribe();
 
       expect(mockSubscription).toHaveBeenCalled();
     });
@@ -348,16 +347,21 @@ describe('Supabase Operations Integration', () => {
         }),
       });
 
-      mockClient.channel('transactions')
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'transactions',
-        }, updateHandler)
+      mockClient
+        .channel('transactions')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'transactions',
+          },
+          updateHandler
+        )
         .subscribe();
 
       // Wait for simulated update
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
       expect(updateHandler).toHaveBeenCalled();
     });
 
@@ -378,7 +382,7 @@ describe('Supabase Operations Integration', () => {
       mockClient.setMockData('transactions', largeDataset);
 
       const startTime = performance.now();
-      
+
       // Common query that should use index
       await mockClient
         .from('transactions')
@@ -389,33 +393,33 @@ describe('Supabase Operations Integration', () => {
         .limit(20);
 
       const endTime = performance.now();
-      
+
       // Should complete quickly even with large dataset
       expect(endTime - startTime).toBeLessThan(50);
     });
 
     it('handles concurrent operations efficiently', async () => {
-      const operations = Array.from({ length: 10 }, (_, i) => 
-        mockClient.from('transactions').insert(
-          transactionFixtures.createTransaction({ id: `concurrent-${i}` })
-        )
+      const operations = Array.from({ length: 10 }, (_, i) =>
+        mockClient
+          .from('transactions')
+          .insert(transactionFixtures.createTransaction({ id: `concurrent-${i}` }))
       );
 
       const startTime = performance.now();
       const results = await Promise.all(operations);
       const endTime = performance.now();
 
-      expect(results.every(r => r.error === null)).toBe(true);
+      expect(results.every((r) => r.error === null)).toBe(true);
       expect(endTime - startTime).toBeLessThan(1000); // Should handle concurrency well
     });
 
     it('optimizes bulk insert operations', async () => {
       const bulkData = transactionFixtures.generateTransactionList(100);
-      
+
       const startTime = performance.now();
       await mockClient.from('transactions').insert(bulkData);
       const endTime = performance.now();
-      
+
       // Bulk operations should be more efficient than individual inserts
       expect(endTime - startTime).toBeLessThan(500);
     });
@@ -424,52 +428,64 @@ describe('Supabase Operations Integration', () => {
   describe('Error Handling', () => {
     it('handles database connection errors', async () => {
       mockClient.setMockError(new Error('Connection failed'));
-      
-      const result = await mockClient.from('transactions').select().then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .select()
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error).toBeTruthy();
       expect(result.error.message).toBe('Connection failed');
     });
 
     it('handles constraint violations', async () => {
       mockClient.setMockError(new Error('duplicate key value violates unique constraint'));
-      
-      const result = await mockClient.from('transactions').insert({
-        id: 'duplicate-id',
-        property_address: 'Test',
-      }).then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .insert({
+          id: 'duplicate-id',
+          property_address: 'Test',
+        })
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toContain('duplicate key');
     });
 
     it('handles foreign key violations', async () => {
       mockClient.setMockError(new Error('violates foreign key constraint'));
-      
-      const result = await mockClient.from('clients').insert({
-        transaction_id: 'non-existent',
-        full_name: 'Test Client',
-      }).then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('clients')
+        .insert({
+          transaction_id: 'non-existent',
+          full_name: 'Test Client',
+        })
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toContain('foreign key constraint');
     });
 
     it('handles network timeouts gracefully', async () => {
       mockClient.setMockError(new Error('Request timeout'));
-      
-      const result = await mockClient.from('transactions').select().then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .select()
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toBe('Request timeout');
     });
   });
@@ -481,13 +497,18 @@ describe('Supabase Operations Integration', () => {
         purchase_price: 500000,
       };
 
-      mockClient.setMockError(new Error('null value in column "property_address" violates not-null constraint'));
-      
-      const result = await mockClient.from('transactions').insert(incompleteTransaction).then(
-        (res) => res,
-        (error) => ({ data: null, error })
+      mockClient.setMockError(
+        new Error('null value in column "property_address" violates not-null constraint')
       );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .insert(incompleteTransaction)
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toContain('not-null constraint');
     });
 
@@ -498,12 +519,15 @@ describe('Supabase Operations Integration', () => {
       };
 
       mockClient.setMockError(new Error('invalid input syntax for type numeric'));
-      
-      const result = await mockClient.from('transactions').insert(invalidTransaction).then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .insert(invalidTransaction)
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toContain('invalid input syntax');
     });
 
@@ -514,12 +538,15 @@ describe('Supabase Operations Integration', () => {
       };
 
       mockClient.setMockError(new Error('invalid input value for enum transaction_status'));
-      
-      const result = await mockClient.from('transactions').insert(invalidStatus).then(
-        (res) => res,
-        (error) => ({ data: null, error })
-      );
-      
+
+      const result = await mockClient
+        .from('transactions')
+        .insert(invalidStatus)
+        .then(
+          (res) => res,
+          (error) => ({ data: null, error })
+        );
+
       expect(result.error.message).toContain('invalid input value for enum');
     });
   });

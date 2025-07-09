@@ -28,6 +28,7 @@ vi.mock('lucide-react', () => ({
   DollarSign: () => <div>DollarSign</div>,
   User: () => <div>User</div>,
   Users: () => <div>Users</div>,
+  X: () => <div>X</div>,
   Plus: () => <div>Plus</div>,
   Trash2: () => <div>Trash2</div>,
   Mail: () => <div>Mail</div>,
@@ -45,6 +46,38 @@ vi.mock('lucide-react', () => ({
 }));
 
 // Mock UI components that might cause issues
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children, className, ...props }: any) => (
+    <div data-testid="mock-card" className={className} {...props}>
+      {children}
+    </div>
+  ),
+  CardContent: ({ children, className }: any) => (
+    <div data-testid="mock-card-content" className={className}>
+      {children}
+    </div>
+  ),
+  CardDescription: ({ children, className }: any) => (
+    <div data-testid="mock-card-description" className={className}>
+      {children}
+    </div>
+  ),
+  CardFooter: ({ children, className }: any) => (
+    <div data-testid="mock-card-footer" className={className}>
+      {children}
+    </div>
+  ),
+  CardHeader: ({ children, className }: any) => (
+    <div data-testid="mock-card-header" className={className}>
+      {children}
+    </div>
+  ),
+  CardTitle: ({ children, className }: any) => (
+    <div data-testid="mock-card-title" className={className}>
+      {children}
+    </div>
+  ),
+}));
 vi.mock('@/components/ui/calendar', () => ({
   Calendar: ({ onSelect }: { onSelect: (date: Date) => void }) => (
     <div data-testid="calendar" onClick={() => onSelect(new Date())}>
