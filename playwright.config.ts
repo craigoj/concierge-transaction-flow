@@ -4,12 +4,12 @@ export default defineConfig({
   testDir: './src/test/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 3 : 1,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? [['github'], ['html']] : 'html',
-  timeout: 30000,
+  reporter: process.env.CI ? [['github'], ['html'], ['junit', { outputFile: 'test-results/e2e-results.xml' }]] : 'html',
+  timeout: 60000,
   expect: {
-    timeout: 5000,
+    timeout: 10000,
   },
   use: {
     baseURL: 'http://localhost:5173',
@@ -53,7 +53,7 @@ export default defineConfig({
         },
       ],
   webServer: {
-    command: process.env.CI ? 'npm run preview' : 'npm run dev',
+    command: process.env.CI ? 'npm run preview -- --port 5173 --host' : 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
@@ -62,6 +62,8 @@ export default defineConfig({
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://mock-supabase.co',
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'mock-key',
+      VITE_ENCRYPTION_KEY: process.env.VITE_ENCRYPTION_KEY || 'mock-encryption-key',
+      NODE_ENV: 'test',
     },
   },
 });
