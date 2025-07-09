@@ -45,38 +45,19 @@ export class MockSupabaseClient {
   // Mock implementation of Supabase operations
   from(table: string) {
     return {
-      select: (columns?: string) => ({
-        eq: (column: string, value: unknown) => this.createQueryBuilder(table, { [column]: value }),
-        neq: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__neq`]: value }),
-        gt: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__gt`]: value }),
-        gte: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__gte`]: value }),
-        lt: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__lt`]: value }),
-        lte: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__lte`]: value }),
-        like: (column: string, pattern: string) => this.createQueryBuilder(table, { [`${column}__like`]: pattern }),
-        in: (column: string, values: unknown[]) => this.createQueryBuilder(table, { [`${column}__in`]: values }),
-        is: (column: string, value: unknown) => this.createQueryBuilder(table, { [`${column}__is`]: value }),
-        order: (column: string, options?: { ascending?: boolean }) => 
-          this.createQueryBuilder(table, {}, `order_${column}_${options?.ascending ? 'asc' : 'desc'}`),
-        limit: (count: number) => this.createQueryBuilder(table, {}, `limit_${count}`),
-        single: () => this.createQueryBuilder(table, {}, 'single'),
-        ...this.createQueryBuilder(table),
-      }),
-      
+      select: (columns?: string) => this.createQueryBuilder(table),
       insert: (data: DatabaseRecord | DatabaseRecord[]) => ({
         select: (columns?: string) => this.createMutationBuilder('insert', table, data),
         ...this.createMutationBuilder('insert', table, data),
       }),
-      
       update: (data: Partial<DatabaseRecord>) => ({
         eq: (column: string, value: unknown) => this.createMutationBuilder('update', table, data, { [column]: value }),
         match: (query: QueryFilter) => this.createMutationBuilder('update', table, data, query),
       }),
-      
       upsert: (data: DatabaseRecord | DatabaseRecord[]) => ({
         select: (columns?: string) => this.createMutationBuilder('upsert', table, data),
         ...this.createMutationBuilder('upsert', table, data),
       }),
-      
       delete: () => ({
         eq: (column: string, value: unknown) => this.createMutationBuilder('delete', table, null, { [column]: value }),
         match: (query: QueryFilter) => this.createMutationBuilder('delete', table, null, query),
@@ -84,81 +65,137 @@ export class MockSupabaseClient {
     };
   }
 
-  private createQueryBuilder(table: string, filters: QueryFilter = {}, modifier?: string) {
-    return {
+  private createQueryBuilder(table: string, filters: QueryFilter = {}, modifiers: string[] = []): any {
+    const builder = {
+      // Filter methods
+      eq: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [column]: value }, modifiers),
+      neq: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__neq`]: value }, modifiers),
+      gt: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__gt`]: value }, modifiers),
+      gte: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__gte`]: value }, modifiers),
+      lt: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__lt`]: value }, modifiers),
+      lte: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__lte`]: value }, modifiers),
+      like: (column: string, pattern: string) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__like`]: pattern }, modifiers),
+      in: (column: string, values: unknown[]) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__in`]: values }, modifiers),
+      is: (column: string, value: unknown) => 
+        this.createQueryBuilder(table, { ...filters, [`${column}__is`]: value }, modifiers),
+      
+      // Ordering and limits
+      order: (column: string, options?: { ascending?: boolean }) => 
+        this.createQueryBuilder(table, filters, [...modifiers, `order_${column}_${options?.ascending ? 'asc' : 'desc'}`]),
+      limit: (count: number) => 
+        this.createQueryBuilder(table, filters, [...modifiers, `limit_${count}`]),
+      range: (from: number, to: number) => 
+        this.createQueryBuilder(table, filters, [...modifiers, `range_${from}_${to}`]),
+      
+      // Result modifiers
+      single: () => 
+        this.createQueryBuilder(table, filters, [...modifiers, 'single']),
+      
+      // Promise interface
       then: (resolve: (value: { data: DatabaseRecord[] | DatabaseRecord | null; error: Error | null }) => void, reject?: (reason?: unknown) => void) => {
-        if (this.mockError) {
-          const error = this.mockError;
-          this.mockError = null; // Reset after use
-          // Return error in result format instead of rejecting
-          const result = { data: null, error };
-          resolve(result);
-          return Promise.resolve(result);
-        }
-
-        let data: DatabaseRecord[] = this.mockData.get(table) || [];
-        
-        // Apply filters
-        Object.entries(filters).forEach(([key, value]) => {
-          if (key.includes('__neq')) {
-            const column = key.replace('__neq', '');
-            data = data.filter(item => item[column] !== value);
-          } else if (key.includes('__gt')) {
-            const column = key.replace('__gt', '');
-            data = data.filter(item => item[column] > value);
-          } else if (key.includes('__gte')) {
-            const column = key.replace('__gte', '');
-            data = data.filter(item => item[column] >= value);
-          } else if (key.includes('__lt')) {
-            const column = key.replace('__lt', '');
-            data = data.filter(item => item[column] < value);
-          } else if (key.includes('__lte')) {
-            const column = key.replace('__lte', '');
-            data = data.filter(item => item[column] <= value);
-          } else if (key.includes('__like')) {
-            const column = key.replace('__like', '');
-            const pattern = value.replace(/%/g, '.*');
-            data = data.filter(item => new RegExp(pattern, 'i').test(item[column]));
-          } else if (key.includes('__in')) {
-            const column = key.replace('__in', '');
-            data = data.filter(item => value.includes(item[column]));
-          } else if (key.includes('__is')) {
-            const column = key.replace('__is', '');
-            data = data.filter(item => item[column] === value);
-          } else {
-            data = data.filter(item => item[key] === value);
-          }
-        });
-
-        // Apply modifiers
-        if (modifier) {
-          if (modifier.startsWith('order_')) {
-            const [, column, direction] = modifier.split('_');
-            data.sort((a, b) => {
-              const aVal = a[column];
-              const bVal = b[column];
-              if (direction === 'desc') {
-                return bVal > aVal ? 1 : bVal < aVal ? -1 : 0;
-              }
-              return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-            });
-          } else if (modifier.startsWith('limit_')) {
-            const limit = parseInt(modifier.split('_')[1]);
-            data = data.slice(0, limit);
-          } else if (modifier === 'single') {
-            data = data.length > 0 ? data[0] : null;
-          }
-        }
-
-        const result: { data: DatabaseRecord[] | DatabaseRecord | null; error: Error | null } = {
-          data: modifier === 'single' ? (data || null) : data,
-          error: null,
-        };
-
-        resolve(result);
-        return Promise.resolve(result);
+        return this.executeQuery(table, filters, modifiers, resolve, reject);
       },
     };
+    
+    return builder;
+  }
+
+  private executeQuery(
+    table: string,
+    filters: QueryFilter,
+    modifiers: string[],
+    resolve: (value: { data: DatabaseRecord[] | DatabaseRecord | null; error: Error | null }) => void,
+    reject?: (reason?: unknown) => void
+  ) {
+    if (this.mockError) {
+      const error = this.mockError;
+      this.mockError = null;
+      const result = { data: null, error };
+      resolve(result);
+      return Promise.resolve(result);
+    }
+
+    let data: DatabaseRecord[] = this.mockData.get(table) || [];
+    
+    // Apply filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (key.includes('__neq')) {
+        const column = key.replace('__neq', '');
+        data = data.filter(item => item[column] !== value);
+      } else if (key.includes('__gt')) {
+        const column = key.replace('__gt', '');
+        data = data.filter(item => item[column] > value);
+      } else if (key.includes('__gte')) {
+        const column = key.replace('__gte', '');
+        data = data.filter(item => item[column] >= value);
+      } else if (key.includes('__lt')) {
+        const column = key.replace('__lt', '');
+        data = data.filter(item => item[column] < value);
+      } else if (key.includes('__lte')) {
+        const column = key.replace('__lte', '');
+        data = data.filter(item => item[column] <= value);
+      } else if (key.includes('__like')) {
+        const column = key.replace('__like', '');
+        const pattern = String(value).replace(/%/g, '.*');
+        data = data.filter(item => new RegExp(pattern, 'i').test(String(item[column])));
+      } else if (key.includes('__in')) {
+        const column = key.replace('__in', '');
+        data = data.filter(item => Array.isArray(value) && value.includes(item[column]));
+      } else if (key.includes('__is')) {
+        const column = key.replace('__is', '');
+        data = data.filter(item => item[column] === value);
+      } else {
+        data = data.filter(item => item[key] === value);
+      }
+    });
+
+    // Apply modifiers in order
+    modifiers.forEach(modifier => {
+      if (modifier.startsWith('order_')) {
+        const parts = modifier.split('_');
+        const column = parts[1];
+        const direction = parts[2];
+        data.sort((a, b) => {
+          const aVal = a[column];
+          const bVal = b[column];
+          if (direction === 'desc') {
+            return bVal > aVal ? 1 : bVal < aVal ? -1 : 0;
+          }
+          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        });
+      } else if (modifier.startsWith('limit_')) {
+        const limit = parseInt(modifier.split('_')[1]);
+        data = data.slice(0, limit);
+      } else if (modifier.startsWith('range_')) {
+        const parts = modifier.split('_');
+        const from = parseInt(parts[1]);
+        const to = parseInt(parts[2]);
+        data = data.slice(from, to + 1);
+      }
+    });
+
+    let resultData: DatabaseRecord[] | DatabaseRecord | null = data;
+    
+    // Apply single modifier at the end
+    if (modifiers.includes('single')) {
+      resultData = data.length > 0 ? data[0] : null;
+    }
+
+    const result = {
+      data: resultData,
+      error: null,
+    };
+
+    resolve(result);
+    return Promise.resolve(result);
   }
 
   private createMutationBuilder(

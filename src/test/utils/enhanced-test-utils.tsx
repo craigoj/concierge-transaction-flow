@@ -312,6 +312,12 @@ export const mockIcons = {
   Calendar: ({ className }: any) => (
     <div data-testid="mock-calendar-icon" className={className} />
   ),
+  MapPin: ({ className }: any) => (
+    <div data-testid="mock-map-pin-icon" className={className} />
+  ),
+  User: ({ className }: any) => (
+    <div data-testid="mock-user-icon" className={className} />
+  ),
   AlertCircle: ({ className }: any) => (
     <div data-testid="mock-alert-circle-icon" className={className} />
   ),
@@ -357,7 +363,7 @@ export const mockIcons = {
   Home: ({ className }: any) => (
     <div data-testid="mock-home-icon" className={className} />
   ),
-  User: ({ className }: any) => (
+  UserIcon: ({ className }: any) => (
     <div data-testid="mock-user-icon" className={className} />
   ),
   Mail: ({ className }: any) => (
