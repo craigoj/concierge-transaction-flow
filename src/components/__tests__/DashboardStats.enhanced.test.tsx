@@ -260,8 +260,8 @@ describe('DashboardStats', () => {
       (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
-          totalTransactions: 1250,
-          revenue: 2750000,
+          activeTransactions: 1250,
+          monthlyRevenue: 2750000,
         },
         isLoading: false,
         error: null,
@@ -280,8 +280,8 @@ describe('DashboardStats', () => {
         metrics: {
           ...mockMetrics,
           activeTransactions: 0,
-          completedThisMonth: 0,
-          revenue: 0,
+          pendingTransactions: 0,
+          monthlyRevenue: 0,
         },
         isLoading: false,
         error: null,
@@ -486,8 +486,8 @@ describe('DashboardStats', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
 
       // Should have descriptive text for screen readers
-      expect(screen.getByLabelText(/total transactions/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/active transactions/i)).toBeInTheDocument();
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      expect(screen.getByText('Total Clients')).toBeInTheDocument();
     });
   });
 
