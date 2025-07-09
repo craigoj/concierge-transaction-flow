@@ -59,5 +59,9 @@ export default defineConfig({
     timeout: 120000,
     stderr: 'pipe',
     stdout: 'pipe',
+    env: {
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://mock-supabase.co',
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'mock-key',
+    },
   },
 });

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import React from 'react';
+import { z } from 'zod';
 
 afterEach(() => {
   cleanup();
@@ -210,12 +211,12 @@ vi.mock('@/lib/security-utils', () => ({
     hashForLogging: vi.fn((input) => input),
     validateDataIntegrity: vi.fn(() => ({ isValid: true, errors: [] })),
   },
-  // Use passthrough for schemas so they work properly
-  secureTextSchema: vi.fn(),
-  secureEmailSchema: vi.fn(),
-  securePhoneSchema: vi.fn(),
-  secureUrlSchema: vi.fn(),
-  secureHtmlSchema: vi.fn(),
+  // Use actual Zod schemas for security validation
+  secureTextSchema: z.string().min(1, 'Field is required').max(1000, 'Text is too long'),
+  secureEmailSchema: z.string().email(),
+  securePhoneSchema: z.string(),
+  secureUrlSchema: z.string().url(),
+  secureHtmlSchema: z.string(),
 }));
 
 // Mock TanStack Query
@@ -273,21 +274,25 @@ vi.mock('@/hooks/useDashboardMetrics', () => ({
   }),
 }));
 
-// Mock React Router
-vi.mock('react-router-dom', () => ({
-  ...vi.importActual('react-router-dom'),
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
-  useParams: () => ({}),
-  useSearchParams: () => [new URLSearchParams(), vi.fn()],
-  BrowserRouter: ({ children }: any) => children,
-  MemoryRouter: ({ children }: any) => children,
-  Routes: ({ children }: any) => children,
-  Route: ({ children }: any) => children,
-  Link: ({ children, to }: any) => React.createElement('a', { href: to }, children),
-  NavLink: ({ children, to }: any) => React.createElement('a', { href: to }, children),
-  Outlet: () => null,
-}));
+// Mock React Router - Keep actual router functionality for routing tests
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
+    useParams: () => ({}),
+    useSearchParams: () => [new URLSearchParams(), vi.fn()],
+    // Keep actual router components for routing tests
+    BrowserRouter: actual.BrowserRouter,
+    MemoryRouter: actual.MemoryRouter,
+    Routes: actual.Routes,
+    Route: actual.Route,
+    Link: ({ children, to }: any) => React.createElement('a', { href: to }, children),
+    NavLink: ({ children, to }: any) => React.createElement('a', { href: to }, children),
+    Outlet: () => null,
+  };
+});
 
 // Mock AuthContext
 vi.mock('@/contexts/AuthContext', () => ({

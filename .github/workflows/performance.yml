@@ -2,9 +2,9 @@ name: Performance Testing
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     # Run performance tests nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -78,11 +78,14 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Analyze bundle size
-        uses: preactjs/compressed-size-action@v2
-        with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          pattern: "./dist/**/*.{js,css,html}"
-          exclude: "{./dist/**/*.map,./dist/**/*.txt}"
+        run: |
+          echo "=== Bundle Analysis ==="
+          du -sh dist/
+          echo "=== Assets breakdown ==="
+          find dist -name "*.js" -exec ls -lh {} \;
+          echo "=== CSS files ==="
+          find dist -name "*.css" -exec ls -lh {} \;
+          echo "=== Analysis complete ==="
 
   load-testing:
     name: Load Testing
