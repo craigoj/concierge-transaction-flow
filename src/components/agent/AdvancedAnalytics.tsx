@@ -4,12 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  AdvancedAnalyticsData,
   AnalyticsKPICard,
   ServiceTierDistribution,
   MonthlyPerformanceData,
-  TransactionWithDetails,
-  TaskDetails,
 } from '@/types/dashboard';
 import {
   BarChart3,

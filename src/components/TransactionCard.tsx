@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, User, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, User } from 'lucide-react';
 
 interface TransactionCardProps {
   id: string;
@@ -14,8 +14,8 @@ interface TransactionCardProps {
   closingDate: string | null;
   location: string;
   price?: number | null;
-  transaction?: any; // For backward compatibility with tests
-  onClick?: (transaction?: any) => void;
+  transaction?: unknown; // For backward compatibility with tests
+  onClick?: (transaction?: unknown) => void;
   variant?: 'default' | 'mobile' | 'premium';
 }
 
@@ -31,7 +31,6 @@ const TransactionCard = ({
   price,
   transaction,
   onClick,
-  variant = 'default',
 }: TransactionCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {

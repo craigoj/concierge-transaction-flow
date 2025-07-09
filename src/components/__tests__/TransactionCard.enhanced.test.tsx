@@ -280,7 +280,11 @@ describe('TransactionCard', () => {
       });
 
       renderWithProviders(
-        <TransactionCard {...defaultProps} transaction={transactionWithClients} />
+        <TransactionCard
+          {...defaultProps}
+          property={transactionWithClients.property_address}
+          transaction={transactionWithClients}
+        />
       );
 
       // Should display client information if available
@@ -294,7 +298,7 @@ describe('TransactionCard', () => {
       };
 
       renderWithProviders(
-        <TransactionCard {...defaultProps} transaction={transactionWithoutClients} />
+        <TransactionCard {...defaultProps} client="" transaction={transactionWithoutClients} />
       );
 
       // Should gracefully handle missing client data
@@ -344,7 +348,11 @@ describe('TransactionCard', () => {
       const transactionWithLongAddress = transactionFixtures.edgeCaseTransactions.longAddress;
 
       renderWithProviders(
-        <TransactionCard {...defaultProps} transaction={transactionWithLongAddress} />
+        <TransactionCard
+          {...defaultProps}
+          property={transactionWithLongAddress.property_address}
+          transaction={transactionWithLongAddress}
+        />
       );
 
       // Should display long address (possibly truncated)
@@ -354,7 +362,13 @@ describe('TransactionCard', () => {
     it('handles high-value transactions', () => {
       const highValueTransaction = transactionFixtures.edgeCaseTransactions.highValue;
 
-      renderWithProviders(<TransactionCard {...defaultProps} transaction={highValueTransaction} />);
+      renderWithProviders(
+        <TransactionCard
+          {...defaultProps}
+          price={highValueTransaction.purchase_price}
+          transaction={highValueTransaction}
+        />
+      );
 
       expect(screen.getByText('$5,750,000')).toBeInTheDocument();
     });
@@ -362,7 +376,15 @@ describe('TransactionCard', () => {
     it('handles minimal transaction data', () => {
       const minimalTransaction = transactionFixtures.edgeCaseTransactions.minimalData;
 
-      renderWithProviders(<TransactionCard {...defaultProps} transaction={minimalTransaction} />);
+      renderWithProviders(
+        <TransactionCard
+          {...defaultProps}
+          property={minimalTransaction.property_address}
+          price={minimalTransaction.purchase_price}
+          closingDate={minimalTransaction.closing_date}
+          transaction={minimalTransaction}
+        />
+      );
 
       expect(screen.getByText('Minimal Property')).toBeInTheDocument();
       expect(screen.getByText('$TBD')).toBeInTheDocument();

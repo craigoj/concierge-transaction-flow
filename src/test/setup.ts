@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import '@testing-library/jest-dom';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import React from 'react';
 
@@ -12,53 +12,152 @@ const MockComponent = ({ children, ...props }: any) => React.createElement('div'
 
 vi.mock('lucide-react', () => ({
   default: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Calendar: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  MapPin: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  User: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Loader2: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  LucideIcon: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  // Navigation & Layout
+  Home: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowLeft: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowRight: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowUp: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowDown: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowRightLeft: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowUpRight: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ArrowDownRight: ({ children, ...props }: any) => React.createElement('svg', props, children),
   ChevronDown: ({ children, ...props }: any) => React.createElement('svg', props, children),
   ChevronUp: ({ children, ...props }: any) => React.createElement('svg', props, children),
   ChevronLeft: ({ children, ...props }: any) => React.createElement('svg', props, children),
   ChevronRight: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Menu: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  MoreHorizontal: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  MoreVertical: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  PanelLeft: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Search & Filter
   Search: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Filter: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  SlidersHorizontal: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Actions
   Plus: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Check: ({ children, ...props }: any) => React.createElement('svg', props, children),
   X: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Edit: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Edit3: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Trash2: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Home: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Building: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Settings: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  FileText: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Mail: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Phone: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  DollarSign: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  TrendingUp: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  TrendingDown: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  ArrowUp: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  ArrowDown: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  AlertTriangle: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  CheckCircle: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  CheckCircle2: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Clock: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Users: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Activity: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  BarChart: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  PieChart: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Eye: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  EyeOff: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Star: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Copy: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Save: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Send: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Share: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Share2: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ExternalLink: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Download: ({ children, ...props }: any) => React.createElement('svg', props, children),
   Upload: ({ children, ...props }: any) => React.createElement('svg', props, children),
   RefreshCw: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Save: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Copy: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Share: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  ExternalLink: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  Menu: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  MoreHorizontal: ({ children, ...props }: any) => React.createElement('svg', props, children),
-  MoreVertical: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Status & Alerts
+  AlertCircle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  AlertTriangle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  CheckCircle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  CheckCircle2: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  CheckSquare: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  XCircle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Clock: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Loader2: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Users & People
+  User: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Users: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  UserPlus: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  UserCheck: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  UserX: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  UserCog: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Communication
+  Mail: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Phone: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  MessageSquare: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  MessageCircle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Bell: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Smartphone: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Buildings & Location
+  Building: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Building2: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  MapPin: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Files & Documents
+  File: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  FileText: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  FolderOpen: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Calendar & Time
+  Calendar: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  CalendarIcon: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  CalendarDays: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Finance & Business
+  DollarSign: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  TrendingUp: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  TrendingDown: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Charts & Analytics
+  BarChart: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  BarChart3: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  PieChart: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Activity: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Visibility & Security
+  Eye: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  EyeOff: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Shield: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ShieldCheck: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  ShieldAlert: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Lock: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Premium & Special
+  Star: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Crown: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Sparkles: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Award: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // System & Settings
+  Settings: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Zap: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Database: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Wifi: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  WifiOff: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Workflow & Automation
+  Play: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Pause: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Workflow: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  RotateCcw: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Layout & Display
+  Grid: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  List: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Columns: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Shapes & UI Elements
+  Circle: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Dot: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  GripVertical: ({ children, ...props }: any) => React.createElement('svg', props, children),
+
+  // Miscellaneous
+  Target: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Heart: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Camera: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Archive: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  History: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  TestTube: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Info: ({ children, ...props }: any) => React.createElement('svg', props, children),
+}));
+
+// Mock @vibe/icons package
+vi.mock('@vibe/icons', () => ({
+  Date: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Group: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Billing: ({ children, ...props }: any) => React.createElement('svg', props, children),
+  Graph: ({ children, ...props }: any) => React.createElement('svg', props, children),
 }));
 
 vi.mock('@/components/ui/card', () => ({
@@ -77,66 +176,46 @@ vi.mock('@/components/ui/button', () => ({
 }));
 
 vi.mock('dompurify', () => ({
-  sanitize: vi.fn((input) => input),
+  sanitize: vi.fn((input: string, options?: any) => {
+    if (!input || typeof input !== 'string') return '';
+
+    // Simple sanitization for tests
+    if (options?.ALLOWED_TAGS?.length === 0) {
+      // Strip all HTML tags
+      return input.replace(/<[^>]*>/g, '');
+    }
+
+    // Allow basic HTML tags
+    return input;
+  }),
 }));
 
+// Mock SecurityUtils for component tests - validation tests should run in isolation
 vi.mock('@/lib/security-utils', () => ({
   SecurityUtils: {
-    sanitizeInput: vi.fn((input) => input),
+    sanitizeInput: vi.fn((input) => {
+      if (!input || typeof input !== 'string') return '';
+      return input.replace(/<[^>]*>/g, ''); // Simple HTML stripping for tests
+    }),
     sanitizeEmail: vi.fn((input) => input),
-    sanitizePhone: vi.fn((input) => input),
+    sanitizePhone: vi.fn((input) => {
+      if (!input || typeof input !== 'string') return '';
+      // Simple phone formatting for tests
+      const cleaned = input.replace(/[^\d+]/g, '');
+      if (cleaned.length === 10) return '+1' + cleaned;
+      if (cleaned.startsWith('+')) return cleaned;
+      return '+1' + cleaned;
+    }),
     sanitizeUrl: vi.fn((input) => input),
     hashForLogging: vi.fn((input) => input),
     validateDataIntegrity: vi.fn(() => ({ isValid: true, errors: [] })),
   },
-  secureTextSchema: vi.fn(() => ({
-    min: vi.fn().mockReturnThis(),
-    max: vi.fn().mockReturnThis(),
-    transform: vi.fn().mockImplementation((fn) => ({
-      _is_zod_type: true,
-      parse: (val: any) => fn(val),
-      min: vi.fn().mockReturnThis(),
-      max: vi.fn().mockReturnThis(),
-      email: vi.fn().mockReturnThis(),
-      url: vi.fn().mockReturnThis(),
-      refine: vi.fn().mockReturnThis(),
-    })),
-    refine: vi.fn().mockReturnThis(),
-  })),
-  secureEmailSchema: vi.fn(() => ({
-    email: vi.fn().mockReturnThis(),
-    transform: vi.fn().mockImplementation((fn) => ({
-      _is_zod_type: true,
-      parse: (val: any) => fn(val),
-      refine: vi.fn().mockReturnThis(),
-    })),
-    refine: vi.fn().mockReturnThis(),
-  })),
-  securePhoneSchema: vi.fn(() => ({
-    min: vi.fn().mockReturnThis(),
-    transform: vi.fn().mockImplementation((fn) => ({
-      _is_zod_type: true,
-      parse: (val: any) => fn(val),
-      refine: vi.fn().mockReturnThis(),
-    })),
-    refine: vi.fn().mockReturnThis(),
-  })),
-  secureUrlSchema: vi.fn(() => ({
-    url: vi.fn().mockReturnThis(),
-    transform: vi.fn().mockImplementation((fn) => ({
-      _is_zod_type: true,
-      parse: (val: any) => fn(val),
-      refine: vi.fn().mockReturnThis(),
-    })),
-    refine: vi.fn().mockReturnThis(),
-  })),
-  secureHtmlSchema: vi.fn(() => ({
-    max: vi.fn().mockReturnThis(),
-    transform: vi.fn().mockImplementation((fn) => ({
-      _is_zod_type: true,
-      parse: (val: any) => fn(val),
-    })),
-  })),
+  // Use passthrough for schemas so they work properly
+  secureTextSchema: vi.fn(),
+  secureEmailSchema: vi.fn(),
+  securePhoneSchema: vi.fn(),
+  secureUrlSchema: vi.fn(),
+  secureHtmlSchema: vi.fn(),
 }));
 
 // Mock TanStack Query
@@ -174,6 +253,26 @@ vi.mock('@tanstack/react-query', () => ({
   QueryClientProvider: ({ children }: any) => children,
 }));
 
+// Mock useDashboardMetrics hook
+vi.mock('@/hooks/useDashboardMetrics', () => ({
+  useDashboardMetrics: () => ({
+    metrics: {
+      activeTransactions: 24,
+      pendingTransactions: 8,
+      closingThisWeek: 3,
+      totalClients: 89,
+      monthlyRevenue: 12450,
+      totalVolume: 156000,
+      completionRate: 92,
+      actionRequired: 5,
+      incompleteTasks: 2,
+    },
+    isLoading: false,
+    error: null,
+    rawData: null,
+  }),
+}));
+
 // Mock React Router
 vi.mock('react-router-dom', () => ({
   ...vi.importActual('react-router-dom'),
@@ -201,6 +300,14 @@ vi.mock('@/contexts/AuthContext', () => ({
     resetPassword: vi.fn(),
   }),
   AuthProvider: ({ children }: any) => children,
+  AuthContext: React.createContext({
+    user: null,
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+    resetPassword: vi.fn(),
+  }),
 }));
 
 // Mock React Hook Form

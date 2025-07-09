@@ -11,18 +11,19 @@ import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 // Create a test query client with optimized settings
-export const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      staleTime: 0,
-      gcTime: 0,
+export const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        staleTime: 0,
+        gcTime: 0,
+      },
+      mutations: {
+        retry: false,
+      },
     },
-    mutations: {
-      retry: false,
-    },
-  },
-});
+  });
 
 // Mock Supabase client factory
 export const createMockSupabaseClient = (overrides: any = {}) => {
@@ -114,16 +115,14 @@ interface TestWrapperProps {
   routerProps?: MemoryRouterProps;
 }
 
-const TestWrapper: React.FC<TestWrapperProps> = ({ 
-  children, 
+const TestWrapper: React.FC<TestWrapperProps> = ({
+  children,
   queryClient = createTestQueryClient(),
-  routerProps = {}
+  routerProps = {},
 }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter {...routerProps}>
-        {children}
-      </MemoryRouter>
+      <MemoryRouter {...routerProps}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
 };
@@ -134,10 +133,7 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   routerProps?: MemoryRouterProps;
 }
 
-export const renderWithProviders = (
-  ui: React.ReactElement,
-  options: CustomRenderOptions = {}
-) => {
+export const renderWithProviders = (ui: React.ReactElement, options: CustomRenderOptions = {}) => {
   const { queryClient, routerProps, ...renderOptions } = options;
 
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -155,18 +151,21 @@ export const renderWithProviders = (
 // Common UI component mocks
 export const mockUIComponents = {
   Button: ({ children, onClick, className, ...props }: any) => (
-    <button 
-      onClick={onClick} 
-      className={className} 
-      data-testid="mock-button"
-      {...props}
-    >
+    <button onClick={onClick} className={className} data-testid="mock-button" {...props}>
       {children}
     </button>
   ),
 
-  Card: ({ children, className }: any) => (
-    <div data-testid="mock-card" className={className}>
+  Card: ({ children, className, onClick, onKeyDown, tabIndex, role, ...props }: any) => (
+    <div
+      data-testid="mock-card"
+      className={className}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={tabIndex}
+      role={role}
+      {...props}
+    >
       {children}
     </div>
   ),
@@ -202,21 +201,13 @@ export const mockUIComponents = {
   ),
 
   Badge: ({ children, className, variant }: any) => (
-    <span 
-      data-testid="mock-badge" 
-      className={className}
-      data-variant={variant}
-    >
+    <span data-testid="mock-badge" className={className} data-variant={variant}>
       {children}
     </span>
   ),
 
   Input: ({ className, ...props }: any) => (
-    <input 
-      data-testid="mock-input" 
-      className={className}
-      {...props}
-    />
+    <input data-testid="mock-input" className={className} {...props} />
   ),
 
   Select: ({ children, ...props }: any) => (
@@ -237,29 +228,15 @@ export const mockUIComponents = {
     </div>
   ),
 
-  DialogHeader: ({ children }: any) => (
-    <div data-testid="mock-dialog-header">
-      {children}
-    </div>
-  ),
+  DialogHeader: ({ children }: any) => <div data-testid="mock-dialog-header">{children}</div>,
 
-  DialogTitle: ({ children }: any) => (
-    <div data-testid="mock-dialog-title">
-      {children}
-    </div>
-  ),
+  DialogTitle: ({ children }: any) => <div data-testid="mock-dialog-title">{children}</div>,
 
   DialogDescription: ({ children }: any) => (
-    <div data-testid="mock-dialog-description">
-      {children}
-    </div>
+    <div data-testid="mock-dialog-description">{children}</div>
   ),
 
-  DialogFooter: ({ children }: any) => (
-    <div data-testid="mock-dialog-footer">
-      {children}
-    </div>
-  ),
+  DialogFooter: ({ children }: any) => <div data-testid="mock-dialog-footer">{children}</div>,
 
   Sheet: ({ children, open, onOpenChange }: any) => (
     <div data-testid="mock-sheet" data-open={open}>
@@ -268,153 +245,77 @@ export const mockUIComponents = {
   ),
 
   SheetContent: ({ children, side, className }: any) => (
-    <div 
-      data-testid="mock-sheet-content" 
-      data-side={side} 
-      className={className}
-    >
+    <div data-testid="mock-sheet-content" data-side={side} className={className}>
       {children}
     </div>
   ),
 
-  SheetTrigger: ({ children, asChild }: any) => 
-    asChild ? children : (
-      <div data-testid="mock-sheet-trigger">
-        {children}
-      </div>
-    ),
+  SheetTrigger: ({ children, asChild }: any) =>
+    asChild ? children : <div data-testid="mock-sheet-trigger">{children}</div>,
 
   Alert: ({ children, variant, className }: any) => (
-    <div 
-      data-testid="mock-alert" 
-      data-variant={variant}
-      className={className}
-    >
+    <div data-testid="mock-alert" data-variant={variant} className={className}>
       {children}
     </div>
   ),
 
   AlertDescription: ({ children }: any) => (
-    <div data-testid="mock-alert-description">
-      {children}
-    </div>
+    <div data-testid="mock-alert-description">{children}</div>
   ),
 };
 
 // Mock icon components
 export const mockIcons = {
-  Building: ({ className }: any) => (
-    <div data-testid="mock-building-icon" className={className} />
-  ),
-  Users: ({ className }: any) => (
-    <div data-testid="mock-users-icon" className={className} />
-  ),
-  Calendar: ({ className }: any) => (
-    <div data-testid="mock-calendar-icon" className={className} />
-  ),
-  MapPin: ({ className }: any) => (
-    <div data-testid="mock-map-pin-icon" className={className} />
-  ),
-  User: ({ className }: any) => (
-    <div data-testid="mock-user-icon" className={className} />
-  ),
+  Building: ({ className }: any) => <div data-testid="mock-building-icon" className={className} />,
+  Users: ({ className }: any) => <div data-testid="mock-users-icon" className={className} />,
+  Calendar: ({ className }: any) => <div data-testid="mock-calendar-icon" className={className} />,
+  MapPin: ({ className }: any) => <div data-testid="mock-map-pin-icon" className={className} />,
+  User: ({ className }: any) => <div data-testid="mock-user-icon" className={className} />,
   AlertCircle: ({ className }: any) => (
     <div data-testid="mock-alert-circle-icon" className={className} />
   ),
-  Menu: ({ className }: any) => (
-    <div data-testid="mock-menu-icon" className={className} />
-  ),
-  Check: ({ className }: any) => (
-    <div data-testid="mock-check-icon" className={className} />
-  ),
+  Menu: ({ className }: any) => <div data-testid="mock-menu-icon" className={className} />,
+  Check: ({ className }: any) => <div data-testid="mock-check-icon" className={className} />,
   CheckCircle: ({ className }: any) => (
     <div data-testid="mock-check-circle-icon" className={className} />
   ),
-  X: ({ className }: any) => (
-    <div data-testid="mock-x-icon" className={className} />
-  ),
-  Plus: ({ className }: any) => (
-    <div data-testid="mock-plus-icon" className={className} />
-  ),
-  Edit: ({ className }: any) => (
-    <div data-testid="mock-edit-icon" className={className} />
-  ),
-  Trash: ({ className }: any) => (
-    <div data-testid="mock-trash-icon" className={className} />
-  ),
-  Loader2: ({ className }: any) => (
-    <div data-testid="mock-loader-icon" className={className} />
-  ),
+  X: ({ className }: any) => <div data-testid="mock-x-icon" className={className} />,
+  Plus: ({ className }: any) => <div data-testid="mock-plus-icon" className={className} />,
+  Edit: ({ className }: any) => <div data-testid="mock-edit-icon" className={className} />,
+  Trash: ({ className }: any) => <div data-testid="mock-trash-icon" className={className} />,
+  Loader2: ({ className }: any) => <div data-testid="mock-loader-icon" className={className} />,
   ArrowRight: ({ className }: any) => (
     <div data-testid="mock-arrow-right-icon" className={className} />
   ),
   ArrowLeft: ({ className }: any) => (
     <div data-testid="mock-arrow-left-icon" className={className} />
   ),
-  Search: ({ className }: any) => (
-    <div data-testid="mock-search-icon" className={className} />
-  ),
-  Filter: ({ className }: any) => (
-    <div data-testid="mock-filter-icon" className={className} />
-  ),
-  Settings: ({ className }: any) => (
-    <div data-testid="mock-settings-icon" className={className} />
-  ),
-  Home: ({ className }: any) => (
-    <div data-testid="mock-home-icon" className={className} />
-  ),
-  UserIcon: ({ className }: any) => (
-    <div data-testid="mock-user-icon" className={className} />
-  ),
-  Mail: ({ className }: any) => (
-    <div data-testid="mock-mail-icon" className={className} />
-  ),
-  Phone: ({ className }: any) => (
-    <div data-testid="mock-phone-icon" className={className} />
-  ),
-  FileText: ({ className }: any) => (
-    <div data-testid="mock-file-text-icon" className={className} />
-  ),
-  Upload: ({ className }: any) => (
-    <div data-testid="mock-upload-icon" className={className} />
-  ),
-  Download: ({ className }: any) => (
-    <div data-testid="mock-download-icon" className={className} />
-  ),
-  Eye: ({ className }: any) => (
-    <div data-testid="mock-eye-icon" className={className} />
-  ),
-  EyeOff: ({ className }: any) => (
-    <div data-testid="mock-eye-off-icon" className={className} />
-  ),
-  Bell: ({ className }: any) => (
-    <div data-testid="mock-bell-icon" className={className} />
-  ),
-  Star: ({ className }: any) => (
-    <div data-testid="mock-star-icon" className={className} />
-  ),
-  Heart: ({ className }: any) => (
-    <div data-testid="mock-heart-icon" className={className} />
-  ),
-  Info: ({ className }: any) => (
-    <div data-testid="mock-info-icon" className={className} />
-  ),
-  Warning: ({ className }: any) => (
-    <div data-testid="mock-warning-icon" className={className} />
-  ),
-  Error: ({ className }: any) => (
-    <div data-testid="mock-error-icon" className={className} />
-  ),
-  Success: ({ className }: any) => (
-    <div data-testid="mock-success-icon" className={className} />
-  ),
+  Search: ({ className }: any) => <div data-testid="mock-search-icon" className={className} />,
+  Filter: ({ className }: any) => <div data-testid="mock-filter-icon" className={className} />,
+  Settings: ({ className }: any) => <div data-testid="mock-settings-icon" className={className} />,
+  Home: ({ className }: any) => <div data-testid="mock-home-icon" className={className} />,
+  UserIcon: ({ className }: any) => <div data-testid="mock-user-icon" className={className} />,
+  Mail: ({ className }: any) => <div data-testid="mock-mail-icon" className={className} />,
+  Phone: ({ className }: any) => <div data-testid="mock-phone-icon" className={className} />,
+  FileText: ({ className }: any) => <div data-testid="mock-file-text-icon" className={className} />,
+  Upload: ({ className }: any) => <div data-testid="mock-upload-icon" className={className} />,
+  Download: ({ className }: any) => <div data-testid="mock-download-icon" className={className} />,
+  Eye: ({ className }: any) => <div data-testid="mock-eye-icon" className={className} />,
+  EyeOff: ({ className }: any) => <div data-testid="mock-eye-off-icon" className={className} />,
+  Bell: ({ className }: any) => <div data-testid="mock-bell-icon" className={className} />,
+  Star: ({ className }: any) => <div data-testid="mock-star-icon" className={className} />,
+  Heart: ({ className }: any) => <div data-testid="mock-heart-icon" className={className} />,
+  Info: ({ className }: any) => <div data-testid="mock-info-icon" className={className} />,
+  Warning: ({ className }: any) => <div data-testid="mock-warning-icon" className={className} />,
+  Error: ({ className }: any) => <div data-testid="mock-error-icon" className={className} />,
+  Success: ({ className }: any) => <div data-testid="mock-success-icon" className={className} />,
 };
 
 // Test utility functions
-export const waitForLoadingToFinish = () => 
-  screen.findByText(/loading/i).then(() => 
-    screen.findByText(/loading/i, {}, { timeout: 100 }).catch(() => {})
-  );
+export const waitForLoadingToFinish = () =>
+  screen
+    .findByText(/loading/i)
+    .then(() => screen.findByText(/loading/i, {}, { timeout: 100 }).catch(() => {}));
 
 export const getByTestId = (testId: string) => screen.getByTestId(testId);
 export const queryByTestId = (testId: string) => screen.queryByTestId(testId);
@@ -423,12 +324,13 @@ export const findByTestId = (testId: string) => screen.findByTestId(testId);
 // Form testing utilities
 export const fillForm = async (fields: Record<string, string>) => {
   const user = userEvent.setup();
-  
+
   for (const [fieldName, value] of Object.entries(fields)) {
-    const field = screen.getByLabelText(new RegExp(fieldName, 'i')) ||
-                  screen.getByPlaceholderText(new RegExp(fieldName, 'i')) ||
-                  screen.getByDisplayValue('');
-    
+    const field =
+      screen.getByLabelText(new RegExp(fieldName, 'i')) ||
+      screen.getByPlaceholderText(new RegExp(fieldName, 'i')) ||
+      screen.getByDisplayValue('');
+
     await user.clear(field);
     await user.type(field, value);
   }
@@ -443,8 +345,7 @@ export const submitForm = async () => {
 // Mock hook factories
 export const createMockNavigate = () => vi.fn();
 
-export const createMockUseIsMobile = (isMobile = false) => 
-  vi.fn().mockReturnValue(isMobile);
+export const createMockUseIsMobile = (isMobile = false) => vi.fn().mockReturnValue(isMobile);
 
 // Test data generators
 export const generateMockData = {

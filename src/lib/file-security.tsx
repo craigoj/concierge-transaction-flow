@@ -37,7 +37,7 @@ export interface FileSignature {
 
 export class FileSecurityValidator {
   private config: FileSecurityConfig;
-  
+
   // Known file signatures for common file types
   private fileSignatures: FileSignature[] = [
     { extension: '.pdf', signatures: ['25504446'], mimeType: 'application/pdf' },
@@ -46,21 +46,67 @@ export class FileSecurityValidator {
     { extension: '.png', signatures: ['89504E47'], mimeType: 'image/png' },
     { extension: '.gif', signatures: ['474946'], mimeType: 'image/gif' },
     { extension: '.doc', signatures: ['D0CF11E0'], mimeType: 'application/msword' },
-    { extension: '.docx', signatures: ['504B0304'], mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    {
+      extension: '.docx',
+      signatures: ['504B0304'],
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    },
     { extension: '.xls', signatures: ['D0CF11E0'], mimeType: 'application/vnd.ms-excel' },
-    { extension: '.xlsx', signatures: ['504B0304'], mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    {
+      extension: '.xlsx',
+      signatures: ['504B0304'],
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    },
     { extension: '.zip', signatures: ['504B0304'], mimeType: 'application/zip' },
     { extension: '.txt', signatures: [], mimeType: 'text/plain' }, // Text files don't have consistent signatures
-    { extension: '.csv', signatures: [], mimeType: 'text/csv' }
+    { extension: '.csv', signatures: [], mimeType: 'text/csv' },
   ];
 
   // Dangerous file extensions that should be blocked
   private dangerousExtensions = [
-    '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js', '.jse',
-    '.jar', '.msi', '.dll', '.ps1', '.psm1', '.psd1', '.ps1xml', '.psc1',
-    '.sh', '.bash', '.zsh', '.fish', '.pl', '.py', '.rb', '.php', '.asp',
-    '.aspx', '.jsp', '.cgi', '.htm', '.html', '.hta', '.reg', '.inf',
-    '.sys', '.drv', '.ocx', '.cab', '.rar', '.7z', '.tar', '.gz', '.bz2'
+    '.exe',
+    '.bat',
+    '.cmd',
+    '.com',
+    '.pif',
+    '.scr',
+    '.vbs',
+    '.js',
+    '.jse',
+    '.jar',
+    '.msi',
+    '.dll',
+    '.ps1',
+    '.psm1',
+    '.psd1',
+    '.ps1xml',
+    '.psc1',
+    '.sh',
+    '.bash',
+    '.zsh',
+    '.fish',
+    '.pl',
+    '.py',
+    '.rb',
+    '.php',
+    '.asp',
+    '.aspx',
+    '.jsp',
+    '.cgi',
+    '.htm',
+    '.html',
+    '.hta',
+    '.reg',
+    '.inf',
+    '.sys',
+    '.drv',
+    '.ocx',
+    '.cab',
+    '.rar',
+    '.7z',
+    '.tar',
+    '.gz',
+    '.bz2',
   ];
 
   constructor(config: Partial<FileSecurityConfig> = {}) {
@@ -76,11 +122,20 @@ export class FileSecurityValidator {
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       ],
       allowedExtensions: [
-        '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.txt', '.csv',
-        '.doc', '.docx', '.xls', '.xlsx'
+        '.pdf',
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.txt',
+        '.csv',
+        '.doc',
+        '.docx',
+        '.xls',
+        '.xlsx',
       ],
       blockedExtensions: this.dangerousExtensions,
       scanForMalware: false, // Would require server-side integration
@@ -88,7 +143,7 @@ export class FileSecurityValidator {
       virusScanTimeout: 30000, // 30 seconds
       allowExecutableFiles: false,
       checkFileSignatures: true,
-      ...config
+      ...config,
     };
   }
 
@@ -103,8 +158,8 @@ export class FileSecurityValidator {
         size: file.size,
         mimeType: file.type,
         extension: this.getFileExtension(file.name),
-        hash: await this.calculateFileHash(file)
-      }
+        hash: await this.calculateFileHash(file),
+      },
     };
 
     // Step 1: Basic file validation
@@ -143,12 +198,7 @@ export class FileSecurityValidator {
 
     // Audit log the file upload attempt
     if (userId) {
-      auditFile.upload(
-        userId,
-        file.name,
-        file.size,
-        result.isValid ? 'success' : 'blocked'
-      );
+      auditFile.upload(userId, file.name, file.size, result.isValid ? 'success' : 'blocked');
     }
 
     return result;
@@ -173,12 +223,13 @@ export class FileSecurityValidator {
     let sanitizedName = file.name;
 
     // Remove path traversal attempts
-    sanitizedName = sanitizedName.replace(/[\/\\]/g, '');
+    sanitizedName = sanitizedName.replace(/[/\\]/g, '');
 
     // Remove dangerous characters
     sanitizedName = sanitizedName.replace(/[<>:"|?*]/g, '');
 
     // Remove control characters
+    // eslint-disable-next-line no-control-regex
     sanitizedName = sanitizedName.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
 
     // Limit filename length
@@ -197,10 +248,10 @@ export class FileSecurityValidator {
 
     // Check for suspicious filenames
     const suspiciousPatterns = [
-      /^\./,  // Hidden files
+      /^\./, // Hidden files
       /\.$/, // Files ending with dot
       /con|prn|aux|nul|com[1-9]|lpt[1-9]/i, // Windows reserved names
-      /\.(php|asp|aspx|jsp|pl|py|rb|sh|bat|cmd|exe)$/i // Script files
+      /\.(php|asp|aspx|jsp|pl|py|rb|sh|bat|cmd|exe)$/i, // Script files
     ];
 
     for (const pattern of suspiciousPatterns) {
@@ -234,7 +285,7 @@ export class FileSecurityValidator {
     // Check for MIME type spoofing
     const extension = this.getFileExtension(file.name);
     const expectedMimeType = this.getExpectedMimeType(extension);
-    
+
     if (expectedMimeType && file.type !== expectedMimeType) {
       result.warnings.push(
         `MIME type '${file.type}' doesn't match expected type '${expectedMimeType}' for extension '${extension}'`
@@ -269,15 +320,15 @@ export class FileSecurityValidator {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     const signature = Array.from(bytes.slice(0, 8))
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
       .toUpperCase();
 
     const extension = this.getFileExtension(file.name);
-    const expectedSignature = this.fileSignatures.find(s => s.extension === extension);
+    const expectedSignature = this.fileSignatures.find((s) => s.extension === extension);
 
     if (expectedSignature && expectedSignature.signatures.length > 0) {
-      const signatureMatch = expectedSignature.signatures.some(sig => 
+      const signatureMatch = expectedSignature.signatures.some((sig) =>
         signature.startsWith(sig.toUpperCase())
       );
 
@@ -295,14 +346,14 @@ export class FileSecurityValidator {
     // For text files, check for suspicious content
     if (file.type.startsWith('text/')) {
       const text = await file.text();
-      
+
       // Check for script injections
       const scriptPatterns = [
         /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
         /javascript:/gi,
         /vbscript:/gi,
         /data:text\/html/gi,
-        /on\w+\s*=/gi
+        /on\w+\s*=/gi,
       ];
 
       for (const pattern of scriptPatterns) {
@@ -325,12 +376,12 @@ export class FileSecurityValidator {
     // This would integrate with a malware scanning service
     // For now, we'll simulate the scan
     result.metadata.scanResult = 'clean';
-    
+
     logger.info('File malware scan completed', {
       filename: file.name,
       size: file.size,
       result: result.metadata.scanResult,
-      context: 'file_security'
+      context: 'file_security',
     });
   }
 
@@ -338,7 +389,7 @@ export class FileSecurityValidator {
     const arrayBuffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   private getFileExtension(filename: string): string {
@@ -347,7 +398,7 @@ export class FileSecurityValidator {
   }
 
   private getExpectedMimeType(extension: string): string | null {
-    const signature = this.fileSignatures.find(s => s.extension === extension);
+    const signature = this.fileSignatures.find((s) => s.extension === extension);
     return signature ? signature.mimeType : null;
   }
 
@@ -374,7 +425,7 @@ export class FileSecurityValidator {
       errors: result.errors,
       warnings: result.warnings,
       userId,
-      context: 'file_security'
+      context: 'file_security',
     };
 
     if (result.isValid) {
@@ -396,18 +447,18 @@ export const useFileValidation = () => {
 
   const validateFiles = async (files: File[], userId?: string): Promise<FileValidationResult[]> => {
     const results: FileValidationResult[] = [];
-    
+
     for (const file of files) {
       const result = await validateFile(file, userId);
       results.push(result);
     }
-    
+
     return results;
   };
 
   return {
     validateFile,
-    validateFiles
+    validateFiles,
   };
 };
 
@@ -420,15 +471,23 @@ export const SecureFileUpload: React.FC<{
   multiple?: boolean;
   maxFiles?: number;
   children?: React.ReactNode;
-}> = ({ onFileValidated, onValidationError, userId, accept, multiple = false, maxFiles = 5, children }) => {
+}> = ({
+  onFileValidated,
+  onValidationError,
+  userId,
+  accept,
+  multiple = false,
+  maxFiles = 5,
+  children,
+}) => {
   const { validateFile } = useFileValidation();
-  
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
     const fileArray = Array.from(files);
-    
+
     // Check file count limit
     if (fileArray.length > maxFiles) {
       onValidationError([`Maximum ${maxFiles} files allowed`]);
@@ -439,7 +498,7 @@ export const SecureFileUpload: React.FC<{
     for (const file of fileArray) {
       try {
         const result = await validateFile(file, userId);
-        
+
         if (result.isValid) {
           onFileValidated(file, result);
         } else {
@@ -449,9 +508,9 @@ export const SecureFileUpload: React.FC<{
         logger.error('File validation error', {
           filename: file.name,
           error: error instanceof Error ? error.message : 'Unknown error',
-          context: 'file_security'
+          context: 'file_security',
         });
-        
+
         onValidationError(['File validation failed due to an unexpected error']);
       }
     }
@@ -470,9 +529,7 @@ export const SecureFileUpload: React.FC<{
       <label htmlFor="secure-file-input">
         {children || (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400">
-            <div className="text-sm text-gray-600">
-              Click to select files or drag and drop
-            </div>
+            <div className="text-sm text-gray-600">Click to select files or drag and drop</div>
           </div>
         )}
       </label>
@@ -489,7 +546,7 @@ export const isFileSecure = (file: File): boolean => {
 
 export const sanitizeFilename = (filename: string): string => {
   return filename
-    .replace(/[\/\\:*?"<>|]/g, '') // Remove dangerous characters
+    .replace(/[/\\:*?"<>|]/g, '') // Remove dangerous characters
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .replace(/_{2,}/g, '_') // Replace multiple underscores with single
     .substring(0, 255); // Limit length
@@ -497,7 +554,7 @@ export const sanitizeFilename = (filename: string): string => {
 
 export const getFileTypeIcon = (file: File): string => {
   const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-  
+
   switch (extension) {
     case '.pdf':
       return '📄';
