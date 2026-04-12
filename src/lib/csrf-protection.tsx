@@ -32,13 +32,16 @@ export class CSRFProtection {
       expirationMinutes: 60,
       sameSitePolicy: 'strict',
       secureOnly: true,
-      ...config
+      ...config,
     };
 
     // Clean up expired tokens every 10 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredTokens();
-    }, 10 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupExpiredTokens();
+      },
+      10 * 60 * 1000
+    );
 
     // Load existing tokens from session storage
     this.loadTokensFromStorage();
@@ -52,16 +55,16 @@ export class CSRFProtection {
         for (const [key, token] of Object.entries(parsed)) {
           this.tokens.set(key, token as CSRFToken);
         }
-        
+
         logger.debug('CSRF tokens loaded from session storage', {
           tokenCount: this.tokens.size,
-          context: 'csrf_protection'
+          context: 'csrf_protection',
         });
       }
     } catch (error) {
       logger.warn('Failed to load CSRF tokens from session storage', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
     }
   }
@@ -73,7 +76,7 @@ export class CSRFProtection {
     } catch (error) {
       logger.warn('Failed to save CSRF tokens to session storage', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
     }
   }
@@ -88,15 +91,15 @@ export class CSRFProtection {
       }
     }
 
-    expiredTokens.forEach(tokenId => this.tokens.delete(tokenId));
+    expiredTokens.forEach((tokenId) => this.tokens.delete(tokenId));
 
     if (expiredTokens.length > 0) {
       logger.debug('Expired CSRF tokens cleaned up', {
         expiredCount: expiredTokens.length,
         remainingCount: this.tokens.size,
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
+
       this.saveTokensToStorage();
     }
   }
@@ -104,14 +107,14 @@ export class CSRFProtection {
   public generateToken(userId?: string, sessionId?: string): string {
     const token = SecurityUtils.generateSecureToken(this.config.tokenLength);
     const now = Date.now();
-    const expiresAt = now + (this.config.expirationMinutes * 60 * 1000);
+    const expiresAt = now + this.config.expirationMinutes * 60 * 1000;
 
     const csrfToken: CSRFToken = {
       token,
       expiresAt,
       createdAt: now,
       userId,
-      sessionId
+      sessionId,
     };
 
     this.tokens.set(token, csrfToken);
@@ -122,7 +125,7 @@ export class CSRFProtection {
       userId,
       sessionId,
       expiresAt: new Date(expiresAt).toISOString(),
-      context: 'csrf_protection'
+      context: 'csrf_protection',
     });
 
     return token;
@@ -140,12 +143,12 @@ export class CSRFProtection {
     if (!token || typeof token !== 'string') {
       logger.warn('CSRF validation failed: missing or invalid token', {
         tokenProvided: !!token,
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
+
       return {
         isValid: false,
-        reason: 'Missing or invalid token'
+        reason: 'Missing or invalid token',
       };
     }
 
@@ -153,20 +156,18 @@ export class CSRFProtection {
     if (!csrfToken) {
       logger.warn('CSRF validation failed: token not found', {
         tokenId: SecurityUtils.hashForLogging(token),
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
+
       if (userId) {
-        auditSecurity.suspiciousActivity(
-          userId,
-          'Invalid CSRF token used',
-          { tokenId: SecurityUtils.hashForLogging(token) }
-        );
+        auditSecurity.suspiciousActivity(userId, 'Invalid CSRF token used', {
+          tokenId: SecurityUtils.hashForLogging(token),
+        });
       }
-      
+
       return {
         isValid: false,
-        reason: 'Token not found or expired'
+        reason: 'Token not found or expired',
       };
     }
 
@@ -175,16 +176,16 @@ export class CSRFProtection {
       logger.warn('CSRF validation failed: token expired', {
         tokenId: SecurityUtils.hashForLogging(token),
         expiresAt: new Date(csrfToken.expiresAt).toISOString(),
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
+
       // Remove expired token
       this.tokens.delete(token);
       this.saveTokensToStorage();
-      
+
       return {
         isValid: false,
-        reason: 'Token expired'
+        reason: 'Token expired',
       };
     }
 
@@ -194,22 +195,18 @@ export class CSRFProtection {
         tokenId: SecurityUtils.hashForLogging(token),
         expectedUserId: userId,
         tokenUserId: csrfToken.userId,
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
-      auditSecurity.suspiciousActivity(
-        userId,
-        'CSRF token user mismatch',
-        { 
-          tokenId: SecurityUtils.hashForLogging(token),
-          expectedUserId: userId,
-          tokenUserId: csrfToken.userId
-        }
-      );
-      
+
+      auditSecurity.suspiciousActivity(userId, 'CSRF token user mismatch', {
+        tokenId: SecurityUtils.hashForLogging(token),
+        expectedUserId: userId,
+        tokenUserId: csrfToken.userId,
+      });
+
       return {
         isValid: false,
-        reason: 'Token user mismatch'
+        reason: 'Token user mismatch',
       };
     }
 
@@ -219,24 +216,20 @@ export class CSRFProtection {
         tokenId: SecurityUtils.hashForLogging(token),
         expectedSessionId: sessionId,
         tokenSessionId: csrfToken.sessionId,
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
-      
+
       if (userId) {
-        auditSecurity.suspiciousActivity(
-          userId,
-          'CSRF token session mismatch',
-          { 
-            tokenId: SecurityUtils.hashForLogging(token),
-            expectedSessionId: sessionId,
-            tokenSessionId: csrfToken.sessionId
-          }
-        );
+        auditSecurity.suspiciousActivity(userId, 'CSRF token session mismatch', {
+          tokenId: SecurityUtils.hashForLogging(token),
+          expectedSessionId: sessionId,
+          tokenSessionId: csrfToken.sessionId,
+        });
       }
-      
+
       return {
         isValid: false,
-        reason: 'Token session mismatch'
+        reason: 'Token session mismatch',
       };
     }
 
@@ -244,34 +237,34 @@ export class CSRFProtection {
       tokenId: SecurityUtils.hashForLogging(token),
       userId,
       sessionId,
-      context: 'csrf_protection'
+      context: 'csrf_protection',
     });
 
     return {
       isValid: true,
-      token: csrfToken
+      token: csrfToken,
     };
   }
 
   public refreshToken(oldToken: string, userId?: string, sessionId?: string): string | null {
     const validation = this.validateToken(oldToken, userId, sessionId);
-    
+
     if (!validation.isValid) {
       return null;
     }
 
     // Remove old token
     this.tokens.delete(oldToken);
-    
+
     // Generate new token
     const newToken = this.generateToken(userId, sessionId);
-    
+
     logger.debug('CSRF token refreshed', {
       oldTokenId: SecurityUtils.hashForLogging(oldToken),
       newTokenId: SecurityUtils.hashForLogging(newToken),
       userId,
       sessionId,
-      context: 'csrf_protection'
+      context: 'csrf_protection',
     });
 
     return newToken;
@@ -279,13 +272,13 @@ export class CSRFProtection {
 
   public revokeToken(token: string): void {
     const removed = this.tokens.delete(token);
-    
+
     if (removed) {
       this.saveTokensToStorage();
-      
+
       logger.debug('CSRF token revoked', {
         tokenId: SecurityUtils.hashForLogging(token),
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
     }
   }
@@ -309,16 +302,16 @@ export class CSRFProtection {
       }
     }
 
-    tokensToRevoke.forEach(tokenId => this.tokens.delete(tokenId));
+    tokensToRevoke.forEach((tokenId) => this.tokens.delete(tokenId));
 
     if (tokensToRevoke.length > 0) {
       this.saveTokensToStorage();
-      
+
       logger.info('CSRF tokens revoked', {
         revokedCount: tokensToRevoke.length,
         userId,
         sessionId,
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
     }
   }
@@ -350,7 +343,7 @@ export class CSRFProtection {
       totalTokens: this.tokens.size,
       activeTokens,
       expiredTokens,
-      tokensByUser
+      tokensByUser,
     };
   }
 
@@ -358,15 +351,15 @@ export class CSRFProtection {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
-    
+
     this.tokens.clear();
-    
+
     try {
       sessionStorage.removeItem(this.config.sessionStorageKey);
     } catch (error) {
       logger.warn('Failed to clear CSRF tokens from session storage', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: 'csrf_protection'
+        context: 'csrf_protection',
       });
     }
   }
@@ -389,11 +382,7 @@ export const useCSRFProtection = () => {
     return csrfProtection.validateToken(token, userId, sessionId);
   };
 
-  const refreshToken = (
-    oldToken: string,
-    userId?: string,
-    sessionId?: string
-  ): string | null => {
+  const refreshToken = (oldToken: string, userId?: string, sessionId?: string): string | null => {
     return csrfProtection.refreshToken(oldToken, userId, sessionId);
   };
 
@@ -405,7 +394,7 @@ export const useCSRFProtection = () => {
     generateToken,
     validateToken,
     refreshToken,
-    revokeToken
+    revokeToken,
   };
 };
 
@@ -415,14 +404,8 @@ export const withCSRFProtection = <T extends Record<string, any>>(
 ) => {
   return React.forwardRef<any, T>((props, ref) => {
     const csrfMethods = useCSRFProtection();
-    
-    return (
-      <Component
-        {...props}
-        ref={ref}
-        csrf={csrfMethods}
-      />
-    );
+
+    return <Component {...props} ref={ref} csrf={csrfMethods} />;
   });
 };
 
@@ -442,7 +425,7 @@ export const addCSRFTokenToHeaders = (
 ): Record<string, string> => {
   return {
     ...headers,
-    [headerName]: token
+    [headerName]: token,
   };
 };
 
@@ -452,8 +435,8 @@ export const validateCSRFFromRequest = (
   sessionId?: string
 ): { isValid: boolean; reason?: string } => {
   // Try to get token from header first
-  let token = request.headers.get('X-CSRF-Token');
-  
+  const token = request.headers.get('X-CSRF-Token');
+
   // If not in header, try to get from form data
   if (!token && request.body) {
     // This would need to be implemented based on your specific request handling
@@ -463,7 +446,7 @@ export const validateCSRFFromRequest = (
   if (!token) {
     return {
       isValid: false,
-      reason: 'CSRF token not found in request'
+      reason: 'CSRF token not found in request',
     };
   }
 

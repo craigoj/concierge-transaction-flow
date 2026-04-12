@@ -1,0 +1,174 @@
+-- Create document templates table
+CREATE TABLE IF NOT EXISTS public.document_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('purchase_agreement', 'offer_letter', 'disclosure', 'custom')),
+    content TEXT NOT NULL,
+    variables TEXT[] DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- Add template_id column to documents table
+ALTER TABLE public.documents 
+ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES public.document_templates(id) ON DELETE SET NULL;
+
+-- Add url column to documents table for storage URLs
+ALTER TABLE public.documents 
+ADD COLUMN IF NOT EXISTS url TEXT;
+
+-- Add generation metadata to documents table
+ALTER TABLE public.documents 
+ADD COLUMN IF NOT EXISTS generation_metadata JSONB DEFAULT '{}';
+
+-- Create storage bucket for documents
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'documents',
+    'documents',
+    false,
+    10485760, -- 10MB
+    ARRAY['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif', 'text/plain']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Create storage policies for documents bucket
+CREATE POLICY "Users can upload documents to their own folders"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'documents');
+
+CREATE POLICY "Users can view documents in their accessible transactions"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'documents');
+
+CREATE POLICY "Users can delete documents they uploaded"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'documents');
+
+-- Create RLS policies for document_templates table
+ALTER TABLE public.document_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view active templates"
+ON public.document_templates FOR SELECT
+TO authenticated
+USING (is_active = true);
+
+CREATE POLICY "Authenticated users can create templates"
+ON public.document_templates FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Users can update templates they created"
+ON public.document_templates FOR UPDATE
+TO authenticated
+USING (created_by = auth.uid());
+
+CREATE POLICY "Users can delete templates they created"
+ON public.document_templates FOR DELETE
+TO authenticated
+USING (created_by = auth.uid());
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_document_templates_type ON public.document_templates(type);
+CREATE INDEX IF NOT EXISTS idx_document_templates_active ON public.document_templates(is_active);
+CREATE INDEX IF NOT EXISTS idx_document_templates_created_by ON public.document_templates(created_by);
+CREATE INDEX IF NOT EXISTS idx_documents_template_id ON public.documents(template_id);
+
+-- Create updated_at trigger for document_templates
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_document_templates_updated_at
+    BEFORE UPDATE ON public.document_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Insert default templates
+INSERT INTO public.document_templates (name, type, content, variables) VALUES 
+(
+    'Purchase Agreement Template',
+    'purchase_agreement',
+    '<h1>PURCHASE AGREEMENT</h1>
+    <p><strong>Property Address:</strong> {{property_address}}</p>
+    <p><strong>Buyer:</strong> {{buyer_name}}</p>
+    <p><strong>Seller:</strong> {{seller_name}}</p>
+    <p><strong>Purchase Price:</strong> ${{purchase_price}}</p>
+    <p><strong>Closing Date:</strong> {{closing_date}}</p>
+    
+    <h2>Terms and Conditions</h2>
+    <p>This Purchase Agreement is made between the Buyer and Seller for the purchase of the above-mentioned property.</p>
+    
+    <h3>Purchase Price</h3>
+    <p>The total purchase price for the property is ${{purchase_price}}, to be paid as follows:</p>
+    <ul>
+        <li>Earnest Money: ${{earnest_money}}</li>
+        <li>Down Payment: ${{down_payment}}</li>
+        <li>Loan Amount: ${{loan_amount}}</li>
+    </ul>
+    
+    <h3>Contingencies</h3>
+    <p>This agreement is contingent upon:</p>
+    <ul>
+        <li>Satisfactory home inspection</li>
+        <li>Mortgage approval</li>
+        <li>Clear title</li>
+    </ul>
+    
+    <h3>Closing Information</h3>
+    <p>Closing Date: {{closing_date}}</p>
+    <p>Closing Location: {{closing_location}}</p>
+    
+    <p><strong>Buyer Signature:</strong> _______________________</p>
+    <p><strong>Seller Signature:</strong> _______________________</p>
+    <p><strong>Date:</strong> {{agreement_date}}</p>',
+    ARRAY['property_address', 'buyer_name', 'seller_name', 'purchase_price', 'closing_date', 'earnest_money', 'down_payment', 'loan_amount', 'closing_location', 'agreement_date']
+),
+(
+    'Offer Letter Template',
+    'offer_letter',
+    '<h1>OFFER LETTER</h1>
+    <p><strong>Date:</strong> {{offer_date}}</p>
+    <p><strong>To:</strong> {{seller_name}}</p>
+    <p><strong>From:</strong> {{buyer_name}}</p>
+    <p><strong>Property:</strong> {{property_address}}</p>
+    
+    <h2>Offer Details</h2>
+    <p>We are pleased to submit this offer for the purchase of your property located at {{property_address}}.</p>
+    
+    <h3>Financial Terms</h3>
+    <p><strong>Offered Price:</strong> ${{offer_price}}</p>
+    <p><strong>Earnest Money:</strong> ${{earnest_money}}</p>
+    <p><strong>Down Payment:</strong> ${{down_payment}}</p>
+    <p><strong>Financing:</strong> {{financing_type}}</p>
+    
+    <h3>Timeline</h3>
+    <p><strong>Closing Date:</strong> {{closing_date}}</p>
+    <p><strong>Inspection Period:</strong> {{inspection_period}} days</p>
+    <p><strong>Financing Contingency:</strong> {{financing_contingency}} days</p>
+    
+    <h3>Additional Terms</h3>
+    <p>{{additional_terms}}</p>
+    
+    <p>This offer is valid until {{offer_expiration}}.</p>
+    
+    <p>Sincerely,</p>
+    <p>{{buyer_name}}</p>
+    <p>{{buyer_contact}}</p>',
+    ARRAY['offer_date', 'seller_name', 'buyer_name', 'property_address', 'offer_price', 'earnest_money', 'down_payment', 'financing_type', 'closing_date', 'inspection_period', 'financing_contingency', 'additional_terms', 'offer_expiration', 'buyer_contact']
+);
+
+-- Comment explaining the setup
+COMMENT ON TABLE public.document_templates IS 'Stores document templates for generating PDFs from form data';
+COMMENT ON COLUMN public.document_templates.variables IS 'Array of variable names that can be substituted in the template content';
+COMMENT ON COLUMN public.documents.template_id IS 'Reference to the template used to generate this document';
+COMMENT ON COLUMN public.documents.url IS 'Storage URL for the document file';
+COMMENT ON COLUMN public.documents.generation_metadata IS 'Additional metadata about document generation process';

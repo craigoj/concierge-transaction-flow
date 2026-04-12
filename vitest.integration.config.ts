@@ -1,11 +1,11 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react-swc'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react-swc';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'node', // Use node environment for database tests
+    environment: 'jsdom', // Use jsdom environment for component integration tests
     globals: true,
     setupFiles: ['./src/test/integration-setup.ts'],
     include: ['**/*.integration.test.{ts,tsx}'],
@@ -18,4 +18,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+});

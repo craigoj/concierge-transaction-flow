@@ -1,69 +1,71 @@
-
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { useBulkSelection } from "@/hooks/useBulkSelection";
-import { 
-  Search, 
-  MoreVertical, 
-  UserCheck, 
-  UserX, 
-  Mail, 
-  Key, 
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import {
+  Search,
+  MoreVertical,
+  UserCheck,
+  UserX,
+  Mail,
+  Key,
   Eye,
   RefreshCw,
   Users,
-  Filter
-} from "lucide-react";
+  Filter,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { QuickActionsMenu } from "./QuickActionsMenu";
-import { Database } from "@/integrations/supabase/types";
+} from '@/components/ui/dropdown-menu';
+import { QuickActionsMenu } from './QuickActionsMenu';
+import { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
-interface Agent extends Profile {
-  // Additional computed fields if needed
-}
+type Agent = Profile;
 
 interface EnhancedAgentsListProps {
   refreshTrigger: number;
 }
 
 export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [setupMethodFilter, setSetupMethodFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [setupMethodFilter, setSetupMethodFilter] = useState('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const {
-    selectedIds,
-    toggleSelection,
-    toggleAll,
-    clearSelection,
-    isSelected,
-    isAllSelected,
-  } = useBulkSelection();
 
-  const { data: agents, isLoading, error } = useQuery({
+  const { selectedIds, toggleSelection, toggleAll, clearSelection, isSelected, isAllSelected } =
+    useBulkSelection();
+
+  const {
+    data: agents,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['enhanced-agents', refreshTrigger, searchTerm, statusFilter, setupMethodFilter],
     queryFn: async (): Promise<Agent[]> => {
       let query = supabase
         .from('profiles')
-        .select(`
+        .select(
+          `
           id,
           first_name,
           last_name,
@@ -77,12 +79,15 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
           onboarding_method,
           created_at,
           invited_at
-        `)
+        `
+        )
         .eq('role', 'agent')
         .order('created_at', { ascending: false });
 
       if (searchTerm) {
-        query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        query = query.or(
+          `first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
+        );
       }
 
       if (statusFilter !== 'all') {
@@ -96,21 +101,21 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
       const { data, error } = await query;
       if (error) throw error;
       return data as Agent[];
-    }
+    },
   });
 
   const bulkStatusUpdateMutation = useMutation({
-    mutationFn: async ({ agentIds, newStatus }: { agentIds: string[], newStatus: string }) => {
+    mutationFn: async ({ agentIds, newStatus }: { agentIds: string[]; newStatus: string }) => {
       const { data, error } = await supabase.rpc('bulk_update_agent_status', {
         p_agent_ids: agentIds,
-        p_new_status: newStatus
+        p_new_status: newStatus,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: (updatedCount) => {
       toast({
-        title: "Bulk Update Successful",
+        title: 'Bulk Update Successful',
         description: `Updated ${updatedCount} agents`,
       });
       queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] });
@@ -118,18 +123,18 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
     },
     onError: (error: Error) => {
       toast({
-        variant: "destructive",
-        title: "Bulk Update Failed",
+        variant: 'destructive',
+        title: 'Bulk Update Failed',
         description: error.message,
       });
-    }
+    },
   });
 
   const generateSetupLinkMutation = useMutation({
     mutationFn: async (agentId: string) => {
       const { data, error } = await supabase.rpc('generate_agent_setup_link', {
         p_agent_id: agentId,
-        p_expires_hours: 24
+        p_expires_hours: 24,
       });
       if (error) throw error;
       return data;
@@ -138,24 +143,24 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
       const setupUrl = `${window.location.origin}/agent/setup/${setupToken}`;
       navigator.clipboard.writeText(setupUrl);
       toast({
-        title: "Setup Link Generated",
-        description: "Link copied to clipboard. Valid for 24 hours.",
+        title: 'Setup Link Generated',
+        description: 'Link copied to clipboard. Valid for 24 hours.',
       });
     },
     onError: (error: Error) => {
       toast({
-        variant: "destructive",
-        title: "Failed to Generate Link",
+        variant: 'destructive',
+        title: 'Failed to Generate Link',
         description: error.message,
       });
-    }
+    },
   });
 
   const getStatusBadge = (agent: Agent) => {
     if (agent.admin_activated) {
       return <Badge className="bg-green-100 text-green-800">Active</Badge>;
     }
-    
+
     switch (agent.invitation_status) {
       case 'completed':
         return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
@@ -171,12 +176,24 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
   const getSetupMethodBadge = (method: string | null) => {
     switch (method) {
       case 'manual_creation':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700">Manual</Badge>;
+        return (
+          <Badge variant="outline" className="bg-purple-50 text-purple-700">
+            Manual
+          </Badge>
+        );
       case 'assisted_setup':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">Assisted</Badge>;
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+            Assisted
+          </Badge>
+        );
       case 'email_invitation':
       default:
-        return <Badge variant="outline" className="bg-green-50 text-green-700">Email</Badge>;
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700">
+            Email
+          </Badge>
+        );
     }
   };
 
@@ -238,21 +255,19 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
               <span className="text-sm font-medium text-blue-900">
                 {selectedIds.length} agent{selectedIds.length > 1 ? 's' : ''} selected
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearSelection}
-              >
+              <Button variant="outline" size="sm" onClick={clearSelection}>
                 Clear Selection
               </Button>
             </div>
             <div className="flex space-x-2">
               <Button
                 size="sm"
-                onClick={() => bulkStatusUpdateMutation.mutate({ 
-                  agentIds: selectedIds, 
-                  newStatus: 'completed' 
-                })}
+                onClick={() =>
+                  bulkStatusUpdateMutation.mutate({
+                    agentIds: selectedIds,
+                    newStatus: 'completed',
+                  })
+                }
                 disabled={bulkStatusUpdateMutation.isPending}
               >
                 <UserCheck className="h-4 w-4 mr-1" />
@@ -261,10 +276,12 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => bulkStatusUpdateMutation.mutate({ 
-                  agentIds: selectedIds, 
-                  newStatus: 'pending' 
-                })}
+                onClick={() =>
+                  bulkStatusUpdateMutation.mutate({
+                    agentIds: selectedIds,
+                    newStatus: 'pending',
+                  })
+                }
                 disabled={bulkStatusUpdateMutation.isPending}
               >
                 <UserX className="h-4 w-4 mr-1" />
@@ -296,16 +313,16 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Checkbox
-                checked={isAllSelected(filteredAgents.map(a => a.id))}
-                onCheckedChange={() => toggleAll(filteredAgents.map(a => a.id))}
+                checked={isAllSelected(filteredAgents.map((a) => a.id))}
+                onCheckedChange={() => toggleAll(filteredAgents.map((a) => a.id))}
               />
-              <span className="text-sm text-gray-600">
-                Select all ({filteredAgents.length})
-              </span>
+              <span className="text-sm text-gray-600">Select all ({filteredAgents.length})</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Users className="h-4 w-4" />
-              <span>{filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''}</span>
+              <span>
+                {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''}
+              </span>
             </div>
           </div>
 
@@ -330,7 +347,9 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
                       agentId={agent.id}
                       agentName={`${agent.first_name} ${agent.last_name}`}
                       currentStatus={agent.invitation_status || 'pending'}
-                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] })}
+                      onRefresh={() =>
+                        queryClient.invalidateQueries({ queryKey: ['enhanced-agents'] })
+                      }
                     />
                   </div>
                 </CardHeader>
@@ -359,7 +378,10 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
                     <div className="text-xs text-gray-500">
                       Created: {new Date(agent.created_at).toLocaleDateString()}
                       {agent.invited_at && (
-                        <><br />Invited: {new Date(agent.invited_at).toLocaleDateString()}</>
+                        <>
+                          <br />
+                          Invited: {new Date(agent.invited_at).toLocaleDateString()}
+                        </>
                       )}
                     </div>
                   </div>
@@ -377,8 +399,8 @@ export const EnhancedAgentsList = ({ refreshTrigger }: EnhancedAgentsListProps) 
             <h3 className="text-lg font-medium text-gray-900 mb-2">No agents found</h3>
             <p className="text-gray-600">
               {searchTerm || statusFilter !== 'all' || setupMethodFilter !== 'all'
-                ? "Try adjusting your search or filters"
-                : "Create your first agent to get started"}
+                ? 'Try adjusting your search or filters'
+                : 'Create your first agent to get started'}
             </p>
           </CardContent>
         </Card>

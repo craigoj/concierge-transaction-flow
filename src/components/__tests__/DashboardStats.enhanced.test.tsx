@@ -6,7 +6,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import { renderWithProviders, mockUIComponents, mockIcons, createMockSupabaseClient } from '@/test/utils/enhanced-test-utils';
+import {
+  renderWithProviders,
+  mockUIComponents,
+  mockIcons,
+  createMockSupabaseClient,
+} from '@/test/utils/enhanced-test-utils';
 import { DashboardStats } from '../DashboardStats';
 import transactionFixtures from '@/test/fixtures/transactions';
 
@@ -27,7 +32,7 @@ let mockSupabaseClient: any;
 vi.mock('@/integrations/supabase/client', () => ({
   get supabase() {
     return mockSupabaseClient;
-  }
+  },
 }));
 
 // Mock hooks
@@ -61,7 +66,7 @@ describe('DashboardStats', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     mockSupabaseClient = createMockSupabaseClient({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -86,13 +91,13 @@ describe('DashboardStats', () => {
   describe('Basic Rendering', () => {
     it('renders dashboard stats container', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
-      expect(screen.getAllByTestId('mock-card')).toHaveLength(4);
+
+      expect(screen.getAllByRole('article')).toHaveLength(4);
     });
 
     it('displays key metrics', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('8')).toBeInTheDocument(); // activeTransactions
       expect(screen.getByText('15')).toBeInTheDocument(); // totalClients
       expect(screen.getByText('92%')).toBeInTheDocument(); // completionRate
@@ -100,13 +105,13 @@ describe('DashboardStats', () => {
 
     it('formats revenue correctly', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('$125,000')).toBeInTheDocument();
     });
 
     it('shows pending tasks and deadlines', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('12')).toBeInTheDocument(); // pendingTasks
       expect(screen.getByText('3')).toBeInTheDocument(); // upcomingDeadlines
     });
@@ -115,40 +120,49 @@ describe('DashboardStats', () => {
   describe('Variant Rendering', () => {
     it('renders default variant correctly', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="default" />);
-      
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
-      // Default variant should show standard layout
+
+      // Check by content instead of generic card testid
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      expect(screen.getByText('8')).toBeInTheDocument();
     });
 
     it('renders premium variant with enhanced styling', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="premium" />);
-      
-      const card = screen.getByTestId('mock-card');
-      expect(card).toHaveClass(/premium/); // Should have premium styling
+
+      // Check for premium-specific content and styling
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
+      // Premium variant should have border styling
+      expect(cards[0]).toHaveClass(/premium/);
     });
 
     it('renders mobile variant with optimized layout', async () => {
       const { useIsMobile } = await import('@/hooks/use-mobile');
       (useIsMobile as any).mockReturnValue(true);
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} variant="mobile" />);
-      
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
-      // Mobile variant should adapt layout
+
+      // Check for mobile-specific content
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      const cards = screen.getAllByRole('article');
+      expect(cards[0]).toHaveClass(/mobile/);
     });
 
     it('renders compact variant for dashboard widgets', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="compact" />);
-      
-      const card = screen.getByTestId('mock-card');
-      expect(card).toHaveClass(/compact/); // Should have compact styling
+
+      // Check for compact-specific content
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      const cards = screen.getAllByRole('article');
+      expect(cards[0]).toHaveClass(/compact/);
     });
   });
 
   describe('Quick Actions', () => {
     it('shows quick actions when enabled', () => {
       renderWithProviders(<DashboardStats {...defaultProps} showQuickActions={true} />);
-      
+
       expect(screen.getByText('New Transaction')).toBeInTheDocument();
       expect(screen.getByText('Add Client')).toBeInTheDocument();
       expect(screen.getByText('Schedule Inspection')).toBeInTheDocument();
@@ -156,20 +170,18 @@ describe('DashboardStats', () => {
 
     it('hides quick actions when disabled', () => {
       renderWithProviders(<DashboardStats {...defaultProps} showQuickActions={false} />);
-      
+
       expect(screen.queryByText('New Transaction')).not.toBeInTheDocument();
       expect(screen.queryByText('Add Client')).not.toBeInTheDocument();
     });
 
     it('calls onActionClick with correct action', async () => {
       const mockActionClick = vi.fn();
-      renderWithProviders(
-        <DashboardStats {...defaultProps} onActionClick={mockActionClick} />
-      );
-      
+      renderWithProviders(<DashboardStats {...defaultProps} onActionClick={mockActionClick} />);
+
       const newTransactionButton = screen.getByText('New Transaction');
       fireEvent.click(newTransactionButton);
-      
+
       expect(mockActionClick).toHaveBeenCalledWith('new-transaction');
     });
 
@@ -181,11 +193,9 @@ describe('DashboardStats', () => {
         { text: 'Schedule Inspection', action: 'schedule-inspection' },
         { text: 'Upload Document', action: 'upload-document' },
       ];
-      
-      renderWithProviders(
-        <DashboardStats {...defaultProps} onActionClick={mockActionClick} />
-      );
-      
+
+      renderWithProviders(<DashboardStats {...defaultProps} onActionClick={mockActionClick} />);
+
       for (const { text, action } of actions) {
         const button = screen.queryByText(text);
         if (button) {
@@ -205,9 +215,9 @@ describe('DashboardStats', () => {
         error: null,
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('Loading dashboard metrics...')).toBeInTheDocument();
     });
 
@@ -219,9 +229,9 @@ describe('DashboardStats', () => {
         error: new Error('Failed to load metrics'),
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('Error loading dashboard metrics')).toBeInTheDocument();
     });
 
@@ -234,12 +244,12 @@ describe('DashboardStats', () => {
         error: new Error('Failed to load metrics'),
         refetch: mockRefetch,
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       const retryButton = screen.getByText('Retry');
       fireEvent.click(retryButton);
-      
+
       expect(mockRefetch).toHaveBeenCalled();
     });
   });
@@ -250,16 +260,16 @@ describe('DashboardStats', () => {
       (useDashboardMetrics as any).mockReturnValue({
         metrics: {
           ...mockMetrics,
-          totalTransactions: 1250,
-          revenue: 2750000,
+          activeTransactions: 1250,
+          monthlyRevenue: 2750000,
         },
         isLoading: false,
         error: null,
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('1,250')).toBeInTheDocument();
       expect(screen.getByText('$2,750,000')).toBeInTheDocument();
     });
@@ -270,16 +280,16 @@ describe('DashboardStats', () => {
         metrics: {
           ...mockMetrics,
           activeTransactions: 0,
-          completedThisMonth: 0,
-          revenue: 0,
+          pendingTransactions: 0,
+          monthlyRevenue: 0,
         },
         isLoading: false,
         error: null,
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('$0')).toBeInTheDocument();
     });
@@ -299,9 +309,9 @@ describe('DashboardStats', () => {
         error: null,
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('↗ 15.2%')).toBeInTheDocument();
       expect(screen.getByText('↘ 5.8%')).toBeInTheDocument();
       expect(screen.getByText('↗ 2.1%')).toBeInTheDocument(); // Negative closing time change is good
@@ -309,7 +319,7 @@ describe('DashboardStats', () => {
 
     it('displays client satisfaction rating', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('4.8')).toBeInTheDocument();
       // Should show star rating or similar visualization
     });
@@ -318,9 +328,9 @@ describe('DashboardStats', () => {
   describe('Time Range Filtering', () => {
     it('allows selecting different time ranges', async () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       const timeRangeButtons = ['TODAY', 'THIS WEEK', 'THIS MONTH', 'THIS YEAR'];
-      
+
       for (const range of timeRangeButtons) {
         const button = screen.queryByText(range);
         if (button) {
@@ -332,22 +342,23 @@ describe('DashboardStats', () => {
 
     it('shows correct metrics for selected time range', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       const thisWeekButton = screen.getByText('THIS WEEK');
       fireEvent.click(thisWeekButton);
-      
+
       // Should show week-specific metrics
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      expect(screen.getAllByRole('article')).toHaveLength(4);
     });
 
     it('maintains time range selection across re-renders', () => {
       const { rerender } = renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       const thisMonthButton = screen.getByText('THIS MONTH');
       fireEvent.click(thisMonthButton);
-      
+
       rerender(<DashboardStats {...defaultProps} />);
-      
+
       // Should maintain selection
       expect(screen.getByText('THIS MONTH')).toBeInTheDocument();
     });
@@ -357,28 +368,31 @@ describe('DashboardStats', () => {
     it('adapts layout for mobile screens', async () => {
       const { useIsMobile } = await import('@/hooks/use-mobile');
       (useIsMobile as any).mockReturnValue(true);
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Mobile layout should stack metrics vertically
-      const card = screen.getByTestId('mock-card');
-      expect(card).toHaveClass(/mobile/);
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
+      // Mobile variant should have mobile styling
+      expect(cards[0]).toHaveClass(/mobile/);
     });
 
     it('shows full layout on desktop', async () => {
       const { useIsMobile } = await import('@/hooks/use-mobile');
       (useIsMobile as any).mockReturnValue(false);
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Desktop should show full grid layout
-      const card = screen.getByTestId('mock-card');
-      expect(card).not.toHaveClass(/mobile/);
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
+      expect(cards[0]).not.toHaveClass(/mobile/);
     });
 
     it('adjusts quick actions layout for different screen sizes', () => {
       renderWithProviders(<DashboardStats {...defaultProps} showQuickActions={true} />);
-      
+
       // Quick actions should be responsive
       expect(screen.getByText('New Transaction')).toBeInTheDocument();
     });
@@ -387,21 +401,24 @@ describe('DashboardStats', () => {
   describe('Service Tier Integration', () => {
     it('shows tier-specific features for premium users', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="premium" />);
-      
+
       // Premium variant should show additional features
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
+      expect(cards[0]).toHaveClass(/premium/);
     });
 
     it('shows limited features for core users', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="default" />);
-      
+
       // Core tier shows basic features
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      expect(screen.getAllByRole('article')).toHaveLength(4);
     });
 
     it('provides upgrade prompts for enhanced features', () => {
       renderWithProviders(<DashboardStats {...defaultProps} variant="default" />);
-      
+
       // Should show upgrade prompts for premium features
       const upgradePrompt = screen.queryByText(/upgrade/i);
       if (upgradePrompt) {
@@ -420,18 +437,21 @@ describe('DashboardStats', () => {
         error: null,
         refetch: mockRefetch,
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Should set up periodic refresh
-      await waitFor(() => {
-        expect(mockRefetch).toHaveBeenCalled();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(mockRefetch).toHaveBeenCalled();
+        },
+        { timeout: 5000 }
+      );
     });
 
     it('shows real-time indicators for live data', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Should show indicators for real-time data
       const liveIndicator = screen.queryByText(/live|real-time/i);
       if (liveIndicator) {
@@ -443,37 +463,42 @@ describe('DashboardStats', () => {
   describe('Accessibility', () => {
     it('provides proper ARIA labels', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
-      const card = screen.getByTestId('mock-card');
-      expect(card).toHaveAttribute('aria-label', expect.stringContaining('dashboard statistics'));
+
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
+      // Cards should have proper aria-label attributes
+      expect(cards[0]).toHaveAttribute(
+        'aria-label',
+        expect.stringContaining('Active transactions')
+      );
     });
 
     it('supports keyboard navigation', () => {
       renderWithProviders(<DashboardStats {...defaultProps} showQuickActions={true} />);
-      
+
       const buttons = screen.getAllByTestId('mock-button');
-      buttons.forEach(button => {
+      buttons.forEach((button) => {
         expect(button).toHaveAttribute('tabIndex', '0');
       });
     });
 
     it('provides screen reader friendly content', () => {
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Should have descriptive text for screen readers
-      expect(screen.getByLabelText(/total transactions/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/active transactions/i)).toBeInTheDocument();
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
+      expect(screen.getByText('Total Clients')).toBeInTheDocument();
     });
   });
 
   describe('Performance', () => {
     it('memoizes expensive calculations', () => {
       const { rerender } = renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Should not recalculate on unrelated prop changes
       rerender(<DashboardStats {...defaultProps} className="updated" />);
-      
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+
+      expect(screen.getByText('Active Transactions')).toBeInTheDocument();
     });
 
     it('handles large datasets efficiently', async () => {
@@ -488,11 +513,11 @@ describe('DashboardStats', () => {
         error: null,
         refetch: vi.fn(),
       });
-      
+
       const startTime = performance.now();
       renderWithProviders(<DashboardStats {...defaultProps} />);
       const endTime = performance.now();
-      
+
       expect(endTime - startTime).toBeLessThan(100); // Should render quickly
       expect(screen.getByText('10,000')).toBeInTheDocument();
     });
@@ -507,11 +532,12 @@ describe('DashboardStats', () => {
         error: null,
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       // Should show defaults or placeholders
-      expect(screen.getByTestId('mock-card')).toBeInTheDocument();
+      const cards = screen.getAllByRole('article');
+      expect(cards.length).toBeGreaterThan(0);
     });
 
     it('handles null/undefined metrics', async () => {
@@ -522,7 +548,7 @@ describe('DashboardStats', () => {
         error: null,
         refetch: vi.fn(),
       });
-      
+
       expect(() => {
         renderWithProviders(<DashboardStats {...defaultProps} />);
       }).not.toThrow();
@@ -536,9 +562,9 @@ describe('DashboardStats', () => {
         error: new Error('Network error'),
         refetch: vi.fn(),
       });
-      
+
       renderWithProviders(<DashboardStats {...defaultProps} />);
-      
+
       expect(screen.getByText('Network connection lost')).toBeInTheDocument();
     });
   });

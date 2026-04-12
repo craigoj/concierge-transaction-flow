@@ -9,22 +9,22 @@ export class SecurityUtils {
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
     /(\b(OR|AND)\s+\d+\s*=\s*\d+)/gi,
     /(\b(OR|AND)\s+[\w\s]*\s*=\s*[\w\s]*)/gi,
-    /(--|\#|\/\*|\*\/)/g,
+    /(--|#|\/\*|\*\/)/g,
     /(\bxp_cmdshell\b|\bsp_executesql\b)/gi,
-    /(\bSELECT\b.*\bFROM\b.*\bWHERE\b.*\bOR\b.*=.*)/gi
+    /(\bSELECT\b.*\bFROM\b.*\bWHERE\b.*\bOR\b.*=.*)/gi,
   ];
 
   // XSS prevention patterns
   private static readonly XSS_PATTERNS = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-    /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi,
-    /<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi,
-    /<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/gi,
+    /<script\b[^<]*(?:(?!<\/script>)[^<]*)*<\/script>/gi,
+    /<iframe\b[^<]*(?:(?!<\/iframe>)[^<]*)*<\/iframe>/gi,
+    /<object\b[^<]*(?:(?!<\/object>)[^<]*)*<\/object>/gi,
+    /<embed\b[^<]*(?:(?!<\/embed>)[^<]*)*<\/embed>/gi,
+    /<applet\b[^<]*(?:(?!<\/applet>)[^<]*)*<\/applet>/gi,
     /javascript:/gi,
     /vbscript:/gi,
     /data:text\/html/gi,
-    /on\w+\s*=/gi // Event handlers like onclick, onload, etc.
+    /on\w+\s*=/gi, // Event handlers like onclick, onload, etc.
   ];
 
   // Path traversal prevention
@@ -32,27 +32,30 @@ export class SecurityUtils {
     /\.\./g,
     /\/\.\//g,
     /\\\.\\/g,
-    /\%2e\%2e/gi,
-    /\%2f\%2e\%2f/gi,
-    /\%5c\%2e\%5c/gi
+    /%2e%2e/gi,
+    /%2f%2e%2f/gi,
+    /%5c%2e%5c/gi,
   ];
 
   // Command injection prevention
   private static readonly COMMAND_INJECTION_PATTERNS = [
     /[;&|`$(){}[\]]/g,
     /\b(exec|system|shell_exec|passthru|eval|base64_decode)\b/gi,
-    /\b(wget|curl|nc|netcat|telnet|ssh|ftp)\b/gi
+    /\b(wget|curl|nc|netcat|telnet|ssh|ftp)\b/gi,
   ];
 
   /**
    * Comprehensive input sanitization
    */
-  static sanitizeInput(input: string, options: {
-    allowHtml?: boolean;
-    allowUrls?: boolean;
-    maxLength?: number;
-    customPatterns?: RegExp[];
-  } = {}): string {
+  static sanitizeInput(
+    input: string,
+    options: {
+      allowHtml?: boolean;
+      allowUrls?: boolean;
+      maxLength?: number;
+      customPatterns?: RegExp[];
+    } = {}
+  ): string {
     if (!input || typeof input !== 'string') {
       return '';
     }
@@ -65,7 +68,7 @@ export class SecurityUtils {
       logger.warn('Input truncated due to length limit', {
         originalLength: input.length,
         maxLength: options.maxLength,
-        context: 'input_sanitization'
+        context: 'input_sanitization',
       });
     }
 
@@ -75,7 +78,7 @@ export class SecurityUtils {
         logger.warn('Potential SQL injection attempt detected', {
           input: sanitized,
           pattern: pattern.source,
-          context: 'security_threat'
+          context: 'security_threat',
         });
         sanitized = sanitized.replace(pattern, '');
       }
@@ -87,7 +90,7 @@ export class SecurityUtils {
         logger.warn('Potential XSS attempt detected', {
           input: sanitized,
           pattern: pattern.source,
-          context: 'security_threat'
+          context: 'security_threat',
         });
         sanitized = sanitized.replace(pattern, '');
       }
@@ -99,7 +102,7 @@ export class SecurityUtils {
         logger.warn('Potential path traversal attempt detected', {
           input: sanitized,
           pattern: pattern.source,
-          context: 'security_threat'
+          context: 'security_threat',
         });
         sanitized = sanitized.replace(pattern, '');
       }
@@ -111,7 +114,7 @@ export class SecurityUtils {
         logger.warn('Potential command injection attempt detected', {
           input: sanitized,
           pattern: pattern.source,
-          context: 'security_threat'
+          context: 'security_threat',
         });
         sanitized = sanitized.replace(pattern, '');
       }
@@ -128,12 +131,12 @@ export class SecurityUtils {
     if (options.allowHtml) {
       sanitized = DOMPurify.sanitize(sanitized, {
         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a'],
-        ALLOWED_ATTR: options.allowUrls ? ['href', 'target'] : []
+        ALLOWED_ATTR: options.allowUrls ? ['href', 'target'] : [],
       });
     } else {
       sanitized = DOMPurify.sanitize(sanitized, {
         ALLOWED_TAGS: [],
-        ALLOWED_ATTR: []
+        ALLOWED_ATTR: [],
       });
     }
 
@@ -149,13 +152,13 @@ export class SecurityUtils {
     }
 
     const sanitized = this.sanitizeInput(email, { maxLength: 254 });
-    
+
     // Additional email-specific validation
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(sanitized)) {
       logger.warn('Invalid email format detected', {
         email: sanitized,
-        context: 'email_validation'
+        context: 'email_validation',
       });
       return '';
     }
@@ -173,13 +176,13 @@ export class SecurityUtils {
 
     // Remove all non-digit characters except +
     let sanitized = phone.replace(/[^\d+]/g, '');
-    
+
     // Validate length
     if (sanitized.length < 10 || sanitized.length > 20) {
       logger.warn('Invalid phone number length', {
         phone: sanitized,
         length: sanitized.length,
-        context: 'phone_validation'
+        context: 'phone_validation',
       });
       return '';
     }
@@ -201,16 +204,16 @@ export class SecurityUtils {
     }
 
     const sanitized = this.sanitizeInput(url, { maxLength: 2048 });
-    
+
     try {
       const parsed = new URL(sanitized);
-      
+
       // Only allow HTTP and HTTPS protocols
       if (!['http:', 'https:'].includes(parsed.protocol)) {
         logger.warn('Invalid URL protocol detected', {
           url: sanitized,
           protocol: parsed.protocol,
-          context: 'url_validation'
+          context: 'url_validation',
         });
         return '';
       }
@@ -220,7 +223,7 @@ export class SecurityUtils {
       logger.warn('Invalid URL format detected', {
         url: sanitized,
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: 'url_validation'
+        context: 'url_validation',
       });
       return '';
     }
@@ -229,15 +232,18 @@ export class SecurityUtils {
   /**
    * Validate file uploads
    */
-  static validateFileUpload(file: File, options: {
-    maxSize?: number; // in bytes
-    allowedTypes?: string[];
-    allowedExtensions?: string[];
-  } = {}): { isValid: boolean; error?: string } {
+  static validateFileUpload(
+    file: File,
+    options: {
+      maxSize?: number; // in bytes
+      allowedTypes?: string[];
+      allowedExtensions?: string[];
+    } = {}
+  ): { isValid: boolean; error?: string } {
     const defaultOptions = {
       maxSize: 10 * 1024 * 1024, // 10MB
       allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
-      allowedExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.pdf']
+      allowedExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.pdf'],
     };
 
     const config = { ...defaultOptions, ...options };
@@ -248,11 +254,11 @@ export class SecurityUtils {
         fileName: file.name,
         fileSize: file.size,
         maxSize: config.maxSize,
-        context: 'file_upload_security'
+        context: 'file_upload_security',
       });
       return {
         isValid: false,
-        error: `File size exceeds limit of ${Math.round(config.maxSize / 1024 / 1024)}MB`
+        error: `File size exceeds limit of ${Math.round(config.maxSize / 1024 / 1024)}MB`,
       };
     }
 
@@ -262,11 +268,11 @@ export class SecurityUtils {
         fileName: file.name,
         fileType: file.type,
         allowedTypes: config.allowedTypes,
-        context: 'file_upload_security'
+        context: 'file_upload_security',
       });
       return {
         isValid: false,
-        error: 'File type not allowed'
+        error: 'File type not allowed',
       };
     }
 
@@ -277,11 +283,11 @@ export class SecurityUtils {
         fileName: file.name,
         extension,
         allowedExtensions: config.allowedExtensions,
-        context: 'file_upload_security'
+        context: 'file_upload_security',
       });
       return {
         isValid: false,
-        error: 'File extension not allowed'
+        error: 'File extension not allowed',
       };
     }
 
@@ -299,7 +305,7 @@ export class SecurityUtils {
       /\.rb$/i,
       /\.js$/i,
       /\.html$/i,
-      /\.htm$/i
+      /\.htm$/i,
     ];
 
     for (const pattern of suspiciousPatterns) {
@@ -307,11 +313,11 @@ export class SecurityUtils {
         logger.warn('File upload rejected: suspicious filename', {
           fileName: file.name,
           pattern: pattern.source,
-          context: 'file_upload_security'
+          context: 'file_upload_security',
         });
         return {
           isValid: false,
-          error: 'File name contains suspicious elements'
+          error: 'File name contains suspicious elements',
         };
       }
     }
@@ -325,12 +331,12 @@ export class SecurityUtils {
   static generateSecureToken(length: number = 32): string {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let token = '';
-    
+
     for (let i = 0; i < length; i++) {
       const randomIndex = Math.floor(Math.random() * charset.length);
       token += charset[randomIndex];
     }
-    
+
     return token;
   }
 
@@ -346,17 +352,20 @@ export class SecurityUtils {
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     return Math.abs(hash).toString(16);
   }
 
   /**
    * Validate data integrity
    */
-  static validateDataIntegrity(data: any, expectedSchema: z.ZodSchema): {
+  static validateDataIntegrity(
+    data: any,
+    expectedSchema: z.ZodSchema
+  ): {
     isValid: boolean;
     errors: string[];
     sanitizedData?: any;
@@ -366,55 +375,60 @@ export class SecurityUtils {
       return {
         isValid: true,
         errors: [],
-        sanitizedData
+        sanitizedData,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`);
+        const errors = error.errors.map((err) => `${err.path.join('.')}: ${err.message}`);
         logger.warn('Data validation failed', {
           errors,
-          context: 'data_validation'
+          context: 'data_validation',
         });
         return {
           isValid: false,
-          errors
+          errors,
         };
       }
-      
+
       logger.error('Unexpected validation error', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        context: 'data_validation'
+        context: 'data_validation',
       });
-      
+
       return {
         isValid: false,
-        errors: ['Validation failed due to unexpected error']
+        errors: ['Validation failed due to unexpected error'],
       };
     }
   }
 }
 
 // Enhanced validation schemas with security
-export const secureTextSchema = z.string()
+export const secureTextSchema = z
+  .string()
   .min(1, 'Field is required')
   .max(1000, 'Text is too long')
   .transform((val) => SecurityUtils.sanitizeInput(val));
 
-export const secureEmailSchema = z.string()
+export const secureEmailSchema = z
+  .string()
   .email('Invalid email format')
   .transform((val) => SecurityUtils.sanitizeEmail(val))
   .refine((val) => val.length > 0, 'Invalid email address');
 
-export const securePhoneSchema = z.string()
+export const securePhoneSchema = z
+  .string()
   .min(10, 'Phone number is too short')
   .transform((val) => SecurityUtils.sanitizePhone(val))
   .refine((val) => val.length > 0, 'Invalid phone number');
 
-export const secureUrlSchema = z.string()
+export const secureUrlSchema = z
+  .string()
   .url('Invalid URL format')
   .transform((val) => SecurityUtils.sanitizeUrl(val))
   .refine((val) => val.length > 0, 'Invalid URL');
 
-export const secureHtmlSchema = z.string()
+export const secureHtmlSchema = z
+  .string()
   .max(5000, 'Content is too long')
   .transform((val) => SecurityUtils.sanitizeInput(val, { allowHtml: true }));

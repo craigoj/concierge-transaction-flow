@@ -1,5 +1,8 @@
+import { describe, it, expect, vi } from 'vitest';
 
-import { describe, it, expect } from 'vitest';
+// Unmock security-utils for this specific test file
+vi.unmock('@/lib/security-utils');
+
 import {
   emailSchema,
   phoneSchema,
@@ -9,7 +12,7 @@ import {
   sanitizeInput,
   sanitizeHtml,
   offerRequestCrossValidation,
-  vendorValidationSchema
+  vendorValidationSchema,
 } from '@/lib/validation/validators';
 
 describe('Email Validation', () => {
@@ -61,7 +64,7 @@ describe('URL Validation', () => {
 
 describe('Currency Validation', () => {
   it('should validate positive currency amounts', () => {
-    expect(() => currencySchema.parse(100.50)).not.toThrow();
+    expect(() => currencySchema.parse(100.5)).not.toThrow();
     expect(() => currencySchema.parse(1000000)).not.toThrow();
   });
 
@@ -90,7 +93,7 @@ describe('Cross-field Validation', () => {
   it('should validate offer request with reasonable EMD', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
-    
+
     const validOffer = {
       purchase_price: 300000,
       emd_amount: 15000, // 5% - reasonable
@@ -99,10 +102,10 @@ describe('Cross-field Validation', () => {
       loan_type: 'conventional',
       buyer_contacts: {
         emails: ['buyer@example.com'],
-        phones: ['+1234567890']
-      }
+        phones: ['+1234567890'],
+      },
     };
-    
+
     expect(() => offerRequestCrossValidation.parse(validOffer)).not.toThrow();
   });
 
@@ -115,10 +118,10 @@ describe('Cross-field Validation', () => {
       loan_type: 'conventional',
       buyer_contacts: {
         emails: ['buyer@example.com'],
-        phones: ['+1234567890']
-      }
+        phones: ['+1234567890'],
+      },
     };
-    
+
     expect(() => offerRequestCrossValidation.parse(invalidOffer)).toThrow();
   });
 });
@@ -133,9 +136,9 @@ describe('Vendor Validation', () => {
       address: '123 Business St, Hampton, VA',
       notes: 'Preferred lender for VA loans',
       vendor_type: 'lender' as const,
-      is_primary: true
+      is_primary: true,
     };
-    
+
     expect(() => vendorValidationSchema.parse(vendor)).not.toThrow();
   });
 
@@ -143,9 +146,9 @@ describe('Vendor Validation', () => {
     const vendor = {
       company_name: '<script>alert("xss")</script>Clean Company',
       vendor_type: 'lender' as const,
-      is_primary: false
+      is_primary: false,
     };
-    
+
     const result = vendorValidationSchema.parse(vendor);
     expect(result.company_name).toBe('Clean Company');
   });
